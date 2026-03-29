@@ -217,3 +217,73 @@ export async function getPaymentTransactionForStudent(transactionId: string, stu
 
   return data
 }
+
+export async function markPaymentTransactionRefunded(input: {
+  transactionId: string
+  mercadopagoPaymentId: number
+  refundResponse: unknown
+}) {
+  const admin = createAdminClient()
+  const { data: transaction, error: transactionError } = await admin
+    .from('payment_transactions')
+    .select('id, booking_ids, student_package_id, gateway_response')
+    .eq('id', input.transactionId)
+    .single()
+
+  if (transactionError || !transaction) {
+    throw new Error(transactionError?.message ?? 'Transacao local nao encontrada para reembolso.')
+  }
+
+  const mergedGatewayResponse = {
+    payment: transaction.gateway_response ?? null,
+    refund: input.refundResponse,
+  }
+
+  const { error: updateTransactionError } = await admin
+    .from('payment_transactions')
+    .update({
+      status: 'refunded',
+      mercadopago_payment_id: input.mercadopagoPaymentId,
+      mercadopago_status: 'refunded',
+      mercadopago_status_detail: 'Pagamento reembolsado.',
+      gateway_response: mergedGatewayResponse,
+    })
+    .eq('id', transaction.id)
+
+  if (updateTransactionError) throw new Error(updateTransactionError.message)
+
+  const bookingIds = (transaction.booking_ids as string[] | null) ?? []
+
+  if (bookingIds.length > 0) {
+    const { error: bookingPaymentError } = await admin
+      .from('bookings')
+      .update({
+        payment_status: 'refunded',
+      })
+      .in('id', bookingIds)
+
+    if (bookingPaymentError) throw new Error(bookingPaymentError.message)
+
+    const { error: bookingStatusError } = await admin
+      .from('bookings')
+      .update({
+        status: 'cancelled',
+      })
+      .in('id', bookingIds)
+      .neq('status', 'completed')
+
+    if (bookingStatusError) throw new Error(bookingStatusError.message)
+  }
+
+  if (transaction.student_package_id) {
+    const { error: packageError } = await admin
+      .from('student_packages')
+      .update({
+        payment_status: 'refunded',
+        status: 'cancelled',
+      })
+      .eq('id', transaction.student_package_id)
+
+    if (packageError) throw new Error(packageError.message)
+  }
+}

@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, Users, Waves, X } from 'lucide-react'
 import { BookingStatusActions } from '@/components/dashboard/BookingStatusActions'
 import { ManualBookingForm } from '@/components/dashboard/ManualBookingForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PaginationControls } from '@/components/ui/pagination-controls'
 import type { Booking, Instructor, StudentProfile } from '@/lib/types'
 import { formatPrice } from '@/lib/utils'
 
@@ -33,6 +34,13 @@ interface Props {
 export function BookingsPageClient({ bookings, students, instructors }: Props) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const canCreateBooking = students.length > 0 && instructors.length > 0
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+
+  const paginatedBookings = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return bookings.slice(start, start + pageSize)
+  }, [bookings, currentPage])
 
   return (
     <>
@@ -58,46 +66,55 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
               <p className="text-slate-400">Nenhum agendamento encontrado.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Data</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Aluno</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Instrutor</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Horarios</th>
-                    <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Total</th>
-                    <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Status</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">
-                        {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">{booking.student?.full_name ?? '-'}</td>
-                      <td className="px-4 py-3 text-slate-700">{booking.instructor?.full_name ?? '-'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1 flex-wrap">
-                          {booking.time_slots.map((slot) => (
-                            <span key={slot} className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] font-medium">{slot}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold text-[var(--primary)]">{formatPrice(booking.total_amount)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge variant={STATUS_VARIANT[booking.status]}>{STATUS_LABEL[booking.status]}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <BookingStatusActions bookingId={booking.id} status={booking.status} />
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Data</th>
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Aluno</th>
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Instrutor</th>
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Horarios</th>
+                      <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Total</th>
+                      <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Status</th>
+                      <th className="px-4 py-3"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginatedBookings.map((booking) => (
+                      <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">
+                          {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">{booking.student?.full_name ?? '-'}</td>
+                        <td className="px-4 py-3 text-slate-700">{booking.instructor?.full_name ?? '-'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1 flex-wrap">
+                            {booking.time_slots.map((slot) => (
+                              <span key={slot} className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] font-medium">{slot}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-[var(--primary)]">{formatPrice(booking.total_amount)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge variant={STATUS_VARIANT[booking.status]}>{STATUS_LABEL[booking.status]}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <BookingStatusActions bookingId={booking.id} status={booking.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalItems={bookings.length}
+                onPageChange={setCurrentPage}
+                itemLabel="agendamentos"
+              />
+            </>
           )}
         </div>
       </div>

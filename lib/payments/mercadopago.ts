@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { MercadoPagoConfig, Payment } from 'mercadopago'
+import { MercadoPagoConfig, Payment, PaymentRefund } from 'mercadopago'
 import type { PaymentResponse } from 'mercadopago/dist/clients/payment/commonTypes'
 import type { PaymentCreateRequest } from 'mercadopago/dist/clients/payment/create/types'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -126,6 +126,10 @@ function getMercadoPagoOAuthConfig() {
 
 export function createMercadoPagoPaymentClient(accessToken: string) {
   return new Payment(new MercadoPagoConfig({ accessToken }))
+}
+
+export function createMercadoPagoRefundClient(accessToken: string) {
+  return new PaymentRefund(new MercadoPagoConfig({ accessToken }))
 }
 
 export function createExternalReference(prefix: CheckoutSelectionType) {

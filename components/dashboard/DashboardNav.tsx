@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  ReceiptText,
   Settings,
   TicketPercent,
   Users,
@@ -66,6 +67,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Financeiro',
     items: [
       { href: '/dashboard/settings/payment-methods', label: 'Meio de pagamento', icon: CreditCard },
+      { href: '/dashboard/sales-history', label: 'Historico de vendas', icon: ReceiptText },
       { href: '/dashboard/commission-payments', label: 'Pagamento de comissao', icon: CircleDollarSign },
     ],
   },

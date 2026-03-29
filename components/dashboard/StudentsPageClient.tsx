@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Mail, Phone, Plus, Users, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StudentForm } from '@/components/dashboard/StudentForm'
+import { PaginationControls } from '@/components/ui/pagination-controls'
+import { formatCpf } from '@/lib/cpf'
 import type { DashboardStudentRow } from '@/lib/types'
 
 interface Props {
@@ -13,6 +15,13 @@ interface Props {
 
 export function StudentsPageClient({ students }: Props) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return students.slice(start, start + pageSize)
+  }, [currentPage, students])
 
   return (
     <>
@@ -52,12 +61,13 @@ export function StudentsPageClient({ students }: Props) {
                   <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
                     <th className="px-5 py-3">Aluno</th>
                     <th className="px-5 py-3">Contato</th>
+                    <th className="px-5 py-3">Documento</th>
                     <th className="px-5 py-3">Aulas</th>
                     <th className="px-5 py-3">Cadastro</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {students.map((student) => (
+                  {paginatedStudents.map((student) => (
                     <tr key={student.id} className="align-top">
                       <td className="px-5 py-4">
                         <div className="font-semibold text-slate-800">{student.full_name}</div>
@@ -72,6 +82,22 @@ export function StudentsPageClient({ students }: Props) {
                           <div className="inline-flex items-center gap-2">
                             <Phone size={14} className="text-slate-400" />
                             <span>{student.phone ?? '--'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-slate-600">
+                        <div className="flex flex-col gap-2">
+                          <div>
+                            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">CPF</span>
+                            <div>{student.cpf ? formatCpf(student.cpf) : '--'}</div>
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Nascimento</span>
+                            <div>
+                              {student.birth_date
+                                ? new Date(`${student.birth_date}T00:00:00`).toLocaleDateString('pt-BR')
+                                : '--'}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -95,6 +121,13 @@ export function StudentsPageClient({ students }: Props) {
                 </tbody>
               </table>
             </div>
+            <PaginationControls
+              currentPage={currentPage}
+              pageSize={pageSize}
+              totalItems={students.length}
+              onPageChange={setCurrentPage}
+              itemLabel="alunos"
+            />
           </div>
         )}
       </div>

@@ -6,9 +6,10 @@ import { useSearchParams } from 'next/navigation'
 import { completeStudentProfileRegistration, signInStudent, signUpStudent } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, AlertTriangle, CalendarDays, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { CPF_INPUT_MAX_LENGTH, formatCpf } from '@/lib/cpf'
 
 interface Props {
   params: Promise<{ school: string }>
@@ -26,6 +27,7 @@ export default function StudentAuthPage({ params: paramsPromise }: Props) {
   const [next, setNext] = useState(resolveNext(searchParams.get('next')))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [cpf, setCpf] = useState('')
 
   useEffect(() => {
     paramsPromise.then(p => setSlug(p.school))
@@ -134,9 +136,27 @@ export default function StudentAuthPage({ params: paramsPromise }: Props) {
             )}
 
             {(mode === 'register' || mode === 'complete') && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Telefone / WhatsApp</label>
-                <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Telefone / WhatsApp</label>
+                  <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">CPF *</label>
+                  <Input
+                    name="cpf"
+                    required
+                    value={cpf}
+                    onChange={(event) => setCpf(formatCpf(event.target.value))}
+                    maxLength={CPF_INPUT_MAX_LENGTH}
+                    placeholder="000.000.000-00"
+                    icon={<CreditCard size={14} />}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Data de nascimento *</label>
+                  <Input name="birth_date" type="date" required icon={<CalendarDays size={14} />} />
+                </div>
               </div>
             )}
 

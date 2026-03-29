@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Calendar, Check, ChevronLeft, ChevronRight, Clock, Package, User, Waves } from 'lucide-react'
 import { getStudentProfile, getTakenSlots } from '@/actions/bookings'
+import { getPublicSchoolRulesBySlug } from '@/actions/dashboard'
 import { getInstructorsBySchoolSlug } from '@/actions/instructors'
 import { getPublicLessonPackagesBySchoolSlug } from '@/actions/packages'
 import { MercadoPagoCheckoutBrick } from '@/components/checkout/MercadoPagoCheckoutBrick'
+import { filterBookableSlots, getDateKeyFromDate, getDefaultBookingRules, getSchoolNowDateKey, isDateWithinBookingWindow } from '@/lib/booking-rules'
 import { createClient } from '@/lib/supabase/client'
-import type { BookingWizardState, Instructor, LessonPackage } from '@/lib/types'
+import type { BookingWizardState, Instructor, LessonPackage, SchoolRules } from '@/lib/types'
 import { formatDate, formatPrice, initials, MONTHS_PT, WEEKDAYS_PT } from '@/lib/utils'
 
 const SINGLE_STEPS = ['Produto', 'Data', 'Instrutor', 'Horarios', 'Confirmar'] as const
@@ -22,6 +24,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const router = useRouter()
   const [slug, setSlug] = useState('')
   const [school, setSchool] = useState<{ id: string; name: string; primary_color: string; cta_color: string } | null>(null)
+  const [schoolRules, setSchoolRules] = useState<SchoolRules | null>(null)
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [packages, setPackages] = useState<LessonPackage[]>([])
   const [student, setStudent] = useState<{ id: string; full_name: string } | null>(null)
@@ -69,6 +72,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
     getInstructorsBySchoolSlug(slug).then(setInstructors)
     getPublicLessonPackagesBySchoolSlug(slug).then(setPackages)
+    getPublicSchoolRulesBySlug(slug).then(setSchoolRules)
     supabase.auth.getUser().then(({ data: { user } }) => {
       setStudentEmail(user?.email ?? null)
       if (!user) router.push(`/${slug}/entrar?mode=login&next=agendar`)
@@ -99,6 +103,13 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const finalStep = steps.length as 4 | 5
   const primaryColor = school?.primary_color ?? '#0077b6'
   const ctaColor = school?.cta_color ?? '#f77f00'
+  const bookingRules = useMemo(
+    () => ({
+      minimumBookingNoticeHours: schoolRules?.minimum_booking_notice_hours ?? getDefaultBookingRules().minimumBookingNoticeHours,
+      bookingWindowDays: schoolRules?.booking_window_days ?? getDefaultBookingRules().bookingWindowDays,
+    }),
+    [schoolRules],
+  )
 
   const eligibleInstructors = useMemo(() => {
     if (!isPackageFlow || !wizard.selectedPackage) return instructors
@@ -117,9 +128,13 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const singleAvailableInstructors = useMemo(() => {
     if (!wizard.selectedDate) return []
     return eligibleInstructors.filter((instructor) =>
-      instructor.availability?.some((item) => Number(item.weekday) === wizard.selectedDate!.getDay())
+      filterBookableSlots(
+        wizard.selectedDate!,
+        getAvailabilityForDate(instructor, wizard.selectedDate!),
+        bookingRules,
+      ).length > 0
     )
-  }, [eligibleInstructors, wizard.selectedDate])
+  }, [bookingRules, eligibleInstructors, wizard.selectedDate])
 
   useEffect(() => {
     const selectedDate = isPackageFlow ? activePackageLesson?.date ?? null : wizard.selectedDate
@@ -146,7 +161,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const currentSlots = isPackageFlow ? activePackageLesson?.slots ?? [] : wizard.selectedSlots
   const slotOptions = !wizard.selectedInstructor || !currentDate
     ? []
-    : getAvailabilityForDate(wizard.selectedInstructor, currentDate).map((time) => ({
+    : filterBookableSlots(currentDate, getAvailabilityForDate(wizard.selectedInstructor, currentDate), bookingRules).map((time) => ({
         time,
         taken: takenSlots.includes(time),
       }))
@@ -272,8 +287,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   }
 
   function buildCalendar() {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayKey = getSchoolNowDateKey()
 
     const year = calendarMonth.getFullYear()
     const month = calendarMonth.getMonth()
@@ -288,11 +302,12 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     for (let day = 1; day <= daysInMonth; day += 1) {
       const date = new Date(year, month, day)
       date.setHours(0, 0, 0, 0)
-      const past = date < today
+      const dateKey = getDateKeyFromDate(date)
+      const past = dateKey < todayKey
       cells.push({
         day,
         date,
-        available: allowedWeekdays.has(date.getDay()) && !past,
+        available: allowedWeekdays.has(date.getDay()) && !past && isDateWithinBookingWindow(date, bookingRules.bookingWindowDays),
         selected: currentDate?.getTime() === date.getTime(),
         past,
       })
@@ -561,8 +576,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                       <div className="mt-3">
                         <div className="text-[11px] font-bold uppercase text-slate-400">Horarios em {formatDate(wizard.selectedDate)}</div>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {getAvailabilityForDate(instructor, wizard.selectedDate).length > 0 ? (
-                            getAvailabilityForDate(instructor, wizard.selectedDate).map((slot) => (
+                          {filterBookableSlots(wizard.selectedDate, getAvailabilityForDate(instructor, wizard.selectedDate), bookingRules).length > 0 ? (
+                            filterBookableSlots(wizard.selectedDate, getAvailabilityForDate(instructor, wizard.selectedDate), bookingRules).map((slot) => (
                               <span key={slot} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                                 {slot}
                               </span>

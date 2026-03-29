@@ -139,7 +139,10 @@ export interface StudentProfile {
   user_id: string
   school_id: string
   full_name: string
+  email: string | null
   phone: string | null
+  cpf: string | null
+  birth_date: string | null
   created_at: string
 }
 
@@ -211,6 +214,26 @@ export interface InstructorCommissionPayment {
   created_at: string
   updated_at: string
   instructor?: Pick<Instructor, 'id' | 'full_name' | 'color' | 'photo_url'>
+}
+
+export interface SalesHistoryEntry {
+  id: string
+  kind: 'single_lesson' | 'package' | 'trip'
+  title: string
+  customer_name: string
+  customer_email: string | null
+  customer_phone: string | null
+  amount: number
+  payment_status: PaymentStatus
+  sale_status: string
+  payment_method_label: string
+  external_reference: string | null
+  mercadopago_payment_id: number | null
+  mercadopago_status: string | null
+  mercadopago_status_detail: string | null
+  created_at: string
+  updated_at: string
+  can_refund: boolean
 }
 
 // ─── Wizard state ─────────────────────────────────────────────────────────────

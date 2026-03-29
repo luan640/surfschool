@@ -2,11 +2,12 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, Mail, Phone, User } from 'lucide-react'
+import { CalendarDays, CreditCard, Lock, Mail, Phone, User } from 'lucide-react'
 import { createDashboardStudent } from '@/actions/students'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toaster'
+import { formatCpf, CPF_INPUT_MAX_LENGTH } from '@/lib/cpf'
 
 interface Props {
   onSuccess?: () => void
@@ -18,6 +19,7 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
   const { success, error: showError } = useToast()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [cpf, setCpf] = useState('')
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -66,6 +68,22 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Telefone</label>
             <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">CPF *</label>
+            <Input
+              name="cpf"
+              required
+              value={cpf}
+              onChange={(event) => setCpf(formatCpf(event.target.value))}
+              maxLength={CPF_INPUT_MAX_LENGTH}
+              placeholder="000.000.000-00"
+              icon={<CreditCard size={14} />}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Data de nascimento *</label>
+            <Input name="birth_date" type="date" required icon={<CalendarDays size={14} />} />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Senha inicial *</label>

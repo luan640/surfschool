@@ -2,6 +2,8 @@
 
 import { randomUUID } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { validateCpfField } from '@/lib/cpf'
+import { findAuthUserByEmail } from '@/lib/supabase/auth-admin'
 import { createClient } from '@/lib/supabase/server'
 import { validatePhoneField } from '@/lib/phone'
 import { slugify } from '@/lib/utils'
@@ -99,17 +101,58 @@ export async function signInOwner(formData: FormData): Promise<ActionResult> {
 
 export async function signUpStudent(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
+  const admin = createAdminClient()
 
-  const email = formData.get('email') as string
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = formData.get('password') as string
   const fullName = formData.get('full_name') as string
+  const birthDate = ((formData.get('birth_date') as string | null) ?? '').trim()
   const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+  const cpfResult = validateCpfField(formData.get('cpf') as string | null, 'CPF')
   const schoolId = formData.get('school_id') as string
   const schoolSlug = formData.get('school_slug') as string
   const next = resolveStudentDestination(formData.get('next') as string | null, schoolSlug)
 
   if (phoneResult.error) {
     return { success: false, error: phoneResult.error }
+  }
+
+  if (cpfResult.error) {
+    return { success: false, error: cpfResult.error }
+  }
+
+  if (!birthDate) {
+    return { success: false, error: 'Data de nascimento e obrigatoria.' }
+  }
+
+  const { data: existingCpfProfile } = await admin
+    .from('student_profiles')
+    .select('id')
+    .eq('school_id', schoolId)
+    .eq('cpf', cpfResult.value)
+    .maybeSingle()
+
+  if (existingCpfProfile) {
+    return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+  }
+
+  const { data: existingEmailProfile } = await admin
+    .from('student_profiles')
+    .select('id')
+    .eq('school_id', schoolId)
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existingEmailProfile) {
+    return { success: false, error: 'Ja existe um aluno com este e-mail nesta escola.' }
+  }
+
+  const existingAuthUser = await findAuthUserByEmail(email)
+  if (existingAuthUser) {
+    return {
+      success: false,
+      error: 'Este e-mail ja possui conta. Use Entrar para acessar ou concluir o cadastro nesta escola.',
+    }
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -127,7 +170,10 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
     user_id: data.user.id,
     school_id: schoolId,
     full_name: fullName,
+    email,
     phone: phoneResult.value,
+    cpf: cpfResult.value,
+    birth_date: birthDate,
   })
 
   if (profileErr) {
@@ -146,13 +192,47 @@ export async function completeStudentProfileRegistration(formData: FormData): Pr
   }
 
   const fullName = formData.get('full_name') as string
+  const birthDate = ((formData.get('birth_date') as string | null) ?? '').trim()
   const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+  const cpfResult = validateCpfField(formData.get('cpf') as string | null, 'CPF')
   const schoolId = formData.get('school_id') as string
   const schoolSlug = formData.get('school_slug') as string
   const next = resolveStudentDestination(formData.get('next') as string | null, schoolSlug)
 
   if (phoneResult.error) {
     return { success: false, error: phoneResult.error }
+  }
+
+  if (cpfResult.error) {
+    return { success: false, error: cpfResult.error }
+  }
+
+  if (!birthDate) {
+    return { success: false, error: 'Data de nascimento e obrigatoria.' }
+  }
+
+  const normalizedEmail = user.email?.trim().toLowerCase() ?? ''
+
+  const { data: existingCpfProfile } = await supabase
+    .from('student_profiles')
+    .select('id')
+    .eq('school_id', schoolId)
+    .eq('cpf', cpfResult.value)
+    .maybeSingle()
+
+  if (existingCpfProfile) {
+    return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+  }
+
+  const { data: existingEmailProfile } = await supabase
+    .from('student_profiles')
+    .select('id')
+    .eq('school_id', schoolId)
+    .eq('email', normalizedEmail)
+    .maybeSingle()
+
+  if (existingEmailProfile) {
+    return { success: false, error: 'Ja existe um aluno com este e-mail nesta escola.' }
   }
 
   const { data: existingProfile } = await supabase
@@ -170,7 +250,10 @@ export async function completeStudentProfileRegistration(formData: FormData): Pr
     user_id: user.id,
     school_id: schoolId,
     full_name: fullName,
+    email: normalizedEmail,
     phone: phoneResult.value,
+    cpf: cpfResult.value,
+    birth_date: birthDate,
   })
 
   if (error) {

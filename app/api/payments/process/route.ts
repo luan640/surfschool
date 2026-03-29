@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { PaymentResponse } from 'mercadopago/dist/clients/payment/commonTypes'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { filterBookableSlots, getDefaultBookingRules } from '@/lib/booking-rules'
 import {
   buildMercadoPagoPaymentBody,
   CheckoutBrickPayload,
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Escola nao encontrada.' }, { status: 404 })
     }
 
+    const rules = await getBookingRulesForSchool(school.id)
+
     const schoolAccessToken = await getValidMercadoPagoAccessTokenForSchool(school.id)
     if (!schoolAccessToken) {
       return NextResponse.json({ error: 'A escola ainda nao conectou o Mercado Pago para receber pagamentos.' }, { status: 409 })
@@ -94,13 +97,23 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Data e horarios sao obrigatorios.' }, { status: 400 })
       }
 
-      amount = Number(instructor.hourly_price) * body.selectedSlots.length
+      const normalizedSelectedSlots = [...new Set(body.selectedSlots)].sort()
+      const allowedSlots = filterBookableSlots(body.selectedDate, normalizedSelectedSlots, rules)
+
+      if (allowedSlots.length !== normalizedSelectedSlots.length) {
+        return NextResponse.json(
+          { error: 'Os horarios selecionados nao respeitam a antecedencia minima ou ja passaram.' },
+          { status: 409 },
+        )
+      }
+
+      amount = Number(instructor.hourly_price) * normalizedSelectedSlots.length
       let { data: booking, error: bookingError } = await admin.rpc('create_booking_safe', {
         p_school_id: school.id,
         p_student_id: student.id,
         p_instructor_id: instructor.id,
         p_lesson_date: body.selectedDate,
-        p_time_slots: body.selectedSlots,
+        p_time_slots: normalizedSelectedSlots,
         p_unit_price: instructor.hourly_price,
         p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
         p_billing_mode: 'hourly',
@@ -113,7 +126,7 @@ export async function POST(request: Request) {
           p_student_id: student.id,
           p_instructor_id: instructor.id,
           p_lesson_date: body.selectedDate,
-          p_time_slots: body.selectedSlots,
+          p_time_slots: normalizedSelectedSlots,
           p_unit_price: instructor.hourly_price,
           p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
         })
@@ -135,6 +148,24 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Pacote e aulas planejadas sao obrigatorios.' }, { status: 400 })
       }
 
+      const normalizedLessons = body.lessons.map((lesson) => ({
+        lessonDate: lesson.lessonDate,
+        timeSlots: [...new Set(lesson.timeSlots)].sort(),
+      }))
+
+      const hasInvalidLesson = normalizedLessons.some((lesson) => {
+        const normalizedSlots = [...new Set(lesson.timeSlots)].sort()
+        if (normalizedSlots.length === 0) return true
+        return filterBookableSlots(lesson.lessonDate, normalizedSlots, rules).length !== normalizedSlots.length
+      })
+
+      if (hasInvalidLesson) {
+        return NextResponse.json(
+          { error: 'Uma ou mais aulas do pacote nao respeitam a antecedencia minima ou usam horarios que ja passaram.' },
+          { status: 409 },
+        )
+      }
+
       const { data: pkg, error: packageError } = await admin
         .from('lesson_packages')
         .select('id, name, price')
@@ -154,7 +185,7 @@ export async function POST(request: Request) {
         p_student_id: student.id,
         p_instructor_id: instructor.id,
         p_package_id: pkg.id,
-        p_lessons: body.lessons,
+        p_lessons: normalizedLessons,
         p_total_amount: amount,
         p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
       })
@@ -259,4 +290,18 @@ function resolveLocalPaymentMethod(checkoutData: CheckoutBrickPayload) {
   return checkoutData.paymentType === 'bank_transfer' || checkoutData.selectedPaymentMethod === 'bank_transfer' || checkoutData.formData.payment_method_id === 'pix'
     ? 'pix'
     : 'credit_card'
+}
+
+async function getBookingRulesForSchool(schoolId: string) {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('school_rules')
+    .select('minimum_booking_notice_hours, booking_window_days')
+    .eq('school_id', schoolId)
+    .maybeSingle()
+
+  return {
+    minimumBookingNoticeHours: data?.minimum_booking_notice_hours ?? getDefaultBookingRules().minimumBookingNoticeHours,
+    bookingWindowDays: data?.booking_window_days ?? getDefaultBookingRules().bookingWindowDays,
+  }
 }

@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CalendarDays, FileText, Filter, Landmark, Search, Wallet, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createCommissionPayment } from '@/actions/commission-payments'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PaginationControls } from '@/components/ui/pagination-controls'
 import { useToast } from '@/components/ui/toaster'
 import type { Instructor, InstructorCommissionPayment } from '@/lib/types'
 import { formatPrice, initials } from '@/lib/utils'
@@ -25,6 +26,8 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
   const [filterQuery, setFilterQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
 
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
@@ -47,6 +50,15 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
       return true
     })
   }, [payments, filterFrom, filterInstructorId, filterQuery, filterTo])
+
+  const paginatedPayments = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredPayments.slice(start, start + pageSize)
+  }, [currentPage, filteredPayments])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterFrom, filterInstructorId, filterQuery, filterTo])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -178,62 +190,71 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
               Nenhum pagamento encontrado para os filtros atuais.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                    <th className="px-5 py-3">Instrutor</th>
-                    <th className="px-5 py-3">Data do pagamento</th>
-                    <th className="px-5 py-3">Valor</th>
-                    <th className="px-5 py-3">Observacoes</th>
-                    <th className="px-5 py-3">Registrado em</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredPayments.map((payment) => (
-                    <tr key={payment.id} className="align-top">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          {payment.instructor?.photo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={payment.instructor.photo_url} alt={payment.instructor.full_name} className="h-11 w-11 rounded-full object-cover" />
-                          ) : (
-                            <div
-                              className="flex h-11 w-11 items-center justify-center rounded-full font-condensed text-sm font-bold text-white"
-                              style={{ background: payment.instructor?.color ?? '#0f172a' }}
-                            >
-                              {initials(payment.instructor?.full_name ?? 'Instrutor')}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-semibold text-slate-800">{payment.instructor?.full_name ?? 'Instrutor'}</div>
-                            <div className="text-xs text-slate-400">ID {payment.instructor_id.slice(0, 8)}</div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4 text-sm text-slate-700 whitespace-nowrap">
-                        {new Date(`${payment.payment_date}T00:00:00`).toLocaleDateString('pt-BR')}
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="font-condensed text-2xl font-bold text-[var(--primary)]">
-                          {formatPrice(Number(payment.amount))}
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4 text-sm leading-relaxed text-slate-600">
-                        {payment.notes || '--'}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm text-slate-500 whitespace-nowrap">
-                        {new Date(payment.created_at).toLocaleDateString('pt-BR')}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                      <th className="px-5 py-3">Instrutor</th>
+                      <th className="px-5 py-3">Data do pagamento</th>
+                      <th className="px-5 py-3">Valor</th>
+                      <th className="px-5 py-3">Observacoes</th>
+                      <th className="px-5 py-3">Registrado em</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedPayments.map((payment) => (
+                      <tr key={payment.id} className="align-top">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            {payment.instructor?.photo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={payment.instructor.photo_url} alt={payment.instructor.full_name} className="h-11 w-11 rounded-full object-cover" />
+                            ) : (
+                              <div
+                                className="flex h-11 w-11 items-center justify-center rounded-full font-condensed text-sm font-bold text-white"
+                                style={{ background: payment.instructor?.color ?? '#0f172a' }}
+                              >
+                                {initials(payment.instructor?.full_name ?? 'Instrutor')}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-slate-800">{payment.instructor?.full_name ?? 'Instrutor'}</div>
+                              <div className="text-xs text-slate-400">ID {payment.instructor_id.slice(0, 8)}</div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-slate-700 whitespace-nowrap">
+                          {new Date(`${payment.payment_date}T00:00:00`).toLocaleDateString('pt-BR')}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="font-condensed text-2xl font-bold text-[var(--primary)]">
+                            {formatPrice(Number(payment.amount))}
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm leading-relaxed text-slate-600">
+                          {payment.notes || '--'}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-slate-500 whitespace-nowrap">
+                          {new Date(payment.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalItems={filteredPayments.length}
+                onPageChange={setCurrentPage}
+                itemLabel="registros"
+              />
+            </>
           )}
         </section>
       </div>

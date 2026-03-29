@@ -329,6 +329,40 @@ export async function getSchoolRules(): Promise<SchoolRules | null> {
   }
 }
 
+export async function getPublicSchoolRulesBySlug(slug: string): Promise<SchoolRules | null> {
+  if (!slug) return null
+
+  const admin = createAdminClient()
+  const { data: school } = await admin
+    .from('schools')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (!school) return null
+
+  const { data } = await admin
+    .from('school_rules')
+    .select('*')
+    .eq('school_id', school.id)
+    .maybeSingle()
+
+  if (data) return data as SchoolRules
+
+  return {
+    school_id: school.id,
+    allow_student_cancellation: true,
+    cancellation_notice_hours: 24,
+    allow_student_reschedule: true,
+    reschedule_notice_hours: 24,
+    minimum_booking_notice_hours: 2,
+    booking_window_days: 90,
+    max_active_bookings_per_student: null,
+    created_at: '',
+    updated_at: '',
+  }
+}
+
 export async function updateSchoolSettings(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
   const school = await getMySchool()
