@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { Building2, ImageUp, MapPin, Phone } from 'lucide-react'
 import { Banner } from '@/components/dashboard/settings/SettingsStatus'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 import type { School } from '@/lib/types'
 
 interface Props {
@@ -17,6 +18,16 @@ const MAX_LOGO_SIZE = 2 * 1024 * 1024
 
 export function AccountDataForm({ school, status, action }: Props) {
   const [logoError, setLogoError] = useState('')
+  const { success, error: showError } = useToast()
+
+  useEffect(() => {
+    if (status === 'saved') {
+      success('Dados da conta atualizados com sucesso.')
+    }
+    if (status === 'error') {
+      showError('Nao foi possivel salvar os dados da conta.')
+    }
+  }, [showError, status, success])
 
   function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]

@@ -21,7 +21,13 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
     return { success: false, error: phoneResult.error }
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: buildAuthCallbackUrl(getEmailConfirmationStatusPath('success', email)),
+    },
+  })
   if (error || !data.user) {
     return { success: false, error: error?.message ?? 'Erro ao criar conta' }
   }
@@ -37,7 +43,7 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
     return { success: false, error: 'Conta criada, mas escola não pôde ser registrada: ' + schoolErr.message }
   }
 
-  redirect('/dashboard/overview')
+  redirect(`/auth/register/success?email=${encodeURIComponent(email)}`)
 }
 
 export async function completeOwnerSchoolRegistration(formData: FormData): Promise<ActionResult> {
@@ -106,7 +112,13 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
     return { success: false, error: phoneResult.error }
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: buildAuthCallbackUrl(getEmailConfirmationStatusPath('success', email)),
+    },
+  })
   if (error || !data.user) {
     return { success: false, error: error?.message ?? 'Erro ao criar conta' }
   }
@@ -203,6 +215,29 @@ export async function signOut() {
   redirect('/auth/login')
 }
 
+export async function resendConfirmationEmail(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
+
+  if (!email) {
+    return { success: false, error: 'Informe o e-mail para reenviar a confirmacao.' }
+  }
+
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: buildAuthCallbackUrl(getEmailConfirmationStatusPath('success', email)),
+    },
+  })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, data: undefined }
+}
+
 async function createSchoolForOwner({
   supabase,
   ownerId,
@@ -233,4 +268,14 @@ function resolveStudentNextKey(next: string | null) {
 function resolveStudentDestination(next: string | null, schoolSlug: string) {
   if (resolveStudentNextKey(next) === 'minhas-aulas') return `/${schoolSlug}/minhas-aulas`
   return `/${schoolSlug}/agendar`
+}
+
+function buildAuthCallbackUrl(nextPath: string) {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfschool.vercel.app').replace(/\/$/, '')
+  const safeNextPath = nextPath.startsWith('/') ? nextPath : '/auth/confirmed'
+  return `${appUrl}/auth/callback?next=${encodeURIComponent(safeNextPath)}`
+}
+
+function getEmailConfirmationStatusPath(status: 'success' | 'expired', email: string) {
+  return `/auth/confirmation-status?status=${status}&email=${encodeURIComponent(email)}`
 }

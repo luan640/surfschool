@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { completeOwnerSchoolRegistration, signUpOwner } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/toaster'
 import { Mail, Lock, User, Building2, Phone, Waves, ArrowRight, AlertTriangle } from 'lucide-react'
 
 type RegisterMode = 'signup' | 'complete'
 
 export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
+  const { error: showError, success } = useToast()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -23,7 +25,13 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
 
     if (result && !result.success) {
       setError(result.error)
+      showError(isCompleteMode ? 'Nao foi possivel concluir o cadastro da escola.' : 'Nao foi possivel criar a conta.', result.error)
       setLoading(false)
+      return
+    }
+
+    if (isCompleteMode) {
+      success('Cadastro da escola concluido com sucesso.')
     }
   }
 

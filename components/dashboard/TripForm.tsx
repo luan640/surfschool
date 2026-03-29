@@ -6,6 +6,7 @@ import { CalendarDays, ImagePlus, MapPin, NotebookText, Tag, Users } from 'lucid
 import { createTrip, updateTrip } from '@/actions/trips'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 import type { Trip } from '@/lib/types'
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 
 export function TripForm({ trip }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mediaError, setMediaError] = useState('')
@@ -55,10 +57,12 @@ export function TripForm({ trip }: Props) {
 
     if (!result.success) {
       setError(result.error)
+      showError(trip ? 'Nao foi possivel salvar a trip.' : 'Nao foi possivel criar a trip.', result.error)
       setLoading(false)
       return
     }
 
+    success(trip ? 'Trip atualizada com sucesso.' : 'Trip criada com sucesso.')
     router.push('/dashboard/trips')
     router.refresh()
   }

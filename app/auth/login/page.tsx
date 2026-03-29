@@ -1,15 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { signInOwner } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/toaster'
 import { Mail, Lock, Waves, ArrowRight } from 'lucide-react'
 
 export default function OwnerLoginPage() {
-  const [error, setError]     = useState('')
+  const { error: showError } = useToast()
+  const [urlError, setUrlError] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setUrlError(params.get('error'))
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -18,6 +26,7 @@ export default function OwnerLoginPage() {
     const result = await signInOwner(new FormData(e.currentTarget))
     if (result && !result.success) {
       setError(result.error)
+      showError('Nao foi possivel entrar.', result.error)
       setLoading(false)
     }
   }
@@ -70,6 +79,16 @@ export default function OwnerLoginPage() {
             Entrar
           </h1>
           <p className="text-slate-400 text-sm mb-7">Acesse o painel da sua escola.</p>
+
+          {urlError && !error && (
+            <p className="mb-4 text-sm font-medium text-red-500">
+              {urlError === 'confirmation_failed'
+                ? 'Nao foi possivel confirmar seu e-mail automaticamente. Tente abrir o link novamente.'
+                : urlError === 'missing_code'
+                  ? 'Link de confirmacao invalido.'
+                  : 'Nao foi possivel concluir a autenticacao.'}
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">

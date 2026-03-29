@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { updateBookingStatus } from '@/actions/bookings'
+import { useToast } from '@/components/ui/toaster'
 import type { BookingStatus } from '@/lib/types'
 import { Check, X, RotateCcw } from 'lucide-react'
 
@@ -12,10 +13,23 @@ interface Props {
 
 export function BookingStatusActions({ bookingId, status }: Props) {
   const [loading, setLoading] = useState(false)
+  const { success, error: showError } = useToast()
 
   async function change(next: BookingStatus) {
     setLoading(true)
-    await updateBookingStatus(bookingId, next)
+    const result = await updateBookingStatus(bookingId, next)
+    if (!result.success) {
+      showError('Nao foi possivel atualizar o agendamento.', result.error)
+      setLoading(false)
+      return
+    }
+    success(
+      next === 'completed'
+        ? 'Aula marcada como concluida.'
+        : next === 'confirmed'
+          ? 'Aula confirmada com sucesso.'
+          : 'Aula cancelada com sucesso.',
+    )
     setLoading(false)
   }
 

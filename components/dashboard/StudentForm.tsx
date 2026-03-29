@@ -6,6 +6,7 @@ import { Lock, Mail, Phone, User } from 'lucide-react'
 import { createDashboardStudent } from '@/actions/students'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 
 interface Props {
   onSuccess?: () => void
@@ -14,6 +15,7 @@ interface Props {
 
 export function StudentForm({ onSuccess, onCancel }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -27,9 +29,12 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
 
     if (!result.success) {
       setError(result.error)
+      showError('Nao foi possivel cadastrar o aluno.', result.error)
       setLoading(false)
       return
     }
+
+    success('Aluno cadastrado com sucesso.')
 
     if (onSuccess) {
       onSuccess()

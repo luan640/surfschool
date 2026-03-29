@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 import { createDiscountCoupon, deleteDiscountCoupon, updateDiscountCoupon } from '@/actions/coupons'
 import type { DiscountCoupon, LessonPackage } from '@/lib/types'
 import { DollarSign, Percent, Tag, CalendarClock, FileText, Trash2, Hash, Package, Clock3 } from 'lucide-react'
@@ -16,6 +17,7 @@ interface Props {
 
 export function CouponForm({ coupon, packages }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [active, setActive] = useState(coupon?.active ?? true)
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>(coupon?.discount_type ?? 'percentage')
   const [appliesToSingleLesson, setAppliesToSingleLesson] = useState(coupon?.applies_to_single_lesson ?? false)
@@ -41,10 +43,12 @@ export function CouponForm({ coupon, packages }: Props) {
 
     if (!result.success) {
       setError(result.error)
+      showError(coupon ? 'Nao foi possivel salvar o cupom.' : 'Nao foi possivel criar o cupom.', result.error)
       setLoading(false)
       return
     }
 
+    success(coupon ? 'Cupom atualizado com sucesso.' : 'Cupom criado com sucesso.')
     router.push('/dashboard/coupons')
     router.refresh()
   }
@@ -59,10 +63,12 @@ export function CouponForm({ coupon, packages }: Props) {
 
     if (!result.success) {
       setError(result.error)
+      showError('Nao foi possivel excluir o cupom.', result.error)
       setLoading(false)
       return
     }
 
+    success('Cupom excluido com sucesso.')
     router.push('/dashboard/coupons')
     router.refresh()
   }

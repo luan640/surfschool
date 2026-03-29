@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Clock3, RefreshCw, ShieldCheck, TimerReset } from 'lucide-react'
 import type { SchoolRules } from '@/lib/types'
 import { Banner } from '@/components/dashboard/settings/SettingsStatus'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 
 interface Props {
   rules: SchoolRules
@@ -44,6 +46,17 @@ function ToggleField({
 }
 
 export function RulesForm({ rules, status, action }: Props) {
+  const { success, error: showError } = useToast()
+
+  useEffect(() => {
+    if (status === 'saved') {
+      success('Regras atualizadas com sucesso.')
+    }
+    if (status === 'error') {
+      showError('Nao foi possivel salvar as regras da escola.')
+    }
+  }, [showError, status, success])
+
   return (
     <div className="dashboard-page-compact">
       <div className="mb-8">

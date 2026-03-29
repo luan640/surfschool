@@ -6,6 +6,7 @@ import { Check, Clock3, DollarSign, ImageUp, Instagram, Phone, User } from 'luci
 import { createInstructor, saveAvailability, updateInstructor } from '@/actions/instructors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 import type { Instructor } from '@/lib/types'
 import { WEEKDAYS_PT } from '@/lib/utils'
 
@@ -35,6 +36,7 @@ export function InstructorForm({
   layout = 'default',
 }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [color, setColor] = useState(instructor?.color ?? '#0077b6')
@@ -142,6 +144,7 @@ export function InstructorForm({
 
     if (!result.success) {
       setError(result.error)
+      showError(instructor ? 'Nao foi possivel salvar o instrutor.' : 'Nao foi possivel criar o instrutor.', result.error)
       setLoading(false)
       return
     }
@@ -152,7 +155,15 @@ export function InstructorForm({
       time_slots: slots,
     }))
 
-    await saveAvailability(instructorId, availabilityRows)
+    const availabilityResult = await saveAvailability(instructorId, availabilityRows)
+    if (!availabilityResult.success) {
+      setError(availabilityResult.error)
+      showError('Nao foi possivel salvar os horarios do instrutor.', availabilityResult.error)
+      setLoading(false)
+      return
+    }
+
+    success(instructor ? 'Instrutor atualizado com sucesso.' : 'Instrutor criado com sucesso.')
 
     if (onSuccess) {
       onSuccess()

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createCommissionPayment } from '@/actions/commission-payments'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toaster'
 import type { Instructor, InstructorCommissionPayment } from '@/lib/types'
 import { formatPrice, initials } from '@/lib/utils'
 
@@ -16,6 +17,7 @@ interface Props {
 
 export function CommissionPaymentForm({ instructors, payments }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -56,12 +58,14 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
 
     if (!result.success) {
       setError(result.error)
+      showError('Nao foi possivel registrar o pagamento.', result.error)
       setLoading(false)
       return
     }
 
     event.currentTarget.reset()
     setCreateModalOpen(false)
+    success('Pagamento de comissao registrado com sucesso.')
     setLoading(false)
     router.refresh()
   }

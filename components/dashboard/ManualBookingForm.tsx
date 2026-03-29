@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Calendar, Clock, User } from 'lucide-react'
 import { createManualBooking, getTakenSlots } from '@/actions/bookings'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/toaster'
 import type { Instructor, StudentProfile } from '@/lib/types'
 import { WEEKDAYS_PT } from '@/lib/utils'
 
@@ -17,6 +18,7 @@ interface Props {
 
 export function ManualBookingForm({ students, instructors, onSuccess, onCancel }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [studentId, setStudentId] = useState(students[0]?.id ?? '')
   const [instructorId, setInstructorId] = useState(instructors[0]?.id ?? '')
   const [lessonDate, setLessonDate] = useState('')
@@ -64,10 +66,12 @@ export function ManualBookingForm({ students, instructors, onSuccess, onCancel }
 
     if (!result.success) {
       setError(result.error)
+      showError('Nao foi possivel criar o agendamento.', result.error)
       setLoading(false)
       return
     }
 
+    success('Agendamento criado com sucesso.')
     if (onSuccess) {
       onSuccess()
       router.refresh()

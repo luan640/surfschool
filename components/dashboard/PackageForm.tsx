@@ -7,6 +7,7 @@ import { createLessonPackage, updateLessonPackage } from '@/actions/packages'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/components/ui/toaster'
 import { formatPrice, initials } from '@/lib/utils'
 import type { Instructor, LessonPackage } from '@/lib/types'
 
@@ -19,6 +20,7 @@ interface Props {
 
 export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [selectedInstructorIds, setSelectedInstructorIds] = useState<string[]>(
     pkg?.instructors?.map((instructor) => instructor.id) ?? [],
   )
@@ -55,9 +57,12 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
 
     if (!result.success) {
       setError(result.error)
+      showError(pkg ? 'Nao foi possivel salvar o pacote.' : 'Nao foi possivel criar o pacote.', result.error)
       setLoading(false)
       return
     }
+
+    success(pkg ? 'Pacote atualizado com sucesso.' : 'Pacote criado com sucesso.')
 
     if (onSuccess) {
       onSuccess()
