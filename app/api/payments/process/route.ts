@@ -1,0 +1,262 @@
+import { NextResponse } from 'next/server'
+import type { PaymentResponse } from 'mercadopago/dist/clients/payment/commonTypes'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  buildMercadoPagoPaymentBody,
+  CheckoutBrickPayload,
+  createExternalReference,
+  getValidMercadoPagoAccessTokenForSchool,
+  createMercadoPagoPaymentClient,
+  mapMercadoPagoStatusMessage,
+} from '@/lib/payments/mercadopago'
+import {
+  attachTransactionToBookings,
+  createPaymentTransactionRecord,
+  failPaymentTransaction,
+  getBookingIdsForStudentPackage,
+  syncPaymentTransactionState,
+} from '@/lib/payments/payment-store'
+
+interface ProcessPaymentRequestBody {
+  schoolId: string
+  selectionType: 'single' | 'package'
+  instructorId: string
+  packageId?: string | null
+  selectedDate?: string
+  selectedSlots?: string[]
+  lessons?: Array<{ lessonDate: string; timeSlots: string[] }>
+  checkoutData: CheckoutBrickPayload
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as ProcessPaymentRequestBody
+
+    if (!body.schoolId || !body.selectionType || !body.instructorId || !body.checkoutData?.formData) {
+      return NextResponse.json({ error: 'Payload de pagamento invalido.' }, { status: 400 })
+    }
+
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user?.id || !user.email) {
+      return NextResponse.json({ error: 'Sessao invalida.' }, { status: 401 })
+    }
+
+    const admin = createAdminClient()
+    const { data: school, error: schoolError } = await admin
+      .from('schools')
+      .select('id, name, slug')
+      .eq('id', body.schoolId)
+      .single()
+
+    if (schoolError || !school) {
+      return NextResponse.json({ error: 'Escola nao encontrada.' }, { status: 404 })
+    }
+
+    const schoolAccessToken = await getValidMercadoPagoAccessTokenForSchool(school.id)
+    if (!schoolAccessToken) {
+      return NextResponse.json({ error: 'A escola ainda nao conectou o Mercado Pago para receber pagamentos.' }, { status: 409 })
+    }
+
+    const { data: student, error: studentError } = await admin
+      .from('student_profiles')
+      .select('id, full_name')
+      .eq('school_id', school.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (studentError || !student) {
+      return NextResponse.json({ error: 'Aluno nao encontrado para esta escola.' }, { status: 403 })
+    }
+
+    const { data: instructor, error: instructorError } = await admin
+      .from('instructors')
+      .select('id, full_name, hourly_price')
+      .eq('id', body.instructorId)
+      .eq('school_id', school.id)
+      .single()
+
+    if (instructorError || !instructor) {
+      return NextResponse.json({ error: 'Instrutor invalido.' }, { status: 400 })
+    }
+
+    let amount = 0
+    let bookingIds: string[] = []
+    let studentPackageId: string | null = null
+    let packageName: string | null = null
+
+    if (body.selectionType === 'single') {
+      if (!body.selectedDate || !body.selectedSlots || body.selectedSlots.length === 0) {
+        return NextResponse.json({ error: 'Data e horarios sao obrigatorios.' }, { status: 400 })
+      }
+
+      amount = Number(instructor.hourly_price) * body.selectedSlots.length
+      let { data: booking, error: bookingError } = await admin.rpc('create_booking_safe', {
+        p_school_id: school.id,
+        p_student_id: student.id,
+        p_instructor_id: instructor.id,
+        p_lesson_date: body.selectedDate,
+        p_time_slots: body.selectedSlots,
+        p_unit_price: instructor.hourly_price,
+        p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
+        p_billing_mode: 'hourly',
+        p_package_id: null,
+      })
+
+      if (bookingError?.message.includes('Could not find the function public.create_booking_safe')) {
+        const fallback = await admin.rpc('create_booking_safe', {
+          p_school_id: school.id,
+          p_student_id: student.id,
+          p_instructor_id: instructor.id,
+          p_lesson_date: body.selectedDate,
+          p_time_slots: body.selectedSlots,
+          p_unit_price: instructor.hourly_price,
+          p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
+        })
+
+        booking = fallback.data
+        bookingError = fallback.error
+      }
+
+      if (bookingError || !booking) {
+        const message = bookingError?.message.includes('SLOT_CONFLICT')
+          ? 'Um ou mais horarios selecionados ja foram reservados.'
+          : bookingError?.message ?? 'Nao foi possivel reservar a aula.'
+        return NextResponse.json({ error: message }, { status: 409 })
+      }
+
+      bookingIds = [(booking as { id: string }).id]
+    } else {
+      if (!body.packageId || !body.lessons || body.lessons.length === 0) {
+        return NextResponse.json({ error: 'Pacote e aulas planejadas sao obrigatorios.' }, { status: 400 })
+      }
+
+      const { data: pkg, error: packageError } = await admin
+        .from('lesson_packages')
+        .select('id, name, price')
+        .eq('id', body.packageId)
+        .eq('school_id', school.id)
+        .single()
+
+      if (packageError || !pkg) {
+        return NextResponse.json({ error: 'Pacote invalido.' }, { status: 400 })
+      }
+
+      amount = Number(pkg.price)
+      packageName = pkg.name
+
+      const { data: packagePlanId, error: packagePlanError } = await admin.rpc('create_package_booking_plan_safe', {
+        p_school_id: school.id,
+        p_student_id: student.id,
+        p_instructor_id: instructor.id,
+        p_package_id: pkg.id,
+        p_lessons: body.lessons,
+        p_total_amount: amount,
+        p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
+      })
+
+      if (packagePlanError || !packagePlanId) {
+        const message = packagePlanError?.message.includes('SLOT_CONFLICT_LESSON_')
+          ? 'Um ou mais horarios do pacote nao estao mais disponiveis.'
+          : packagePlanError?.message ?? 'Nao foi possivel reservar o pacote.'
+        return NextResponse.json({ error: message }, { status: 409 })
+      }
+
+      studentPackageId = packagePlanId as string
+      bookingIds = await getBookingIdsForStudentPackage(studentPackageId)
+    }
+
+    const paymentMethod = resolveLocalPaymentMethod(body.checkoutData)
+    const externalReference = createExternalReference(body.selectionType)
+    const transactionId = await createPaymentTransactionRecord({
+      schoolId: school.id,
+      studentId: student.id,
+      bookingIds,
+      studentPackageId,
+      selectionType: body.selectionType,
+      paymentMethod,
+      amount,
+      externalReference,
+      checkoutPayload: body.checkoutData,
+    })
+
+    await attachTransactionToBookings(transactionId, bookingIds)
+
+    const paymentClient = createMercadoPagoPaymentClient(schoolAccessToken)
+    let payment: PaymentResponse
+    try {
+      payment = await paymentClient.create({
+        body: buildMercadoPagoPaymentBody({
+          externalReference,
+          checkoutData: body.checkoutData,
+          booking: {
+            schoolId: school.id,
+            schoolName: school.name,
+            schoolSlug: school.slug,
+            studentId: student.id,
+            studentName: student.full_name,
+            studentEmail: user.email,
+            instructorId: instructor.id,
+            instructorName: instructor.full_name,
+            paymentMethod,
+            amount,
+            selectionType: body.selectionType,
+            bookingIds,
+            packageId: body.packageId ?? null,
+            packageName,
+            studentPackageId,
+          },
+        }),
+        requestOptions: {
+          idempotencyKey: externalReference,
+        },
+      })
+    } catch (paymentError) {
+      const message = paymentError instanceof Error ? paymentError.message : 'Erro ao criar pagamento no Mercado Pago.'
+      await failPaymentTransaction({
+        transactionId,
+        bookingIds,
+        studentPackageId,
+        errorMessage: message,
+      })
+      return NextResponse.json({ error: message }, { status: 502 })
+    }
+
+    await syncPaymentTransactionState({
+      transactionId,
+      payment,
+    })
+
+    return NextResponse.json(buildClientPaymentResponse(transactionId, payment), { status: 200 })
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Erro interno ao processar o pagamento.',
+      },
+      { status: 500 }
+    )
+  }
+}
+
+function buildClientPaymentResponse(transactionId: string, payment: PaymentResponse) {
+  return {
+    transactionId,
+    paymentId: payment.id ?? null,
+    status: payment.status ?? 'pending',
+    statusDetail: payment.status_detail ?? null,
+    message: mapMercadoPagoStatusMessage(payment),
+    qrCode: payment.point_of_interaction?.transaction_data?.qr_code ?? null,
+    qrCodeBase64: payment.point_of_interaction?.transaction_data?.qr_code_base64 ?? null,
+    ticketUrl: payment.point_of_interaction?.transaction_data?.ticket_url ?? null,
+  }
+}
+
+function resolveLocalPaymentMethod(checkoutData: CheckoutBrickPayload) {
+  return checkoutData.paymentType === 'bank_transfer' || checkoutData.selectedPaymentMethod === 'bank_transfer' || checkoutData.formData.payment_method_id === 'pix'
+    ? 'pix'
+    : 'credit_card'
+}

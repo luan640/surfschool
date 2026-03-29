@@ -1,0 +1,216 @@
+import { redirect } from 'next/navigation'
+import { Clock3, RefreshCw, ShieldCheck, TimerReset } from 'lucide-react'
+import { getSchoolRules, updateSchoolRules } from '@/actions/dashboard'
+import { Banner } from '@/components/dashboard/settings/SettingsStatus'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
+interface Props {
+  searchParams?: Promise<{ status?: string }>
+}
+
+function ToggleField({
+  name,
+  title,
+  description,
+  defaultChecked,
+}: {
+  name: string
+  title: string
+  description: string
+  defaultChecked: boolean
+}) {
+  return (
+    <label className="flex items-start justify-between gap-4 rounded border border-slate-200 bg-slate-50 p-4">
+      <div>
+        <div className="text-sm font-semibold text-slate-700">{title}</div>
+        <p className="mt-1 text-sm text-slate-500">{description}</p>
+      </div>
+      <span className="relative mt-1 inline-flex shrink-0 items-center">
+        <input
+          type="checkbox"
+          name={name}
+          defaultChecked={defaultChecked}
+          className="peer sr-only"
+        />
+        <span className="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-[var(--primary)]" />
+        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+      </span>
+    </label>
+  )
+}
+
+export default async function RulesPage({ searchParams }: Props) {
+  const rules = await getSchoolRules()
+  if (!rules) redirect('/auth/login')
+
+  const params = searchParams ? await searchParams : undefined
+
+  async function save(formData: FormData) {
+    'use server'
+
+    const result = await updateSchoolRules(formData)
+    if (!result.success) {
+      redirect('/dashboard/settings/rules?status=error')
+    }
+
+    redirect('/dashboard/settings/rules?status=saved')
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl p-6 md:p-8">
+      <div className="mb-8">
+        <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+          Regras
+        </h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Defina como a escola lida com cancelamentos, reagendamentos e limites de agendamento.
+        </p>
+      </div>
+
+      {params?.status === 'saved' && <Banner tone="success" text="Regras atualizadas com sucesso." />}
+      {params?.status === 'error' && <Banner tone="error" text="Nao foi possivel salvar as regras da escola." />}
+
+      <form action={save} className="space-y-6">
+        <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-[var(--primary)]/10 p-2 text-[var(--primary)]">
+              <ShieldCheck size={16} />
+            </div>
+            <div>
+              <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+                Cancelamentos e reagendamentos
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Controle se o aluno pode alterar a agenda sem falar com a escola e com quanta antecedencia.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <ToggleField
+              name="allow_student_cancellation"
+              title="Permitir cancelamento pelo aluno"
+              description="Quando desligado, o aluno precisa falar com a escola para cancelar uma aula."
+              defaultChecked={rules.allow_student_cancellation}
+            />
+            <div className="grid gap-1.5 sm:max-w-xs">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Horas minimas para cancelar
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                name="cancellation_notice_hours"
+                defaultValue={rules.cancellation_notice_hours}
+                icon={<Clock3 size={14} />}
+              />
+            </div>
+
+            <ToggleField
+              name="allow_student_reschedule"
+              title="Permitir reagendamento pelo aluno"
+              description="Quando ligado, o aluno pode trocar a data da aula dentro da janela permitida."
+              defaultChecked={rules.allow_student_reschedule}
+            />
+            <div className="grid gap-1.5 sm:max-w-xs">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Horas minimas para reagendar
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                name="reschedule_notice_hours"
+                defaultValue={rules.reschedule_notice_hours}
+                icon={<RefreshCw size={14} />}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-[var(--cta)]/10 p-2 text-[var(--cta)]">
+              <TimerReset size={16} />
+            </div>
+            <div>
+              <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+                Janela de agendamento
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Defina o quanto antes um aluno pode reservar e ate quantos dias no futuro a agenda fica aberta.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Horas minimas antes da aula
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                name="minimum_booking_notice_hours"
+                defaultValue={rules.minimum_booking_notice_hours}
+                icon={<Clock3 size={14} />}
+              />
+              <p className="text-xs text-slate-400">Exemplo: `2` impede reservas em cima da hora.</p>
+            </div>
+
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Dias maximos no futuro
+              </label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                name="booking_window_days"
+                defaultValue={rules.booking_window_days}
+                icon={<TimerReset size={14} />}
+              />
+              <p className="text-xs text-slate-400">Exemplo: `90` abre os proximos 3 meses de agenda.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
+          <div>
+            <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+              Limites operacionais
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Evite concentrar muitas reservas futuras no mesmo aluno e mantenha a agenda distribuida.
+            </p>
+          </div>
+
+          <div className="grid gap-1.5 sm:max-w-xs">
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Limite de aulas futuras por aluno
+            </label>
+            <Input
+              type="number"
+              min="1"
+              step="1"
+              name="max_active_bookings_per_student"
+              defaultValue={rules.max_active_bookings_per_student ?? ''}
+              placeholder="Sem limite"
+              icon={<ShieldCheck size={14} />}
+            />
+            <p className="text-xs text-slate-400">
+              Deixe vazio para permitir quantas aulas futuras forem necessarias.
+            </p>
+          </div>
+        </section>
+
+        <div className="flex gap-3">
+          <Button type="submit" variant="primary">Salvar regras</Button>
+        </div>
+      </form>
+    </div>
+  )
+}

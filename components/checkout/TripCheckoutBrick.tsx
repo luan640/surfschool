@@ -1,0 +1,212 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
+import { Button } from '@/components/ui/button'
+import { formatPrice } from '@/lib/utils'
+
+interface Props {
+  tripId: string
+  schoolId: string
+  schoolSlug: string
+  amount: number
+  title: string
+}
+
+interface ProcessTripPaymentResponse {
+  registrationId: string
+  paymentId: number | null
+  status: string
+  message: string
+  qrCode: string | null
+  qrCodeBase64: string | null
+  ticketUrl: string | null
+}
+
+export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title }: Props) {
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [notes, setNotes] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<ProcessTripPaymentResponse | null>(null)
+
+  useEffect(() => {
+    const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
+    if (!publicKey) {
+      setError('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY nao configurada.')
+      return
+    }
+
+    initMercadoPago(publicKey, { locale: 'pt-BR' })
+  }, [])
+
+  useEffect(() => {
+    if (!result?.registrationId || (result.status !== 'pending' && result.status !== 'in_process')) return
+
+    const interval = window.setInterval(async () => {
+      const response = await fetch(`/api/trips/registrations/status/${result.registrationId}`, { cache: 'no-store' })
+      if (!response.ok) return
+
+      const payload = await response.json()
+      if (payload.payment_status === 'paid') {
+        setResult((current) => current ? { ...current, status: 'approved', message: 'Inscricao confirmada com pagamento aprovado.' } : current)
+        window.clearInterval(interval)
+      }
+
+      if (payload.payment_status === 'failed') {
+        setResult((current) => current ? { ...current, status: 'rejected', message: 'O pagamento da inscricao nao foi aprovado.' } : current)
+        window.clearInterval(interval)
+      }
+    }, 5000)
+
+    return () => window.clearInterval(interval)
+  }, [result])
+
+  const initialization = useMemo(() => ({
+    amount,
+    payer: email ? { email } : undefined,
+    items: {
+      totalItemsAmount: amount,
+      itemsList: [
+        {
+          name: title,
+          description: 'Inscricao de trip',
+          units: 1,
+          value: amount,
+        },
+      ],
+    },
+  }), [amount, email, title])
+
+  const formReady = fullName.trim() && email.trim()
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="mb-4">
+          <div className="font-condensed text-2xl font-bold uppercase text-slate-900">Inscreva-se na trip</div>
+          <p className="mt-1 text-sm text-slate-500">Preencha seus dados e conclua o pagamento para garantir sua vaga.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Nome completo *">
+            <input value={fullName} onChange={(event) => setFullName(event.target.value)} className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm" />
+          </Field>
+          <Field label="E-mail *">
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm" />
+          </Field>
+          <Field label="Telefone">
+            <input value={phone} onChange={(event) => setPhone(event.target.value)} className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm" />
+          </Field>
+          <Field label="Valor">
+            <div className="flex h-11 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">{formatPrice(amount)}</div>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="w-full rounded-sm border border-slate-200 px-3 py-2 text-sm" />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+
+      {result ? (
+        <div className={`rounded-2xl border p-5 ${result.status === 'approved' ? 'border-emerald-200 bg-emerald-50' : result.status === 'pending' || result.status === 'in_process' ? 'border-amber-200 bg-amber-50' : 'border-rose-200 bg-rose-50'}`}>
+          <div className="font-condensed text-2xl font-bold uppercase">
+            {result.status === 'approved' ? 'Inscricao confirmada' : result.status === 'pending' || result.status === 'in_process' ? 'Aguardando pagamento' : 'Pagamento nao aprovado'}
+          </div>
+          <p className="mt-2 text-sm">{result.message}</p>
+          {result.qrCodeBase64 && (
+            <img src={`data:image/png;base64,${result.qrCodeBase64}`} alt="QR Code PIX" className="mt-4 h-48 w-48 rounded border border-white bg-white p-2" />
+          )}
+          {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
+          {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Abrir comprovante</a>}
+        </div>
+      ) : (
+        <div className="relative rounded-2xl border border-slate-200 bg-white p-4">
+          {!formReady && (
+            <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Preencha pelo menos nome e e-mail para liberar o pagamento.
+            </div>
+          )}
+          <Payment
+            initialization={initialization}
+            customization={{
+              paymentMethods: {
+                creditCard: 'all',
+                bankTransfer: 'all',
+                types: { included: ['creditCard', 'bank_transfer'] },
+                maxInstallments: 12,
+              },
+            }}
+            locale="pt-BR"
+            onError={(brickError) => setError(brickError.message ?? 'Erro ao inicializar o checkout.')}
+            onReady={() => undefined}
+            onSubmit={async (submission, additionalData) => {
+              if (!formReady) {
+                setError('Preencha nome e e-mail antes de pagar.')
+                throw new Error('Form incompleto.')
+              }
+
+              setSubmitting(true)
+              setError(null)
+              try {
+                const response = await fetch('/api/trips/process-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    tripId,
+                    schoolId,
+                    registrant: { fullName, email, phone, notes },
+                    checkoutData: {
+                      paymentType: submission.paymentType,
+                      selectedPaymentMethod: submission.selectedPaymentMethod,
+                      formData: submission.formData,
+                      additionalData: additionalData ?? null,
+                    },
+                  }),
+                })
+
+                const payload = await response.json()
+                if (!response.ok) {
+                  const message = payload.error || 'Nao foi possivel processar a inscricao.'
+                  setError(message)
+                  throw new Error(message)
+                }
+
+                setResult(payload as ProcessTripPaymentResponse)
+              } finally {
+                setSubmitting(false)
+              }
+            }}
+          />
+          {submitting && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/78 backdrop-blur-[1px]">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[var(--primary)]" />
+              <div className="mt-4 text-sm font-semibold text-slate-700">Carregando...</div>
+            </div>
+          )}
+          {!formReady && <div className="absolute inset-0 z-[5] rounded-2xl bg-white/35" />}
+        </div>
+      )}
+
+      {result?.status === 'approved' && (
+        <Button asChild variant="primary">
+          <a href={`/${schoolSlug}`}>Voltar para a escola</a>
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{label}</div>
+      {children}
+    </label>
+  )
+}

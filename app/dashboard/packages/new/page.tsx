@@ -1,0 +1,20 @@
+import { PackageForm } from '@/components/dashboard/PackageForm'
+import { getAvailablePackageInstructors } from '@/actions/packages'
+
+export default async function NewPackagePage() {
+  const instructors = await getAvailablePackageInstructors()
+
+  return (
+    <div className="p-6 md:p-8 max-w-6xl mx-auto">
+      <div className="mb-8">
+        <h1 className="font-condensed text-3xl font-bold uppercase text-slate-800 tracking-wide">
+          Novo pacote
+        </h1>
+        <p className="text-slate-400 text-sm mt-1">
+          Defina valor, quantidade de aulas e quais instrutores podem atender.
+        </p>
+      </div>
+      <PackageForm instructors={instructors} />
+    </div>
+  )
+}
