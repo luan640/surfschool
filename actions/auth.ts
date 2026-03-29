@@ -1,6 +1,7 @@
 'use server'
 
 import { randomUUID } from 'node:crypto'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { validatePhoneField } from '@/lib/phone'
 import { slugify } from '@/lib/utils'
@@ -9,6 +10,7 @@ import type { ActionResult } from '@/lib/types'
 
 export async function signUpOwner(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
+  const admin = createAdminClient()
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -25,7 +27,7 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
   }
 
   const { error: schoolErr } = await createSchoolForOwner({
-    supabase,
+    supabase: admin,
     ownerId: data.user.id,
     schoolName,
     phone: phoneResult.value,
@@ -207,7 +209,7 @@ async function createSchoolForOwner({
   schoolName,
   phone,
 }: {
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>
   ownerId: string
   schoolName: string
   phone: string | null

@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   BarChart3,
   CalendarDays,
@@ -93,12 +93,24 @@ interface Props {
 
 export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     '/dashboard/settings': pathname.startsWith('/dashboard/settings') && pathname !== '/dashboard/settings/payment-methods',
   })
 
   const sections = useMemo(() => NAV_SECTIONS, [])
+
+  useEffect(() => {
+    for (const section of NAV_SECTIONS) {
+      for (const item of section.items) {
+        router.prefetch(item.href)
+        for (const child of item.children ?? []) {
+          router.prefetch(child.href)
+        }
+      }
+    }
+  }, [router])
 
   return (
     <aside
@@ -206,6 +218,7 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
                             <Link
                               key={child.href}
                               href={child.href}
+                              prefetch
                               className={cn(
                                 'rounded px-3 py-2 text-sm transition-colors',
                                 pathname === child.href
@@ -226,6 +239,7 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
                   <Link
                     key={href}
                     href={href}
+                    prefetch
                     title={label}
                     className={cn(
                       'flex items-center rounded text-sm font-medium transition-colors',

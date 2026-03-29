@@ -108,6 +108,8 @@ export async function getBookings(filters?: {
   instructorId?: string
 }): Promise<Booking[]> {
   const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return []
 
   let query = supabase
     .from('bookings')
@@ -116,6 +118,8 @@ export async function getBookings(filters?: {
       instructor:instructors(full_name, photo_url, color, specialty),
       student:student_profiles(full_name, phone)
     `)
+    .eq('school_id', school.id)
+    .eq('payment_status', 'paid')
     .order('lesson_date', { ascending: false })
 
   if (filters?.status)       query = query.eq('status', filters.status)
