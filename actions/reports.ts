@@ -11,6 +11,7 @@ import type {
   ReportInstructorSummary,
   ReportKpis,
   ReportTrendPoint,
+  StudentProfile,
 } from '@/lib/types'
 
 interface ReportFilters {
@@ -20,13 +21,34 @@ interface ReportFilters {
   couponId?: string
 }
 
-interface BookingReportRow extends DashboardCalendarBooking {
-  student?: { id?: string; full_name?: string; phone?: string } | null
+type BookingReportRow = Omit<DashboardCalendarBooking, 'student'> & {
+  student?: Pick<StudentProfile, 'id' | 'full_name' | 'phone'> | null
   coupon_redemptions?: Array<{
     coupon_id: string
     discount_amount: number
     coupon?: { id: string; code: string; name: string } | null
   }>
+}
+
+type BookingReportQueryRow = {
+  id: string
+  lesson_date: string
+  time_slots: string[]
+  total_amount: number
+  status: DashboardCalendarBooking['status']
+  instructor?:
+    | Pick<Instructor, 'id' | 'full_name' | 'color' | 'specialty'>
+    | Pick<Instructor, 'id' | 'full_name' | 'color' | 'specialty'>[]
+    | null
+  student?:
+    | Pick<StudentProfile, 'id' | 'full_name' | 'phone'>
+    | Pick<StudentProfile, 'id' | 'full_name' | 'phone'>[]
+    | null
+  coupon_redemptions?: Array<{
+    coupon_id: string
+    discount_amount: number
+    coupon?: { id: string; code: string; name: string } | { id: string; code: string; name: string }[] | null
+  }> | null
 }
 
 export async function getReportFilterOptions(): Promise<ReportFilterOptions> {
@@ -119,7 +141,7 @@ export async function getReportsData(filters: ReportFilters) {
   if (couponBookingIds) query = query.in('id', couponBookingIds)
 
   const { data } = await query
-  const bookings = (data ?? []) as BookingReportRow[]
+  const bookings = normalizeBookingRows((data ?? []) as BookingReportQueryRow[])
 
   const kpis = buildKpis(bookings)
   const trend = buildTrend(bookings)
@@ -247,4 +269,21 @@ function buildCouponSummary(bookings: BookingReportRow[]): ReportCouponSummary[]
   })
 
   return [...map.values()].sort((a, b) => b.redemptions - a.redemptions)
+}
+
+function normalizeBookingRows(rows: BookingReportQueryRow[]): BookingReportRow[] {
+  return rows.map((row) => ({
+    id: row.id,
+    lesson_date: row.lesson_date,
+    time_slots: row.time_slots,
+    total_amount: row.total_amount,
+    status: row.status,
+    instructor: Array.isArray(row.instructor) ? row.instructor[0] : row.instructor ?? undefined,
+    student: Array.isArray(row.student) ? row.student[0] ?? null : row.student ?? null,
+    coupon_redemptions: (row.coupon_redemptions ?? []).map((redemption) => ({
+      coupon_id: redemption.coupon_id,
+      discount_amount: redemption.discount_amount,
+      coupon: Array.isArray(redemption.coupon) ? redemption.coupon[0] ?? null : redemption.coupon ?? null,
+    })),
+  }))
 }

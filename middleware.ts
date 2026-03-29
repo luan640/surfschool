@@ -7,6 +7,8 @@ const EXCLUDED_PREFIXES  = ['/auth', '/api', '/_next', '/favicon', '/static']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const response = NextResponse.next({ request })
+  type ResponseCookieOptions = Parameters<typeof response.cookies.set>[2]
+  type CookieToSet = { name: string; value: string; options?: ResponseCookieOptions }
 
   // Skip Supabase static/API paths
   if (EXCLUDED_PREFIXES.some(p => pathname.startsWith(p))) return response
@@ -17,7 +19,7 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
+        setAll: (cookiesToSet: CookieToSet[]) => {
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
             response.cookies.set(name, value, options)

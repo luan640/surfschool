@@ -351,6 +351,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
       })
     : null
 
+  const selectedInstructorName = wizard.selectedInstructor?.full_name ?? 'Instrutor'
+
   const packageCalendarLinks = isPackageFlow && school && wizard.selectedInstructor
     ? wizard.packageLessons
         .filter((lesson) => lesson.date && lesson.slots.length > 0)
@@ -359,7 +361,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
           label: `Aula ${lesson.sequence}`,
           url: buildGoogleCalendarUrl({
             title: `${wizard.selectedPackage?.name ?? 'Pacote de aulas'} - ${school.name}`,
-            description: `Instrutor: ${wizard.selectedInstructor.full_name}\nHorarios: ${lesson.slots.join(', ')}`,
+            description: `Instrutor: ${selectedInstructorName}\nHorarios: ${lesson.slots.join(', ')}`,
             date: lesson.date!,
             slots: lesson.slots,
           }),
@@ -496,45 +498,6 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
       <div className="mx-auto max-w-6xl px-4 py-6">
         <main className="space-y-6">
           {successMessage && <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</div>}
-          {paymentState === 'approved' && (
-            <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
-              <div className="font-semibold">Deseja agendar no Google Calendar para nao ter perigo de esquecer?</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/${slug}/minhas-aulas`)}
-                  className="inline-flex h-10 items-center justify-center rounded bg-slate-900 px-4 text-sm font-bold uppercase text-white"
-                >
-                  Ir para minhas aulas
-                </button>
-                {!isPackageFlow && singleCalendarUrl && (
-                  <a
-                    href={singleCalendarUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-10 items-center justify-center rounded bg-sky-600 px-4 text-sm font-bold uppercase text-white"
-                  >
-                    Adicionar ao Google Calendar
-                  </a>
-                )}
-                {isPackageFlow && packageCalendarLinks.length > 0 && (
-                  <>
-                    {packageCalendarLinks.map((lesson) => (
-                      <a
-                        key={lesson.sequence}
-                        href={lesson.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-10 items-center justify-center rounded bg-sky-600 px-4 text-sm font-bold uppercase text-white"
-                      >
-                        {lesson.label}
-                      </a>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
           {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
           {wizard.step === 1 && (

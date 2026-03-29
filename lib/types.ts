@@ -232,7 +232,7 @@ export interface InstructorRankRow {
   hourly_price: number
   total_bookings: number
   total_revenue: number
-  avg_hours_per_booking: number
+  avg_hours: number
 }
 
 export interface DashboardKPIs {

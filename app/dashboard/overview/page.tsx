@@ -112,15 +112,7 @@ export default async function OverviewPage() {
             <p className="text-sm text-slate-400 text-center py-6">Nenhuma aula agendada.</p>
           ) : (
             <div className="flex flex-col gap-3">
-              {upcoming.map((b: {
-                id: string;
-                lesson_date: string;
-                time_slots: string[];
-                total_amount: number;
-                status: string;
-                instructor?: { full_name?: string; color?: string; specialty?: string } | null;
-                student?: { full_name?: string } | null;
-              }) => (
+              {upcoming.map((b) => (
                 <div key={b.id} className="flex items-center gap-3 p-3 rounded bg-slate-50 border border-slate-100">
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white font-condensed text-xs font-bold shrink-0"

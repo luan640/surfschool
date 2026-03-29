@@ -15,6 +15,18 @@ import type {
   SchoolRules,
 } from '@/lib/types'
 
+type DashboardBookingRelation<T> = T | T[] | null
+
+type DashboardBookingQueryRow = {
+  id: string
+  lesson_date: string
+  time_slots: string[]
+  total_amount: number
+  status: DashboardCalendarBooking['status']
+  instructor?: DashboardBookingRelation<NonNullable<DashboardCalendarBooking['instructor']>>
+  student?: DashboardBookingRelation<NonNullable<DashboardCalendarBooking['student']>>
+}
+
 const SCHOOL_ASSETS_BUCKET = 'school-assets'
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024
@@ -138,7 +150,7 @@ export async function getUpcomingBookings(limit = 5) {
     .order('lesson_date', { ascending: true })
     .limit(limit)
 
-  return data ?? []
+  return normalizeDashboardBookings((data ?? []) as DashboardBookingQueryRow[])
 }
 
 export async function getDashboardCalendarData(): Promise<{
@@ -174,8 +186,20 @@ export async function getDashboardCalendarData(): Promise<{
 
   return {
     instructors: (instructors ?? []) as Pick<Instructor, 'id' | 'full_name' | 'color'>[],
-    bookings: ((bookings ?? []) as unknown) as DashboardCalendarBooking[],
+    bookings: normalizeDashboardBookings((bookings ?? []) as DashboardBookingQueryRow[]),
   }
+}
+
+function normalizeDashboardBookings(rows: DashboardBookingQueryRow[]): DashboardCalendarBooking[] {
+  return rows.map((row) => ({
+    id: row.id,
+    lesson_date: row.lesson_date,
+    time_slots: row.time_slots,
+    total_amount: row.total_amount,
+    status: row.status,
+    instructor: Array.isArray(row.instructor) ? row.instructor[0] : row.instructor ?? undefined,
+    student: Array.isArray(row.student) ? row.student[0] : row.student ?? undefined,
+  }))
 }
 
 export async function getSchoolSettings() {

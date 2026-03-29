@@ -29,3 +29,4 @@ coverage/
 .idea/
 .vscode/
 supabase/.temp/
+.vercel
