@@ -245,7 +245,7 @@ export function TripForm({ trip }: Props) {
 
       {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
-      <div className="flex gap-3">
+      <div className="flex justify-end gap-3">
         <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : trip ? 'Salvar trip' : 'Criar trip'}
         </Button>

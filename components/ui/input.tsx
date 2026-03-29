@@ -1,5 +1,8 @@
+'use client'
+
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { formatPhone, PHONE_INPUT_MAX_LENGTH } from '@/lib/phone'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode
@@ -7,7 +10,17 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, icon, error, type, ...props }, ref) => {
+  ({ className, icon, error, type, onChange, inputMode, maxLength, ...props }, ref) => {
+    const isPhoneInput = type === 'tel'
+
+    function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+      if (isPhoneInput) {
+        event.target.value = formatPhone(event.target.value)
+      }
+
+      onChange?.(event)
+    }
+
     return (
       <div className="flex flex-col gap-1.5">
         <div className="relative flex items-center">
@@ -26,6 +39,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               className,
             )}
             ref={ref}
+            inputMode={isPhoneInput ? 'numeric' : inputMode}
+            maxLength={isPhoneInput ? PHONE_INPUT_MAX_LENGTH : maxLength}
+            onChange={handleChange}
             {...props}
           />
         </div>

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { validatePhoneField } from '@/lib/phone'
 import { getMySchool } from './instructors'
 import type { ActionResult, DashboardStudentRow } from '@/lib/types'
 
@@ -64,10 +65,14 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
   const email = ((formData.get('email') as string | null) ?? '').trim().toLowerCase()
   const password = (formData.get('password') as string | null) ?? ''
   const fullName = ((formData.get('full_name') as string | null) ?? '').trim()
-  const phone = ((formData.get('phone') as string | null) ?? '').trim()
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
 
   if (!email || !password || !fullName) {
     return { success: false, error: 'Preencha nome, e-mail e senha do aluno.' }
+  }
+
+  if (phoneResult.error) {
+    return { success: false, error: phoneResult.error }
   }
 
   if (password.length < 6) {
@@ -95,7 +100,7 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
       user_id: createdUser.user.id,
       school_id: school.id,
       full_name: fullName,
-      phone: phone || null,
+      phone: phoneResult.value,
     })
 
   if (profileError) {

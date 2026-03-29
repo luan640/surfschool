@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { validatePhoneField } from '@/lib/phone'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   buildWebhookNotificationUrl,
@@ -27,6 +28,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody
     if (!body.tripId || !body.schoolId || !body.registrant?.fullName || !body.registrant?.email) {
       return NextResponse.json({ error: 'Payload da inscricao invalido.' }, { status: 400 })
+    }
+
+    const phoneResult = validatePhoneField(body.registrant.phone, 'Telefone')
+    if (phoneResult.error) {
+      return NextResponse.json({ error: phoneResult.error }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -71,7 +77,7 @@ export async function POST(request: Request) {
         school_id: trip.school_id,
         full_name: body.registrant.fullName,
         email: body.registrant.email,
-        phone: body.registrant.phone || null,
+        phone: phoneResult.value,
         notes: body.registrant.notes || null,
         amount: trip.price,
         external_reference: externalReference,

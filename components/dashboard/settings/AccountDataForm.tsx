@@ -42,7 +42,7 @@ export function AccountDataForm({ school, status, action }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6 md:p-8">
+    <div className="dashboard-page-compact">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
           Dados da conta
@@ -71,11 +71,11 @@ export function AccountDataForm({ school, status, action }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Telefone</label>
-              <Input name="phone" defaultValue={school.phone ?? ''} placeholder="(48) 3333-0000" icon={<Phone size={14} />} />
+              <Input name="phone" type="tel" defaultValue={school.phone ?? ''} placeholder="(48) 3333-0000" icon={<Phone size={14} />} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">WhatsApp</label>
-              <Input name="whatsapp" defaultValue={school.whatsapp ?? ''} placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
+              <Input name="whatsapp" type="tel" defaultValue={school.whatsapp ?? ''} placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
             </div>
           </div>
 
@@ -135,7 +135,7 @@ export function AccountDataForm({ school, status, action }: Props) {
         </div>
 
         <div className="flex gap-3">
-          <Button type="submit" variant="primary">Salvar configuracoes</Button>
+          <Button type="submit" variant="primary">Salvar configurações</Button>
         </div>
       </form>
     </div>

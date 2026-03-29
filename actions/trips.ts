@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { ensurePublicBucket } from '@/lib/supabase/storage'
 import { slugify } from '@/lib/utils'
 import { getMySchool } from './instructors'
 import type { ActionResult, Trip, TripImage } from '@/lib/types'
@@ -319,6 +320,7 @@ async function syncTripMedia(input: {
   galleryFiles: File[]
   replaceGallery: boolean
 }): Promise<ActionResult> {
+  await ensurePublicBucket(SCHOOL_ASSETS_BUCKET)
   const baseFolder = `schools/${input.schoolId}/trips/${input.tripId}`
 
   if (input.coverFile) {

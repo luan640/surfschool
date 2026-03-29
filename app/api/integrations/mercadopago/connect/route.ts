@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { buildMercadoPagoAuthorizationUrl } from '@/lib/payments/mercadopago'
+import { buildMercadoPagoAuthorizationUrl, getPublicAppBaseUrl } from '@/lib/payments/mercadopago'
 
 export async function GET(request: Request) {
-  const origin = new URL(request.url).origin
+  const origin = getPublicAppBaseUrl()
+  const settingsUrl = '/dashboard/settings/payment-methods'
   const supabase = await createClient()
   const {
     data: { user },
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
     .single()
 
   if (!school) {
-    return NextResponse.redirect(new URL('/dashboard/settings?mp=error', origin))
+    return NextResponse.redirect(new URL(`${settingsUrl}?mp=error`, origin))
   }
 
   const { url } = buildMercadoPagoAuthorizationUrl({

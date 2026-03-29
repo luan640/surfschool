@@ -76,7 +76,7 @@ export function CouponForm({ coupon, packages }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl space-y-8">
+    <form onSubmit={handleSubmit} className="dashboard-form-wide space-y-8">
       <div className="rounded border border-slate-200 bg-white p-6 space-y-4">
         <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Dados do cupom</h2>
 

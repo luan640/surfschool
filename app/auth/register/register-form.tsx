@@ -69,13 +69,13 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
             {isCompleteMode ? 'Finalizar cadastro' : 'Cadastrar escola'}
           </h1>
           <p className="text-slate-400 text-sm mb-7">
-            {isCompleteMode ? 'Informe os dados da escola para liberar seu painel.' : 'Crie a conta do proprietÃ¡rio e da escola.'}
+            {isCompleteMode ? 'Informe os dados da escola para liberar seu painel.' : 'Crie a conta do proprietário e da escola.'}
           </p>
 
           {isCompleteMode && (
             <div className="mb-5 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex gap-3">
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-              <p>Sua conta jÃ¡ existe. Esta etapa vai apenas criar o registro da escola que ficou pendente.</p>
+              <p>Sua conta já existe. Esta etapa vai apenas criar o registro da escola que ficou pendente.</p>
             </div>
           )}
 
@@ -105,7 +105,7 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Senha *</label>
-                  <Input name="password" type="password" required placeholder="MÃ­nimo 6 caracteres" icon={<Lock size={14} />} />
+                  <Input name="password" type="password" required placeholder="Mínimo 6 caracteres" icon={<Lock size={14} />} />
                 </div>
               </div>
             )}
@@ -115,7 +115,7 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
             <Button type="submit" variant="cta" fullWidth disabled={loading} className="mt-1">
               {loading
                 ? (isCompleteMode ? 'Finalizando...' : 'Criando conta...')
-                : <><span>{isCompleteMode ? 'Concluir cadastro da escola' : 'Criar conta grÃ¡tis'}</span><ArrowRight size={15} /></>}
+                : <><span>{isCompleteMode ? 'Concluir cadastro da escola' : 'Criar conta grátis'}</span><ArrowRight size={15} /></>}
             </Button>
           </form>
 

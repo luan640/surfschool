@@ -97,6 +97,15 @@ export function getMercadoPagoPublicKey() {
   return key
 }
 
+export function getPublicAppBaseUrl() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.MERCADOPAGO_WEBHOOK_BASE_URL
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_APP_URL or MERCADOPAGO_WEBHOOK_BASE_URL must be configured.')
+  }
+
+  return baseUrl.replace(/\/$/, '')
+}
+
 function getMercadoPagoOAuthConfig() {
   const clientId = process.env.MERCADOPAGO_CLIENT_ID
   const clientSecret = process.env.MERCADOPAGO_CLIENT_SECRET

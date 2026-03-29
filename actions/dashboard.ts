@@ -1,8 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { validatePhoneField } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ensurePublicBucket } from '@/lib/supabase/storage'
 import { getMySchool } from './instructors'
 import type {
   ActionResult,
@@ -27,6 +29,17 @@ type DashboardBookingQueryRow = {
   student?: DashboardBookingRelation<NonNullable<DashboardCalendarBooking['student']>>
 }
 
+type DashboardRevenueRow = {
+  lesson_date: string
+  total_amount: number
+}
+
+type DashboardInstructorRankingRow = {
+  total_amount: number
+  time_slots: string[]
+  instructor?: DashboardBookingRelation<Pick<Instructor, 'id' | 'full_name' | 'photo_url' | 'hourly_price'>>
+}
+
 const SCHOOL_ASSETS_BUCKET = 'school-assets'
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024
@@ -43,6 +56,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
       bookingsLastMonth: 0,
       activeInstructors: 0,
       upcomingLessons: 0,
+      paidScheduledLessons: 0,
     }
   }
 
@@ -55,27 +69,37 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
   const [
     { data: thisMonth },
     { data: lastMonth },
-    { data: upcoming },
+    { data: completedLessons },
+    { data: paidScheduledLessons },
     { data: instructors },
   ] = await Promise.all([
     supabase
       .from('bookings')
       .select('total_amount')
       .eq('school_id', school.id)
-      .neq('status', 'cancelled')
+      .eq('payment_status', 'paid')
+      .eq('status', 'completed')
       .gte('lesson_date', thisMonthStart),
     supabase
       .from('bookings')
       .select('total_amount')
       .eq('school_id', school.id)
-      .neq('status', 'cancelled')
+      .eq('payment_status', 'paid')
+      .eq('status', 'completed')
       .gte('lesson_date', lastMonthStart)
       .lte('lesson_date', lastMonthEnd),
     supabase
       .from('bookings')
       .select('id')
       .eq('school_id', school.id)
-      .neq('status', 'cancelled')
+      .eq('payment_status', 'paid')
+      .eq('status', 'completed'),
+    supabase
+      .from('bookings')
+      .select('id')
+      .eq('school_id', school.id)
+      .eq('payment_status', 'paid')
+      .in('status', ['pending', 'confirmed'])
       .gte('lesson_date', today),
     supabase
       .from('instructors')
@@ -93,7 +117,8 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
     bookingsThisMonth: (thisMonth ?? []).length,
     bookingsLastMonth: (lastMonth ?? []).length,
     activeInstructors: (instructors ?? []).length,
-    upcomingLessons: (upcoming ?? []).length,
+    upcomingLessons: (completedLessons ?? []).length,
+    paidScheduledLessons: (paidScheduledLessons ?? []).length,
   }
 }
 
@@ -102,18 +127,42 @@ export async function getRevenueMetrics(months = 6): Promise<BookingMetric[]> {
   const school = await getMySchool()
   if (!school) return []
 
-  const from = new Date()
-  from.setMonth(from.getMonth() - months)
-  const fromStr = from.toISOString().slice(0, 10)
-
   const { data } = await supabase
-    .from('booking_metrics')
-    .select('*')
+    .from('bookings')
+    .select('lesson_date, total_amount')
     .eq('school_id', school.id)
-    .gte('month', fromStr)
-    .order('month', { ascending: true })
+    .eq('payment_status', 'paid')
+    .eq('status', 'completed')
 
-  return (data ?? []) as BookingMetric[]
+  const now = new Date()
+  const startMonth = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
+  const metricsMap = new Map<string, BookingMetric>()
+
+  for (let index = 0; index < months; index += 1) {
+    const monthDate = new Date(startMonth.getFullYear(), startMonth.getMonth() + index, 1)
+    const monthKey = monthDate.toISOString().slice(0, 10)
+    metricsMap.set(monthKey, {
+      month: monthKey,
+      total_bookings: 0,
+      total_revenue: 0,
+      completed: 0,
+      cancelled: 0,
+    })
+  }
+
+  for (const row of (data ?? []) as DashboardRevenueRow[]) {
+    const lessonDate = new Date(`${row.lesson_date}T00:00:00`)
+    const monthKey = new Date(lessonDate.getFullYear(), lessonDate.getMonth(), 1).toISOString().slice(0, 10)
+    const metric = metricsMap.get(monthKey)
+
+    if (!metric) continue
+
+    metric.total_bookings += 1
+    metric.total_revenue += Number(row.total_amount)
+    metric.completed += 1
+  }
+
+  return [...metricsMap.values()]
 }
 
 export async function getInstructorRanking(): Promise<InstructorRankRow[]> {
@@ -122,20 +171,51 @@ export async function getInstructorRanking(): Promise<InstructorRankRow[]> {
   if (!school) return []
 
   const { data } = await supabase
-    .from('instructor_ranking')
-    .select('*')
+    .from('bookings')
+    .select(`
+      total_amount,
+      time_slots,
+      instructor:instructors(id, full_name, photo_url, hourly_price)
+    `)
     .eq('school_id', school.id)
-    .order('total_revenue', { ascending: false })
+    .eq('payment_status', 'paid')
+    .eq('status', 'completed')
 
-  return (data ?? []) as InstructorRankRow[]
+  const rankingMap = new Map<string, InstructorRankRow>()
+
+  for (const row of (data ?? []) as DashboardInstructorRankingRow[]) {
+    const instructor = Array.isArray(row.instructor) ? row.instructor[0] : row.instructor
+    if (!instructor?.id) continue
+
+    const current = rankingMap.get(instructor.id) ?? {
+      id: instructor.id,
+      full_name: instructor.full_name,
+      photo_url: instructor.photo_url,
+      hourly_price: Number(instructor.hourly_price),
+      total_bookings: 0,
+      total_revenue: 0,
+      avg_hours: 0,
+    }
+
+    current.total_bookings += 1
+    current.total_revenue += Number(row.total_amount)
+    current.avg_hours += Array.isArray(row.time_slots) ? row.time_slots.length : 0
+
+    rankingMap.set(instructor.id, current)
+  }
+
+  return [...rankingMap.values()]
+    .map((row) => ({
+      ...row,
+      avg_hours: row.total_bookings > 0 ? row.avg_hours / row.total_bookings : 0,
+    }))
+    .sort((a, b) => b.total_revenue - a.total_revenue)
 }
 
 export async function getUpcomingBookings(limit = 5) {
   const supabase = await createClient()
   const school = await getMySchool()
   if (!school) return []
-
-  const today = new Date().toISOString().slice(0, 10)
 
   const { data } = await supabase
     .from('bookings')
@@ -145,9 +225,9 @@ export async function getUpcomingBookings(limit = 5) {
       student:student_profiles(full_name)
     `)
     .eq('school_id', school.id)
-    .neq('status', 'cancelled')
-    .gte('lesson_date', today)
-    .order('lesson_date', { ascending: true })
+    .eq('payment_status', 'paid')
+    .eq('status', 'completed')
+    .order('lesson_date', { ascending: false })
     .limit(limit)
 
   return normalizeDashboardBookings((data ?? []) as DashboardBookingQueryRow[])
@@ -180,7 +260,8 @@ export async function getDashboardCalendarData(): Promise<{
         student:student_profiles(full_name, phone)
       `)
       .eq('school_id', school.id)
-      .neq('status', 'cancelled')
+      .eq('payment_status', 'paid')
+      .eq('status', 'completed')
       .order('lesson_date', { ascending: true }),
   ])
 
@@ -252,6 +333,11 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
   const supabase = await createClient()
   const school = await getMySchool()
   if (!school) return { success: false, error: 'Nao autorizado' }
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+  const whatsappResult = validatePhoneField(formData.get('whatsapp') as string | null, 'WhatsApp')
+
+  if (phoneResult.error) return { success: false, error: phoneResult.error }
+  if (whatsappResult.error) return { success: false, error: whatsappResult.error }
 
   let logoUrl = school.logo_url
   const logoFile = formData.get('logo_file')
@@ -272,6 +358,7 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
     }
 
     const admin = createAdminClient()
+    await ensurePublicBucket(SCHOOL_ASSETS_BUCKET)
     const extension = logoFile.name.includes('.') ? logoFile.name.split('.').pop()?.toLowerCase() ?? 'png' : 'png'
     const folder = `schools/${school.id}`
     const filePath = `${folder}/logo-${Date.now()}.${extension}`
@@ -319,8 +406,8 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
       name: formData.get('name') as string,
       tagline: (formData.get('tagline') as string) || null,
       address: (formData.get('address') as string) || null,
-      phone: (formData.get('phone') as string) || null,
-      whatsapp: (formData.get('whatsapp') as string) || null,
+      phone: phoneResult.value,
+      whatsapp: whatsappResult.value,
       logo_url: logoUrl,
       primary_color: formData.get('primary_color') as string,
       cta_color: formData.get('cta_color') as string,

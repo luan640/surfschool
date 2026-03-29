@@ -20,7 +20,7 @@ export default async function EditInstructorPage({ params }: { params: Promise<{
   if (!data) notFound()
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto">
+    <div className="dashboard-page">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase text-slate-800 tracking-wide">
           Editar Instrutor

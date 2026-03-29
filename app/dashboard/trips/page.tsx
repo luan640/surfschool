@@ -10,10 +10,10 @@ import { formatPrice } from '@/lib/utils'
 export default async function TripsPage() {
   const school = await getSchoolSettings()
   const trips = await getTrips()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfbook.app'
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfbook.app').replace(/\/$/, '')
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-8">
+    <div className="dashboard-page">
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">Trips</h1>

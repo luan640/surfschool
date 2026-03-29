@@ -13,9 +13,11 @@ import type { Instructor, LessonPackage } from '@/lib/types'
 interface Props {
   instructors: Instructor[]
   pkg?: LessonPackage
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export function PackageForm({ instructors, pkg }: Props) {
+export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
   const router = useRouter()
   const [selectedInstructorIds, setSelectedInstructorIds] = useState<string[]>(
     pkg?.instructors?.map((instructor) => instructor.id) ?? [],
@@ -57,6 +59,12 @@ export function PackageForm({ instructors, pkg }: Props) {
       return
     }
 
+    if (onSuccess) {
+      onSuccess()
+      router.refresh()
+      return
+    }
+
     router.push('/dashboard/packages')
     router.refresh()
   }
@@ -71,7 +79,7 @@ export function PackageForm({ instructors, pkg }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl space-y-8">
+    <form onSubmit={handleSubmit} className="dashboard-form-wide space-y-8">
       <div className="bg-white border border-slate-200 rounded p-6 space-y-4">
         <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide">
           Dados do pacote
@@ -241,7 +249,19 @@ export function PackageForm({ instructors, pkg }: Props) {
         <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : pkg ? 'Salvar alteracoes' : 'Criar pacote'}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => router.push('/dashboard/packages')} disabled={loading}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            if (onCancel) {
+              onCancel()
+              return
+            }
+
+            router.push('/dashboard/packages')
+          }}
+          disabled={loading}
+        >
           Cancelar
         </Button>
       </div>

@@ -1,8 +1,15 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { ActionResult, Instructor, InstructorAvailability } from '@/lib/types'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { validatePhoneField } from '@/lib/phone'
+import { createClient } from '@/lib/supabase/server'
+import { ensurePublicBucket } from '@/lib/supabase/storage'
+import type { ActionResult, Instructor } from '@/lib/types'
+
+const SCHOOL_ASSETS_BUCKET = 'school-assets'
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024
 
 export async function getMySchool() {
   const supabase = await createClient()
@@ -35,47 +42,90 @@ export async function getInstructors(): Promise<Instructor[]> {
 export async function createInstructor(formData: FormData): Promise<ActionResult<Instructor>> {
   const supabase = await createClient()
   const school = await getMySchool()
-  if (!school) return { success: false, error: 'Não autorizado' }
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+  if (phoneResult.error) return { success: false, error: phoneResult.error }
+
+  const photoResult = await uploadInstructorPhoto({
+    schoolId: school.id,
+    photoFile: formData.get('photo_file'),
+    previousPhotoUrl: null,
+  })
+  if (photoResult.error) return { success: false, error: photoResult.error }
 
   const { data, error } = await supabase
     .from('instructors')
     .insert({
-      school_id:    school.id,
-      full_name:    formData.get('full_name') as string,
-      phone:        formData.get('phone') as string || null,
-      instagram:    formData.get('instagram') as string || null,
-      specialty:    formData.get('specialty') as string || null,
-      bio:          formData.get('bio') as string || null,
+      school_id: school.id,
+      full_name: formData.get('full_name') as string,
+      phone: phoneResult.value,
+      instagram: (formData.get('instagram') as string) || null,
+      specialty: (formData.get('specialty') as string) || null,
+      bio: (formData.get('bio') as string) || null,
       hourly_price: parseFloat(formData.get('hourly_price') as string),
-      color:        formData.get('color') as string || '#0077b6',
+      color: (formData.get('color') as string) || '#0077b6',
+      photo_url: photoResult.photoUrl,
     })
     .select()
     .single()
 
-  if (error) return { success: false, error: error.message }
-  revalidatePath('/dashboard/instructors')
+  if (error) {
+    await cleanupStorageFile(photoResult.storagePath)
+    return { success: false, error: error.message }
+  }
+
+  revalidateInstructorPaths(school.slug)
   return { success: true, data: data as Instructor }
 }
 
 export async function updateInstructor(id: string, formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+  if (phoneResult.error) return { success: false, error: phoneResult.error }
+
+  const { data: currentInstructor, error: currentError } = await supabase
+    .from('instructors')
+    .select('photo_url')
+    .eq('id', id)
+    .eq('school_id', school.id)
+    .single()
+
+  if (currentError) return { success: false, error: currentError.message }
+
+  const photoResult = await uploadInstructorPhoto({
+    schoolId: school.id,
+    photoFile: formData.get('photo_file'),
+    previousPhotoUrl: currentInstructor?.photo_url ?? null,
+  })
+  if (photoResult.error) return { success: false, error: photoResult.error }
 
   const { error } = await supabase
     .from('instructors')
     .update({
-      full_name:    formData.get('full_name') as string,
-      phone:        formData.get('phone') as string || null,
-      instagram:    formData.get('instagram') as string || null,
-      specialty:    formData.get('specialty') as string || null,
-      bio:          formData.get('bio') as string || null,
+      full_name: formData.get('full_name') as string,
+      phone: phoneResult.value,
+      instagram: (formData.get('instagram') as string) || null,
+      specialty: (formData.get('specialty') as string) || null,
+      bio: (formData.get('bio') as string) || null,
       hourly_price: parseFloat(formData.get('hourly_price') as string),
-      color:        formData.get('color') as string,
-      active:       formData.get('active') === 'true',
+      color: formData.get('color') as string,
+      active: formData.get('active') === 'true',
+      photo_url: photoResult.photoUrl,
     })
     .eq('id', id)
 
-  if (error) return { success: false, error: error.message }
-  revalidatePath('/dashboard/instructors')
+  if (error) {
+    if (photoResult.storagePath && photoResult.photoUrl !== currentInstructor?.photo_url) {
+      await cleanupStorageFile(photoResult.storagePath)
+    }
+    return { success: false, error: error.message }
+  }
+
+  revalidateInstructorPaths(school.slug)
   return { success: true, data: undefined }
 }
 
@@ -85,7 +135,6 @@ export async function saveAvailability(
 ): Promise<ActionResult> {
   const supabase = await createClient()
 
-  // Upsert each weekday
   for (const { weekday, time_slots } of availability) {
     const { error } = await supabase
       .from('instructor_availability')
@@ -94,19 +143,31 @@ export async function saveAvailability(
     if (error) return { success: false, error: error.message }
   }
 
-  revalidatePath('/dashboard/instructors')
+  const school = await getMySchool()
+  revalidateInstructorPaths(school?.slug)
   return { success: true, data: undefined }
 }
 
 export async function deleteInstructor(id: string): Promise<ActionResult> {
   const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const { data: currentInstructor } = await supabase
+    .from('instructors')
+    .select('photo_url')
+    .eq('id', id)
+    .eq('school_id', school.id)
+    .single()
+
   const { error } = await supabase.from('instructors').delete().eq('id', id)
   if (error) return { success: false, error: error.message }
-  revalidatePath('/dashboard/instructors')
+
+  await cleanupStorageFile(extractStoragePath(currentInstructor?.photo_url ?? null))
+  revalidateInstructorPaths(school.slug)
   return { success: true, data: undefined }
 }
 
-/** Public — used by the student booking flow */
 export async function getInstructorsBySchoolSlug(slug: string): Promise<Instructor[]> {
   const supabase = await createClient()
 
@@ -125,4 +186,77 @@ export async function getInstructorsBySchoolSlug(slug: string): Promise<Instruct
     .eq('active', true)
 
   return (data ?? []) as Instructor[]
+}
+
+async function uploadInstructorPhoto({
+  schoolId,
+  photoFile,
+  previousPhotoUrl,
+}: {
+  schoolId: string
+  photoFile: FormDataEntryValue | null
+  previousPhotoUrl: string | null
+}) {
+  if (!(photoFile instanceof File) || photoFile.size === 0) {
+    return { photoUrl: previousPhotoUrl, storagePath: null, error: null as string | null }
+  }
+
+  if (!ALLOWED_PHOTO_TYPES.includes(photoFile.type)) {
+    return { photoUrl: null, storagePath: null, error: 'Envie a foto do instrutor em JPG, PNG ou WEBP.' }
+  }
+
+  if (photoFile.size > MAX_PHOTO_SIZE_BYTES) {
+    return { photoUrl: null, storagePath: null, error: 'A foto do instrutor deve ter no maximo 2 MB.' }
+  }
+
+  const admin = createAdminClient()
+  await ensurePublicBucket(SCHOOL_ASSETS_BUCKET)
+  const extension = photoFile.name.includes('.') ? photoFile.name.split('.').pop()?.toLowerCase() ?? 'jpg' : 'jpg'
+  const storagePath = `schools/${schoolId}/instructors/photo-${Date.now()}.${extension}`
+
+  const previousPath = extractStoragePath(previousPhotoUrl)
+  if (previousPath) {
+    await cleanupStorageFile(previousPath)
+  }
+
+  const { error: uploadError } = await admin.storage
+    .from(SCHOOL_ASSETS_BUCKET)
+    .upload(storagePath, photoFile, {
+      upsert: true,
+      contentType: photoFile.type,
+      cacheControl: '3600',
+    })
+
+  if (uploadError) {
+    return { photoUrl: null, storagePath: null, error: `Nao foi possivel enviar a foto: ${uploadError.message}` }
+  }
+
+  const { data: publicPhoto } = admin.storage
+    .from(SCHOOL_ASSETS_BUCKET)
+    .getPublicUrl(storagePath)
+
+  return { photoUrl: publicPhoto.publicUrl, storagePath, error: null as string | null }
+}
+
+function extractStoragePath(publicUrl: string | null) {
+  if (!publicUrl) return null
+  const marker = `/storage/v1/object/public/${SCHOOL_ASSETS_BUCKET}/`
+  const markerIndex = publicUrl.indexOf(marker)
+  if (markerIndex === -1) return null
+  return publicUrl.slice(markerIndex + marker.length)
+}
+
+async function cleanupStorageFile(storagePath: string | null) {
+  if (!storagePath) return
+
+  const admin = createAdminClient()
+  await admin.storage.from(SCHOOL_ASSETS_BUCKET).remove([storagePath])
+}
+
+function revalidateInstructorPaths(schoolSlug?: string | null) {
+  revalidatePath('/dashboard/instructors')
+  if (schoolSlug) {
+    revalidatePath(`/${schoolSlug}`)
+    revalidatePath(`/${schoolSlug}/agendar`)
+  }
 }

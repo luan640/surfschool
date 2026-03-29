@@ -1,6 +1,8 @@
 'use server'
 
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
+import { validatePhoneField } from '@/lib/phone'
 import { slugify } from '@/lib/utils'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/lib/types'
@@ -11,7 +13,11 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const schoolName = formData.get('school_name') as string
-  const phone = formData.get('phone') as string
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+
+  if (phoneResult.error) {
+    return { success: false, error: phoneResult.error }
+  }
 
   const { data, error } = await supabase.auth.signUp({ email, password })
   if (error || !data.user) {
@@ -22,7 +28,7 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
     supabase,
     ownerId: data.user.id,
     schoolName,
-    phone,
+    phone: phoneResult.value,
   })
 
   if (schoolErr) {
@@ -41,7 +47,11 @@ export async function completeOwnerSchoolRegistration(formData: FormData): Promi
   }
 
   const schoolName = formData.get('school_name') as string
-  const phone = formData.get('phone') as string
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
+
+  if (phoneResult.error) {
+    return { success: false, error: phoneResult.error }
+  }
 
   const { data: existingSchool } = await supabase
     .from('schools')
@@ -57,7 +67,7 @@ export async function completeOwnerSchoolRegistration(formData: FormData): Promi
     supabase,
     ownerId: user.id,
     schoolName,
-    phone,
+    phone: phoneResult.value,
   })
 
   if (error) {
@@ -85,10 +95,14 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = formData.get('full_name') as string
-  const phone = formData.get('phone') as string
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
   const schoolId = formData.get('school_id') as string
   const schoolSlug = formData.get('school_slug') as string
   const next = resolveStudentDestination(formData.get('next') as string | null, schoolSlug)
+
+  if (phoneResult.error) {
+    return { success: false, error: phoneResult.error }
+  }
 
   const { data, error } = await supabase.auth.signUp({ email, password })
   if (error || !data.user) {
@@ -99,7 +113,7 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
     user_id: data.user.id,
     school_id: schoolId,
     full_name: fullName,
-    phone,
+    phone: phoneResult.value,
   })
 
   if (profileErr) {
@@ -118,10 +132,14 @@ export async function completeStudentProfileRegistration(formData: FormData): Pr
   }
 
   const fullName = formData.get('full_name') as string
-  const phone = formData.get('phone') as string
+  const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
   const schoolId = formData.get('school_id') as string
   const schoolSlug = formData.get('school_slug') as string
   const next = resolveStudentDestination(formData.get('next') as string | null, schoolSlug)
+
+  if (phoneResult.error) {
+    return { success: false, error: phoneResult.error }
+  }
 
   const { data: existingProfile } = await supabase
     .from('student_profiles')
@@ -138,7 +156,7 @@ export async function completeStudentProfileRegistration(formData: FormData): Pr
     user_id: user.id,
     school_id: schoolId,
     full_name: fullName,
-    phone,
+    phone: phoneResult.value,
   })
 
   if (error) {
@@ -192,17 +210,10 @@ async function createSchoolForOwner({
   supabase: Awaited<ReturnType<typeof createClient>>
   ownerId: string
   schoolName: string
-  phone: string
+  phone: string | null
 }) {
-  const slug = slugify(schoolName)
-
-  const { data: existing } = await supabase
-    .from('schools')
-    .select('id')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  const finalSlug = existing ? `${slug}-${Date.now().toString().slice(-4)}` : slug
+  const baseSlug = slugify(schoolName) || 'escola'
+  const finalSlug = `${baseSlug}-${randomUUID().split('-')[0]}`
 
   return supabase.from('schools').insert({
     owner_id: ownerId,

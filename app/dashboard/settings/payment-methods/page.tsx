@@ -15,10 +15,11 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
   if (!school) redirect('/auth/login')
 
   const params = searchParams ? await searchParams : undefined
-  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfbook.app'}/${school.slug}`
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfbook.app').replace(/\/$/, '')
+  const bookingUrl = `${appUrl}/${school.slug}`
 
   return (
-    <div className="mx-auto max-w-4xl p-6 md:p-8">
+    <div className="dashboard-page-compact">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
           Meio de pagamento
@@ -58,7 +59,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
           {connection?.last_error && <div className="text-rose-600">Ultimo erro: {connection.last_error}</div>}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap justify-end gap-3">
           <a href="/api/integrations/mercadopago/connect" className="inline-flex h-10 items-center justify-center rounded bg-[#009ee3] px-4 text-sm font-bold uppercase text-white">
             {connection?.status === 'connected' ? 'Reconectar Mercado Pago' : 'Conectar Mercado Pago'}
           </a>

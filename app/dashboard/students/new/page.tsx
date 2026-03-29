@@ -2,7 +2,7 @@ import { StudentForm } from '@/components/dashboard/StudentForm'
 
 export default function NewStudentPage() {
   return (
-    <div className="max-w-4xl mx-auto p-6 md:p-8">
+    <div className="dashboard-page-compact">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
           Novo aluno

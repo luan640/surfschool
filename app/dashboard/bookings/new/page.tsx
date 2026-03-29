@@ -16,7 +16,7 @@ export default async function NewManualBookingPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 md:p-8">
+    <div className="dashboard-page-compact">
       <div className="mb-8">
         <Link href="/dashboard/bookings" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800">
           <ArrowLeft size={15} />

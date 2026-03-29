@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   exchangeMercadoPagoAuthorizationCode,
+  getPublicAppBaseUrl,
   upsertMercadoPagoConnection,
   verifyMercadoPagoOAuthState,
 } from '@/lib/payments/mercadopago'
@@ -10,15 +11,16 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
-  const origin = url.origin
+  const origin = getPublicAppBaseUrl()
+  const settingsUrl = '/dashboard/settings/payment-methods'
 
   if (!code || !state) {
-    return NextResponse.redirect(new URL('/dashboard/settings?mp=error', origin))
+    return NextResponse.redirect(new URL(`${settingsUrl}?mp=error`, origin))
   }
 
   const payload = verifyMercadoPagoOAuthState(state)
   if (!payload) {
-    return NextResponse.redirect(new URL('/dashboard/settings?mp=error', origin))
+    return NextResponse.redirect(new URL(`${settingsUrl}?mp=error`, origin))
   }
 
   const supabase = await createClient()
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
     .single()
 
   if (!school) {
-    return NextResponse.redirect(new URL('/dashboard/settings?mp=error', origin))
+    return NextResponse.redirect(new URL(`${settingsUrl}?mp=error`, origin))
   }
 
   try {
@@ -48,9 +50,9 @@ export async function GET(request: Request) {
       token,
     })
 
-    return NextResponse.redirect(new URL('/dashboard/settings?mp=connected', origin))
+    return NextResponse.redirect(new URL(`${settingsUrl}?mp=connected`, origin))
   } catch (err) {
     console.error('[MP OAuth callback error]', err instanceof Error ? err.message : err)
-    return NextResponse.redirect(new URL('/dashboard/settings?mp=error', origin))
+    return NextResponse.redirect(new URL(`${settingsUrl}?mp=error`, origin))
   }
 }

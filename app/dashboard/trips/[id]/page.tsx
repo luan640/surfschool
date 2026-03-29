@@ -15,7 +15,7 @@ export default async function EditTripPage({ params }: Props) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-8">
+    <div className="dashboard-page">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
           Editar trip

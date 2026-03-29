@@ -201,6 +201,18 @@ export interface SchoolRules {
   updated_at: string
 }
 
+export interface InstructorCommissionPayment {
+  id: string
+  school_id: string
+  instructor_id: string
+  amount: number
+  payment_date: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+  instructor?: Pick<Instructor, 'id' | 'full_name' | 'color' | 'photo_url'>
+}
+
 // ─── Wizard state ─────────────────────────────────────────────────────────────
 
 export interface BookingWizardState {
@@ -242,6 +254,7 @@ export interface DashboardKPIs {
   bookingsLastMonth: number
   activeInstructors: number
   upcomingLessons: number
+  paidScheduledLessons: number
 }
 
 export interface DashboardCalendarBooking {

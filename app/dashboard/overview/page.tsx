@@ -1,59 +1,93 @@
+import Link from 'next/link'
 import { Suspense } from 'react'
-import { getDashboardKPIs, getRevenueMetrics, getInstructorRanking, getUpcomingBookings, getDashboardCalendarData } from '@/actions/dashboard'
-import { KpiCard } from '@/components/dashboard/KpiCard'
-import { RevenueChart } from '@/components/dashboard/RevenueChart'
+import {
+  getDashboardCalendarData,
+  getDashboardKPIs,
+  getInstructorRanking,
+  getMercadoPagoConnection,
+  getRevenueMetrics,
+  getUpcomingBookings,
+} from '@/actions/dashboard'
+import { BookingsCalendar } from '@/components/dashboard/BookingsCalendar'
 import { BookingsChart } from '@/components/dashboard/BookingsChart'
 import { InstructorRankTable } from '@/components/dashboard/InstructorRankTable'
-import { BookingsCalendar } from '@/components/dashboard/BookingsCalendar'
-import { formatPrice, formatDate, WEEKDAYS_LONG_PT } from '@/lib/utils'
-import { DollarSign, CalendarDays, Users, Clock } from 'lucide-react'
+import { KpiCard } from '@/components/dashboard/KpiCard'
+import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { Badge } from '@/components/ui/badge'
+import { formatPrice } from '@/lib/utils'
+import { AlertTriangle, CalendarDays, Clock, DollarSign, Users } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, string> = {
-  pending:   'Pendente',
+  pending: 'Pendente',
   confirmed: 'Confirmada',
-  completed: 'Concluída',
+  completed: 'Concluida',
   cancelled: 'Cancelada',
 }
+
 const STATUS_VARIANT: Record<string, 'neutral' | 'default' | 'success' | 'danger'> = {
-  pending:   'neutral',
+  pending: 'neutral',
   confirmed: 'default',
   completed: 'success',
   cancelled: 'danger',
 }
 
 export default async function OverviewPage() {
-  const [kpis, revenue, ranking, upcoming, calendar] = await Promise.all([
+  const [kpis, revenue, ranking, latestCompleted, calendar, paymentConnection] = await Promise.all([
     getDashboardKPIs(),
     getRevenueMetrics(6),
     getInstructorRanking(),
     getUpcomingBookings(6),
     getDashboardCalendarData(),
+    getMercadoPagoConnection(),
   ])
 
+  const paymentPending = paymentConnection?.status !== 'connected'
+
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="dashboard-page">
       <div className="mb-8">
-        <h1 className="font-condensed text-3xl font-bold uppercase text-slate-800 tracking-wide">
-          Visão Geral
+        <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+          Visao Geral
         </h1>
-        <p className="text-slate-400 text-sm mt-1">
-          {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        <p className="mt-1 text-sm text-slate-400">
+          {new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
         </p>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      {paymentPending && (
+        <Link
+          href="/dashboard/settings/payment-methods"
+          className="mb-8 flex items-center gap-3 rounded border border-amber-300 bg-amber-50 px-4 py-4 text-amber-950 shadow-[0_0_0_1px_rgba(251,191,36,0.15)] transition-transform hover:-translate-y-0.5"
+        >
+          <span className="flex h-10 w-10 shrink-0 animate-pulse items-center justify-center rounded-full bg-amber-200 text-amber-700">
+            <AlertTriangle size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
+              Voce tem pendencias
+            </p>
+            <p className="mt-1 font-condensed text-xl font-bold uppercase tracking-wide">
+              Clique aqui para configurar metodo de pagamento
+            </p>
+          </div>
+        </Link>
+      )}
+
+      <div className="mb-8 grid grid-cols-2 gap-4 xl:grid-cols-5">
         <KpiCard
-          label="Faturamento este mês"
+          label="Faturamento este mes"
           value={formatPrice(kpis.revenueThisMonth)}
           current={kpis.revenueThisMonth}
           previous={kpis.revenueLastMonth}
           icon={<DollarSign size={18} />}
         />
         <KpiCard
-          label="Aulas este mês"
+          label="Aulas concluidas este mes"
           value={String(kpis.bookingsThisMonth)}
           current={kpis.bookingsThisMonth}
           previous={kpis.bookingsLastMonth}
@@ -65,27 +99,31 @@ export default async function OverviewPage() {
           icon={<Users size={18} />}
         />
         <KpiCard
-          label="Próximas aulas"
+          label="Aulas pagas concluidas"
           value={String(kpis.upcomingLessons)}
+          icon={<Clock size={18} />}
+        />
+        <KpiCard
+          label="Aulas pagas agendadas"
+          value={String(kpis.paidScheduledLessons)}
           icon={<Clock size={18} />}
         />
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded p-5">
-          <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide mb-4">
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded border border-slate-200 bg-white p-5 lg:col-span-2">
+          <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
             Faturamento Mensal
           </h2>
-          <Suspense fallback={<div className="h-52 animate-pulse bg-slate-100 rounded" />}>
+          <Suspense fallback={<div className="h-52 rounded bg-slate-100 animate-pulse" />}>
             <RevenueChart data={revenue} />
           </Suspense>
         </div>
-        <div className="bg-white border border-slate-200 rounded p-5">
-          <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide mb-4">
+        <div className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
             Agendamentos
           </h2>
-          <Suspense fallback={<div className="h-44 animate-pulse bg-slate-100 rounded" />}>
+          <Suspense fallback={<div className="h-44 rounded bg-slate-100 animate-pulse" />}>
             <BookingsChart data={revenue} />
           </Suspense>
         </div>
@@ -93,41 +131,49 @@ export default async function OverviewPage() {
 
       <div className="mb-6 rounded border border-slate-200 bg-white p-5">
         <div className="mb-4">
-          <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide">
-            Calendario de Aulas
+          <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+            Calendario de Aulas Concluidas
           </h2>
-          <p className="mt-1 text-sm text-slate-400">Visualize as aulas agendadas e finalizadas, filtrando por instrutor ou exibindo toda a escola.</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Visualize apenas as aulas pagas e concluidas, filtrando por instrutor ou exibindo toda a escola.
+          </p>
         </div>
         <BookingsCalendar bookings={calendar.bookings} instructors={calendar.instructors} />
       </div>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming lessons */}
-        <div className="bg-white border border-slate-200 rounded p-5">
-          <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide mb-4">
-            Próximas Aulas
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+            Ultimas Aulas Concluidas
           </h2>
-          {upcoming.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6">Nenhuma aula agendada.</p>
+          {latestCompleted.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-400">
+              Nenhuma aula paga e concluida encontrada.
+            </p>
           ) : (
             <div className="flex flex-col gap-3">
-              {upcoming.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 p-3 rounded bg-slate-50 border border-slate-100">
+              {latestCompleted.map((booking) => (
+                <div
+                  key={booking.id}
+                  className="flex items-center gap-3 rounded border border-slate-100 bg-slate-50 p-3"
+                >
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-condensed text-xs font-bold shrink-0"
-                    style={{ background: b.instructor?.color ?? 'var(--primary)' }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                    style={{ background: booking.instructor?.color ?? 'var(--primary)' }}
                   >
-                    {b.instructor?.full_name?.slice(0,2).toUpperCase()}
+                    {booking.instructor?.full_name?.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{b.student?.full_name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-800">
+                      {booking.student?.full_name}
+                    </p>
                     <p className="text-xs text-slate-400">
-                      {new Date(b.lesson_date + 'T00:00:00').toLocaleDateString('pt-BR')} · {(b.time_slots as string[]).join(', ')}
+                      {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR')} ·{' '}
+                      {booking.time_slots.join(', ')}
                     </p>
                   </div>
-                  <Badge variant={STATUS_VARIANT[b.status] ?? 'neutral'} className="shrink-0 text-[10px]">
-                    {STATUS_LABEL[b.status]}
+                  <Badge variant={STATUS_VARIANT[booking.status] ?? 'neutral'} className="shrink-0 text-[10px]">
+                    {STATUS_LABEL[booking.status]}
                   </Badge>
                 </div>
               ))}
@@ -135,9 +181,8 @@ export default async function OverviewPage() {
           )}
         </div>
 
-        {/* Instructor ranking */}
-        <div className="bg-white border border-slate-200 rounded p-5">
-          <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide mb-4">
+        <div className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
             Ranking de Instrutores
           </h2>
           <InstructorRankTable data={ranking} />

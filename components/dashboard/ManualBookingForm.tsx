@@ -11,9 +11,11 @@ import { WEEKDAYS_PT } from '@/lib/utils'
 interface Props {
   students: Pick<StudentProfile, 'id' | 'full_name' | 'phone'>[]
   instructors: Instructor[]
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export function ManualBookingForm({ students, instructors }: Props) {
+export function ManualBookingForm({ students, instructors, onSuccess, onCancel }: Props) {
   const router = useRouter()
   const [studentId, setStudentId] = useState(students[0]?.id ?? '')
   const [instructorId, setInstructorId] = useState(instructors[0]?.id ?? '')
@@ -63,6 +65,12 @@ export function ManualBookingForm({ students, instructors }: Props) {
     if (!result.success) {
       setError(result.error)
       setLoading(false)
+      return
+    }
+
+    if (onSuccess) {
+      onSuccess()
+      router.refresh()
       return
     }
 
@@ -193,7 +201,18 @@ export function ManualBookingForm({ students, instructors }: Props) {
         <Button type="submit" variant="primary" disabled={loading || !studentId || !instructorId || !lessonDate || selectedSlots.length === 0}>
           {loading ? 'Salvando...' : 'Criar agendamento'}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => router.push('/dashboard/bookings')}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            if (onCancel) {
+              onCancel()
+              return
+            }
+
+            router.push('/dashboard/bookings')
+          }}
+        >
           Cancelar
         </Button>
       </div>

@@ -7,7 +7,12 @@ import { createDashboardStudent } from '@/actions/students'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export function StudentForm() {
+interface Props {
+  onSuccess?: () => void
+  onCancel?: () => void
+}
+
+export function StudentForm({ onSuccess, onCancel }: Props) {
   const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,6 +28,12 @@ export function StudentForm() {
     if (!result.success) {
       setError(result.error)
       setLoading(false)
+      return
+    }
+
+    if (onSuccess) {
+      onSuccess()
+      router.refresh()
       return
     }
 
@@ -64,11 +75,22 @@ export function StudentForm() {
 
       {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
-      <div className="flex gap-3">
+      <div className="flex justify-end gap-3">
         <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : 'Cadastrar aluno'}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => router.push('/dashboard/students')}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            if (onCancel) {
+              onCancel()
+              return
+            }
+
+            router.push('/dashboard/students')
+          }}
+        >
           Cancelar
         </Button>
       </div>

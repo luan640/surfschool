@@ -55,18 +55,16 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
 
       {/* Hero */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pb-20 pt-8">
-        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-white/90 text-xs font-bold uppercase tracking-wide backdrop-blur-sm mb-6">
-          <Star size={12} className="text-amber-400 fill-amber-400" /> Método WSL Certificado
-        </div>
-
         <h1 className="font-condensed font-bold text-white uppercase leading-[.92] tracking-wide mb-5"
           style={{ fontSize: 'clamp(2.6rem, 9vw, 5.5rem)' }}>
-          Agende sua<br /><span style={{ color: 'var(--primary-light)' }}>aula de surf</span>
+          Seja bem-vindo a {school.name}.<br /><span style={{ color: 'var(--primary-light)' }}></span>
         </h1>
 
-        {school.tagline && (
-          <p className="text-white/65 max-w-md leading-relaxed mb-4 text-sm md:text-base">{school.tagline}</p>
-        )}
+        <p className="text-white/65 max-w-2xl leading-relaxed mb-4 text-sm md:text-base">
+          {school.tagline
+            ? `${school.tagline} Agende online com instrutores experientes e encontre o melhor horario para entrar no mar.`
+            : `Escolha seu instrutor, reserve online em poucos passos e viva a experiencia de surfar com quem entende de onda de verdade.`}
+        </p>
         {school.address && (
           <p className="flex items-center gap-1.5 text-white/50 text-sm mb-8">
             <MapPin size={13} /> {school.address}
@@ -88,7 +86,6 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
         {/* Trust chips */}
         <div className="flex flex-wrap justify-center gap-2">
           {[
-            { icon: <Star size={12} className="fill-amber-400 text-amber-400" />, label: 'Cert. WSL' },
             { icon: <Calendar size={12} />, label: `${instructors.length} Instrutores` },
             { icon: <Shield size={12} />, label: 'Pagamento seguro' },
           ].map(c => (

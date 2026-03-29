@@ -1,6 +1,7 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useTransition } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 interface Option {
   id: string
@@ -11,13 +12,45 @@ interface Option {
 interface Props {
   instructors: Option[]
   coupons: Option[]
+  onPendingChange?: (pending: boolean) => void
 }
 
-export function ReportsFilters({ instructors, coupons }: Props) {
+export function ReportsFilters({ instructors, coupons, onPendingChange }: Props) {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    onPendingChange?.(isPending)
+  }, [isPending, onPendingChange])
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const formData = new FormData(event.currentTarget)
+    const nextParams = new URLSearchParams()
+
+    for (const [key, value] of formData.entries()) {
+      const normalizedValue = String(value).trim()
+      if (normalizedValue) nextParams.set(key, normalizedValue)
+    }
+
+    const query = nextParams.toString()
+
+    startTransition(() => {
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    })
+  }
+
+  function handleClear() {
+    startTransition(() => {
+      router.replace(pathname, { scroll: false })
+    })
+  }
 
   return (
-    <form method="get" className="grid grid-cols-1 gap-4 rounded border border-slate-200 bg-white p-5 md:grid-cols-2 xl:grid-cols-5">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded border border-slate-200 bg-white p-5 md:grid-cols-2 xl:grid-cols-5">
       <FilterField label="Data inicial">
         <input
           name="from"
@@ -67,12 +100,21 @@ export function ReportsFilters({ instructors, coupons }: Props) {
       </FilterField>
 
       <div className="flex items-end gap-3">
-        <button type="submit" className="inline-flex h-11 flex-1 items-center justify-center rounded bg-slate-900 px-4 text-sm font-bold uppercase text-white">
-          Aplicar filtros
+        <button
+          type="submit"
+          disabled={isPending}
+          className="inline-flex h-11 flex-1 items-center justify-center rounded bg-slate-900 px-4 text-sm font-bold uppercase text-white disabled:opacity-60"
+        >
+          {isPending ? 'Atualizando...' : 'Aplicar filtros'}
         </button>
-        <a href="/dashboard/reports" className="inline-flex h-11 items-center justify-center rounded border border-slate-200 px-4 text-sm font-bold uppercase text-slate-600">
+        <button
+          type="button"
+          onClick={handleClear}
+          disabled={isPending}
+          className="inline-flex h-11 items-center justify-center rounded border border-slate-200 px-4 text-sm font-bold uppercase text-slate-600 disabled:opacity-60"
+        >
           Limpar
-        </a>
+        </button>
       </div>
     </form>
   )

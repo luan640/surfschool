@@ -4,6 +4,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .dashboard-page {
+    @apply mx-auto w-full max-w-[1600px] p-6 md:p-8;
+  }
+
+  .dashboard-page-compact {
+    @apply mx-auto w-full max-w-[1280px] p-6 md:p-8;
+  }
+
+  .dashboard-form {
+    @apply w-full max-w-[1280px];
+  }
+
+  .dashboard-form-wide {
+    @apply w-full max-w-[1440px];
+  }
+}
+
 /* ── Default brand tokens (overridden per-school via ThemeProvider) ── */
 :root {
   --primary:       #0077b6;

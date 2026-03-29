@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
 import { Button } from '@/components/ui/button'
+import { SurfLoading } from '@/components/dashboard/SurfLoading'
+import { formatPhone, PHONE_INPUT_MAX_LENGTH } from '@/lib/phone'
 import { formatPrice } from '@/lib/utils'
 
 interface Props {
@@ -98,7 +100,13 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
             <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm" />
           </Field>
           <Field label="Telefone">
-            <input value={phone} onChange={(event) => setPhone(event.target.value)} className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm" />
+            <input
+              value={phone}
+              onChange={(event) => setPhone(formatPhone(event.target.value))}
+              inputMode="numeric"
+              maxLength={PHONE_INPUT_MAX_LENGTH}
+              className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm"
+            />
           </Field>
           <Field label="Valor">
             <div className="flex h-11 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">{formatPrice(amount)}</div>
@@ -184,9 +192,12 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
             }}
           />
           {submitting && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/78 backdrop-blur-[1px]">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[var(--primary)]" />
-              <div className="mt-4 text-sm font-semibold text-slate-700">Carregando...</div>
+            <div className="absolute inset-0 z-10 overflow-hidden rounded-2xl bg-white/80 backdrop-blur-[1px]">
+              <SurfLoading
+                compact
+                title="Processando pagamento"
+                subtitle="Estamos validando o metodo escolhido e finalizando sua inscricao."
+              />
             </div>
           )}
           {!formReady && <div className="absolute inset-0 z-[5] rounded-2xl bg-white/35" />}

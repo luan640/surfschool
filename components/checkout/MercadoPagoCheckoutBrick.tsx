@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
 import type { IPaymentFormData, IAdditionalData } from '@mercadopago/sdk-react/esm/bricks/payment/type'
+import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import { formatPrice } from '@/lib/utils'
 
 interface LessonPlanInput {
@@ -202,10 +203,12 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             }}
           />
           {submitting && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded bg-white/78 backdrop-blur-[1px]">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[var(--primary)]" />
-              <div className="mt-4 text-sm font-semibold text-slate-700">Carregando...</div>
-              <div className="mt-1 text-xs text-slate-500">Estamos processando o pagamento.</div>
+            <div className="absolute inset-0 z-10 overflow-hidden rounded bg-white/80 backdrop-blur-[1px]">
+              <SurfLoading
+                compact
+                title="Processando pagamento"
+                subtitle="Estamos validando o metodo escolhido e finalizando a cobranca."
+              />
             </div>
           )}
         </div>
