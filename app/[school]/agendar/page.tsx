@@ -373,7 +373,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     return (
       <div className="min-h-dvh bg-slate-50">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
-          <button type="button" onClick={() => router.push(`/${slug}`)} className="font-condensed text-lg font-bold uppercase">{school?.name ?? 'SurfBook'}</button>
+          <button type="button" onClick={() => router.push(`/${slug}`)} className="font-condensed text-lg font-bold uppercase">{school?.name ?? 'vamosurfar'}</button>
         </header>
 
         <div className="mx-auto max-w-4xl px-4 py-8">
@@ -477,7 +477,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   return (
     <div className="min-h-dvh bg-slate-50">
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
-        <button type="button" onClick={() => router.push(`/${slug}`)} className="font-condensed text-lg font-bold uppercase">{school?.name ?? 'SurfBook'}</button>
+        <button type="button" onClick={() => router.push(`/${slug}`)} className="font-condensed text-lg font-bold uppercase">{school?.name ?? 'vamosurfar'}</button>
         <div className="ml-auto flex items-center gap-2 text-xs uppercase text-white/60">
           {steps.map((label, index) => {
             const n = index + 1

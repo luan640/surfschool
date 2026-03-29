@@ -3,7 +3,7 @@ import './globals.css'
 import { ToastProvider } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
-  title: 'SurfBook — Plataforma para Escolas de Surf',
+  title: 'vamosurfar - Plataforma para Escolas de Surf',
   description: 'Agende aulas de surf com instrutores certificados. Plataforma SaaS para escolas de surf.',
 }
 

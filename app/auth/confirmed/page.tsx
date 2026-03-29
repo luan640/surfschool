@@ -12,7 +12,7 @@ export default function AuthConfirmedPage() {
           <div className="flex h-9 w-9 items-center justify-center rounded bg-[#0077b6]">
             <Waves size={18} className="text-white" />
           </div>
-          <span className="font-condensed text-xl font-bold uppercase tracking-wide text-white">SurfBook</span>
+          <span className="font-condensed text-xl font-bold uppercase tracking-wide text-white">vamosurfar</span>
         </div>
 
         <div className="relative z-10">
@@ -33,7 +33,7 @@ export default function AuthConfirmedPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded bg-[#0077b6]">
               <Waves size={14} className="text-white" />
             </div>
-            <span className="font-condensed text-lg font-bold uppercase tracking-wide text-slate-800">SurfBook</span>
+            <span className="font-condensed text-lg font-bold uppercase tracking-wide text-slate-800">vamosurfar</span>
           </div>
 
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">

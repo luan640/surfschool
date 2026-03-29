@@ -44,7 +44,7 @@ export default function OwnerLoginPage() {
             <div className="w-9 h-9 rounded bg-[#0077b6] flex items-center justify-center">
               <Waves size={18} className="text-white" />
             </div>
-            <span className="font-condensed text-white text-xl font-bold uppercase tracking-wide">SurfBook</span>
+            <span className="font-condensed text-white text-xl font-bold uppercase tracking-wide">vamosurfar</span>
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export default function OwnerLoginPage() {
             <div className="w-7 h-7 rounded bg-[#0077b6] flex items-center justify-center">
               <Waves size={14} className="text-white" />
             </div>
-            <span className="font-condensed text-slate-800 text-lg font-bold uppercase tracking-wide">SurfBook</span>
+            <span className="font-condensed text-slate-800 text-lg font-bold uppercase tracking-wide">vamosurfar</span>
           </div>
 
           <h1 className="font-condensed text-2xl font-bold uppercase text-slate-800 tracking-wide mb-1">

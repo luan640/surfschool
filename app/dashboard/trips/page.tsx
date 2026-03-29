@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/utils'
 export default async function TripsPage() {
   const school = await getSchoolSettings()
   const trips = await getTrips()
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfbook.app').replace(/\/$/, '')
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://vamosurfar.app').replace(/\/$/, '')
 
   return (
     <div className="dashboard-page">

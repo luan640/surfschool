@@ -15,7 +15,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
   if (!school) redirect('/auth/login')
 
   const params = searchParams ? await searchParams : undefined
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://surfbook.app').replace(/\/$/, '')
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://vamosurfar.app').replace(/\/$/, '')
   const bookingUrl = `${appUrl}/${school.slug}`
 
   return (
