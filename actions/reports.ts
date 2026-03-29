@@ -22,6 +22,7 @@ interface ReportFilters {
 }
 
 type BookingReportRow = Omit<DashboardCalendarBooking, 'student'> & {
+  payment_status: 'pending' | 'paid' | 'refunded' | 'failed'
   student?: Pick<StudentProfile, 'id' | 'full_name' | 'phone'> | null
   coupon_redemptions?: Array<{
     coupon_id: string
@@ -36,6 +37,7 @@ type BookingReportQueryRow = {
   time_slots: string[]
   total_amount: number
   status: DashboardCalendarBooking['status']
+  payment_status: 'pending' | 'paid' | 'refunded' | 'failed'
   instructor?:
     | Pick<Instructor, 'id' | 'full_name' | 'color' | 'specialty'>
     | Pick<Instructor, 'id' | 'full_name' | 'color' | 'specialty'>[]
@@ -123,6 +125,7 @@ export async function getReportsData(filters: ReportFilters) {
       time_slots,
       total_amount,
       status,
+      payment_status,
       instructor:instructors(id, full_name, color, specialty),
       student:student_profiles(id, full_name, phone),
       coupon_redemptions:discount_coupon_redemptions(
@@ -194,7 +197,7 @@ function buildKpis(bookings: BookingReportRow[]): ReportKpis {
 
   return {
     totalRevenue,
-    totalBookings: bookings.length,
+    totalBookings: bookings.filter((booking) => booking.payment_status === 'paid').length,
     averageTicket: bookings.length > 0 ? totalRevenue / bookings.length : 0,
     uniqueStudents,
     couponRedemptions,
@@ -278,6 +281,7 @@ function normalizeBookingRows(rows: BookingReportQueryRow[]): BookingReportRow[]
     time_slots: row.time_slots,
     total_amount: row.total_amount,
     status: row.status,
+    payment_status: row.payment_status,
     instructor: Array.isArray(row.instructor) ? row.instructor[0] : row.instructor ?? undefined,
     student: Array.isArray(row.student) ? row.student[0] ?? null : row.student ?? null,
     coupon_redemptions: (row.coupon_redemptions ?? []).map((redemption) => ({

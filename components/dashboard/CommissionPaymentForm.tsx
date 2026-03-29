@@ -53,21 +53,29 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
     setLoading(true)
     setError('')
 
-    const formData = new FormData(event.currentTarget)
-    const result = await createCommissionPayment(formData)
+    const form = event.currentTarget
 
-    if (!result.success) {
-      setError(result.error)
-      showError('Nao foi possivel registrar o pagamento.', result.error)
+    try {
+      const formData = new FormData(form)
+      const result = await createCommissionPayment(formData)
+
+      if (!result.success) {
+        setError(result.error)
+        showError('Nao foi possivel registrar o pagamento.', result.error)
+        return
+      }
+
+      form.reset()
+      setCreateModalOpen(false)
+      success('Pagamento de comissao registrado com sucesso.')
+      router.refresh()
+    } catch (submitError) {
+      const message = submitError instanceof Error ? submitError.message : 'Erro inesperado ao registrar o pagamento.'
+      setError(message)
+      showError('Nao foi possivel registrar o pagamento.', message)
+    } finally {
       setLoading(false)
-      return
     }
-
-    event.currentTarget.reset()
-    setCreateModalOpen(false)
-    success('Pagamento de comissao registrado com sucesso.')
-    setLoading(false)
-    router.refresh()
   }
 
   function clearFilters() {
