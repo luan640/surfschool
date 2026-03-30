@@ -1,10 +1,8 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import {
   getDashboardCalendarData,
   getDashboardKPIs,
   getInstructorRanking,
-  getMercadoPagoConnection,
   getRevenueMetrics,
   getUpcomingBookings,
 } from '@/actions/dashboard'
@@ -15,7 +13,7 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/utils'
-import { AlertTriangle, CalendarDays, Clock, DollarSign, Receipt, Users } from 'lucide-react'
+import { CalendarDays, Clock, DollarSign, Receipt, Users } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -32,16 +30,13 @@ const STATUS_VARIANT: Record<string, 'neutral' | 'default' | 'success' | 'danger
 }
 
 export default async function OverviewPage() {
-  const [kpis, revenue, ranking, latestCompleted, calendar, paymentConnection] = await Promise.all([
+  const [kpis, revenue, ranking, latestCompleted, calendar] = await Promise.all([
     getDashboardKPIs(),
     getRevenueMetrics(6),
     getInstructorRanking(),
     getUpcomingBookings(6),
     getDashboardCalendarData(),
-    getMercadoPagoConnection(),
   ])
-
-  const paymentPending = paymentConnection?.status !== 'connected'
 
   return (
     <div className="dashboard-page">
@@ -58,25 +53,6 @@ export default async function OverviewPage() {
           })}
         </p>
       </div>
-
-      {paymentPending && (
-        <Link
-          href="/dashboard/settings/payment-methods"
-          className="mb-8 flex items-center gap-3 rounded border border-amber-300 bg-amber-50 px-4 py-4 text-amber-950 shadow-[0_0_0_1px_rgba(251,191,36,0.15)] transition-transform hover:-translate-y-0.5"
-        >
-          <span className="flex h-10 w-10 shrink-0 animate-pulse items-center justify-center rounded-full bg-amber-200 text-amber-700">
-            <AlertTriangle size={18} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
-              Voce tem pendencias
-            </p>
-            <p className="mt-1 font-condensed text-xl font-bold uppercase tracking-wide">
-              Clique aqui para configurar metodo de pagamento
-            </p>
-          </div>
-        </Link>
-      )}
 
       <div className="mb-8 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard
@@ -129,7 +105,7 @@ export default async function OverviewPage() {
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
             Faturamento Mensal Bruto x Liquido
           </h2>
-          <Suspense fallback={<div className="h-52 rounded bg-slate-100 animate-pulse" />}>
+          <Suspense fallback={<div className="h-52 animate-pulse rounded bg-slate-100" />}>
             <RevenueChart data={revenue} />
           </Suspense>
         </div>
@@ -137,7 +113,7 @@ export default async function OverviewPage() {
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
             Agendamentos
           </h2>
-          <Suspense fallback={<div className="h-44 rounded bg-slate-100 animate-pulse" />}>
+          <Suspense fallback={<div className="h-44 animate-pulse rounded bg-slate-100" />}>
             <BookingsChart data={revenue} />
           </Suspense>
         </div>
@@ -158,11 +134,11 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded border border-slate-200 bg-white p-5">
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Últimas Aulas Concluídas
+            Ultimas Aulas Concluidas
           </h2>
           {latestCompleted.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-400">
-              Nenhuma aula paga e concluívejda encontrada.
+              Nenhuma aula paga e concluida encontrada.
             </p>
           ) : (
             <div className="flex flex-col gap-3">

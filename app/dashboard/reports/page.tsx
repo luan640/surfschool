@@ -23,11 +23,8 @@ export default async function ReportsPage({ searchParams }: Props) {
     <div className="dashboard-page">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
-          Relatorios
+          Relatórios
         </h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Indicadores, ticket medio, desempenho temporal e filtros completos por data, instrutor e cupons.
-        </p>
       </div>
 
       <ReportsPageClient

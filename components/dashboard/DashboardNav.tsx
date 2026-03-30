@@ -23,6 +23,8 @@ import {
 import { signOut } from '@/actions/auth'
 import { cn, initials } from '@/lib/utils'
 
+const DASHBOARD_SIDEBAR_COLLAPSED_KEY = 'dashboard:sidebar-collapsed'
+
 interface NavChildItem {
   href: string
   label: string
@@ -109,8 +111,19 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = fa
   useEffect(() => {
     if (mobile) {
       setCollapsed(false)
+      return
+    }
+
+    const storedValue = window.localStorage.getItem(DASHBOARD_SIDEBAR_COLLAPSED_KEY)
+    if (storedValue === 'true') {
+      setCollapsed(true)
     }
   }, [mobile])
+
+  useEffect(() => {
+    if (mobile) return
+    window.localStorage.setItem(DASHBOARD_SIDEBAR_COLLAPSED_KEY, String(collapsed))
+  }, [collapsed, mobile])
 
   useEffect(() => {
     for (const section of NAV_SECTIONS) {

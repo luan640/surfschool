@@ -39,6 +39,13 @@ interface BookingFinancialAllocation {
   net: number
 }
 
+interface ReportFinancialEntry {
+  date: string
+  gross: number
+  fee: number
+  net: number
+}
+
 type BookingReportRow = Omit<DashboardCalendarBooking, 'student' | 'instructor'> & {
   payment_status: 'pending' | 'paid' | 'refunded' | 'failed'
   payment_transaction_id?: string | null
@@ -194,9 +201,12 @@ export async function getReportsData(filters: ReportFilters) {
         .in('status', ['pending', 'failed', 'refunded', 'paid'])
     : { data: [] as PaymentTransactionReportRow[] }
 
-  const financialAllocations = buildFinancialAllocations(bookings, (transactions ?? []) as PaymentTransactionReportRow[])
-  const kpis = buildKpis(bookings, (transactions ?? []) as PaymentTransactionReportRow[], scopeBookingIds, filteredBookingIds, financialAllocations)
-  const trend = buildTrend(bookings, financialAllocations)
+  const transactionRows = (transactions ?? []) as PaymentTransactionReportRow[]
+  const financialAllocations = buildFinancialAllocations(bookings, transactionRows)
+  const accountingTransactions = buildRelevantTransactions(transactionRows, bookings, scopeBookingIds, filteredBookingIds, normalizedFilters)
+  const accountingEntries = buildFinancialEntries(bookings, accountingTransactions)
+  const kpis = buildKpis(bookings, accountingTransactions, accountingEntries)
+  const trend = buildTrend(bookings, accountingEntries)
   const instructorSummary = buildInstructorSummary(bookings, financialAllocations)
   const couponSummary = buildCouponSummary(bookings)
 
@@ -244,38 +254,24 @@ function emptyKpis(): ReportKpis {
 function buildKpis(
   bookings: BookingReportRow[],
   transactions: PaymentTransactionReportRow[],
-  scopeBookingIds: Set<string>,
-  filteredBookingIds: Set<string>,
-  financialAllocations: BookingFinancialAllocation[],
+  financialEntries: ReportFinancialEntry[],
 ): ReportKpis {
-  const grossRevenue = financialAllocations.reduce((acc, allocation) => acc + allocation.gross, 0)
-  const mercadoPagoFees = financialAllocations.reduce((acc, allocation) => acc + allocation.fee, 0)
-  const netRevenue = financialAllocations.reduce((acc, allocation) => acc + allocation.net, 0)
+  const grossRevenue = financialEntries.reduce((acc, entry) => acc + entry.gross, 0)
+  const mercadoPagoFees = financialEntries.reduce((acc, entry) => acc + entry.fee, 0)
+  const netRevenue = financialEntries.reduce((acc, entry) => acc + entry.net, 0)
   const couponRedemptions = bookings.reduce((acc, booking) => acc + (booking.coupon_redemptions?.length ?? 0), 0)
   const totalDiscounts = bookings.reduce(
     (acc, booking) => acc + (booking.coupon_redemptions ?? []).reduce((sum, redemption) => sum + Number(redemption.discount_amount), 0),
     0
   )
   const uniqueStudents = new Set(bookings.map((booking) => booking.student?.id).filter(Boolean)).size
-  const relevantTransactionIds = new Set(
-    bookings
-      .map((booking) => booking.payment_transaction_id)
-      .filter((transactionId): transactionId is string => Boolean(transactionId)),
-  )
-  const relevantTransactions = transactions.filter((transaction) => {
-    if (relevantTransactionIds.has(transaction.id)) return true
-
-    const bookingIds = transaction.booking_ids ?? []
-    if (bookingIds.length === 0) return false
-
-    return bookingIds.some((bookingId) => scopeBookingIds.has(bookingId) || filteredBookingIds.has(bookingId))
-  })
-  const refundedAmount = relevantTransactions
+  const refundedAmount = transactions
     .filter((transaction) => transaction.status === 'refunded')
     .reduce((acc, transaction) => acc + Number(transaction.amount), 0)
-  const abandonedOrders = relevantTransactions.filter(
+  const abandonedOrders = transactions.filter(
     (transaction) => transaction.status === 'pending' || transaction.status === 'failed',
   ).length
+  const paidFinancialEvents = financialEntries.length
 
   return {
     totalRevenue: Number(netRevenue.toFixed(2)),
@@ -283,8 +279,8 @@ function buildKpis(
     mercadoPagoFees: Number(mercadoPagoFees.toFixed(2)),
     netRevenue: Number(netRevenue.toFixed(2)),
     totalBookings: bookings.filter((booking) => booking.payment_status === 'paid').length,
-    averageTicket: bookings.filter((booking) => booking.payment_status === 'paid').length > 0
-      ? grossRevenue / bookings.filter((booking) => booking.payment_status === 'paid').length
+    averageTicket: paidFinancialEvents > 0
+      ? grossRevenue / paidFinancialEvents
       : 0,
     uniqueStudents,
     couponRedemptions,
@@ -296,9 +292,8 @@ function buildKpis(
   }
 }
 
-function buildTrend(bookings: BookingReportRow[], financialAllocations: BookingFinancialAllocation[]): ReportTrendPoint[] {
+function buildTrend(bookings: BookingReportRow[], financialEntries: ReportFinancialEntry[]): ReportTrendPoint[] {
   const map = new Map<string, ReportTrendPoint>()
-  const bookingById = new Map(bookings.map((booking) => [booking.id, booking]))
 
   bookings.forEach((booking) => {
     const current = map.get(booking.lesson_date) ?? {
@@ -318,12 +313,9 @@ function buildTrend(bookings: BookingReportRow[], financialAllocations: BookingF
     map.set(booking.lesson_date, current)
   })
 
-  financialAllocations.forEach((allocation) => {
-    const booking = bookingById.get(allocation.bookingId)
-    if (!booking) return
-
-    const current = map.get(booking.lesson_date) ?? {
-      date: booking.lesson_date,
+  financialEntries.forEach((entry) => {
+    const current = map.get(entry.date) ?? {
+      date: entry.date,
       revenue: 0,
       gross_revenue: 0,
       fee_amount: 0,
@@ -332,14 +324,74 @@ function buildTrend(bookings: BookingReportRow[], financialAllocations: BookingF
       discount_amount: 0,
     }
 
-    current.gross_revenue += allocation.gross
-    current.fee_amount += allocation.fee
-    current.net_revenue += allocation.net
-    current.revenue += allocation.net
-    map.set(booking.lesson_date, current)
+    current.gross_revenue += entry.gross
+    current.fee_amount += entry.fee
+    current.net_revenue += entry.net
+    current.revenue += entry.net
+    map.set(entry.date, current)
   })
 
   return [...map.values()].sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function buildRelevantTransactions(
+  transactions: PaymentTransactionReportRow[],
+  bookings: BookingReportRow[],
+  scopeBookingIds: Set<string>,
+  filteredBookingIds: Set<string>,
+  filters: ReturnType<typeof normalizeFilters>,
+): PaymentTransactionReportRow[] {
+  const relevantTransactionIds = new Set(
+    bookings
+      .map((booking) => booking.payment_transaction_id)
+      .filter((transactionId): transactionId is string => Boolean(transactionId)),
+  )
+
+  return transactions.filter((transaction) => {
+    const transactionDate = transaction.created_at.slice(0, 10)
+    if (filters.from && transactionDate < filters.from) return false
+    if (filters.to && transactionDate > filters.to) return false
+
+    if (relevantTransactionIds.has(transaction.id)) return true
+
+    const bookingIds = transaction.booking_ids ?? []
+    if (bookingIds.length === 0) return false
+
+    return bookingIds.some((bookingId) => scopeBookingIds.has(bookingId) || filteredBookingIds.has(bookingId))
+  })
+}
+
+function buildFinancialEntries(
+  bookings: BookingReportRow[],
+  transactions: PaymentTransactionReportRow[],
+): ReportFinancialEntry[] {
+  const entries: ReportFinancialEntry[] = []
+
+  transactions
+    .filter((transaction) => transaction.status === 'paid')
+    .forEach((transaction) => {
+      const breakdown = getPaymentFinancialBreakdown(transaction.gateway_response, Number(transaction.amount))
+      entries.push({
+        date: transaction.created_at.slice(0, 10),
+        gross: breakdown.gross,
+        fee: breakdown.fee,
+        net: breakdown.net,
+      })
+    })
+
+  bookings
+    .filter((booking) => booking.payment_status === 'paid' && !booking.payment_transaction_id)
+    .forEach((booking) => {
+      const gross = Number(booking.total_amount)
+      entries.push({
+        date: booking.lesson_date,
+        gross,
+        fee: 0,
+        net: gross,
+      })
+    })
+
+  return entries
 }
 
 function buildInstructorSummary(bookings: BookingReportRow[], financialAllocations: BookingFinancialAllocation[]): ReportInstructorSummary[] {
