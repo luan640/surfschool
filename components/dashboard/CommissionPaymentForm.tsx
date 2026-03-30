@@ -73,18 +73,18 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
 
       if (!result.success) {
         setError(result.error)
-        showError('Nao foi possivel registrar o pagamento.', result.error)
+        showError('Não foi possível registrar o pagamento.', result.error)
         return
       }
 
       form.reset()
       setCreateModalOpen(false)
-      success('Pagamento de comissao registrado com sucesso.')
+      success('Pagamento de comissão registrado com sucesso.')
       router.refresh()
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Erro inesperado ao registrar o pagamento.'
       setError(message)
-      showError('Nao foi possivel registrar o pagamento.', message)
+      showError('Não foi possível registrar o pagamento.', message)
     } finally {
       setLoading(false)
     }
@@ -100,17 +100,17 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
   return (
     <>
       <div className="dashboard-page">
-        <div className="mb-8 flex items-center justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
-              Registrar pagamento de comissao
+              Registrar pagamento de comissão
             </h1>
             <p className="mt-1 text-sm text-slate-400">
-              Consulte o historico de repasses dos instrutores e registre novos pagamentos manualmente.
+              Consulte o histórico de repasses dos instrutores e registre novos pagamentos manualmente.
             </p>
           </div>
 
-          <Button type="button" variant="primary" onClick={() => setCreateModalOpen(true)}>
+          <Button type="button" variant="primary" onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto">
             <Landmark size={15} /> Registrar pagamento
           </Button>
         </div>
@@ -122,10 +122,10 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
             </div>
             <div>
               <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-                Filtros do historico
+                Filtros do histórico
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Refine por instrutor, periodo ou texto para localizar repasses especificos.
+                Refine por instrutor, periodo ou texto para localizar repasses específicos.
               </p>
             </div>
           </div>
@@ -153,7 +153,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Ate</label>
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Até</label>
               <Input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} icon={<CalendarDays size={14} />} />
             </div>
 
@@ -178,7 +178,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
         <section className="overflow-hidden rounded border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-              Historico de pagamentos
+              Histórico de pagamentos
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {filteredPayments.length} registro{filteredPayments.length !== 1 ? 's' : ''} encontrado{filteredPayments.length !== 1 ? 's' : ''}
@@ -198,7 +198,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
                       <th className="px-5 py-3">Instrutor</th>
                       <th className="px-5 py-3">Data do pagamento</th>
                       <th className="px-5 py-3">Valor</th>
-                      <th className="px-5 py-3">Observacoes</th>
+                      <th className="px-5 py-3">Observações</th>
                       <th className="px-5 py-3">Registrado em</th>
                     </tr>
                   </thead>
@@ -288,7 +288,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
                       </div>
 
                       <div>
-                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Observacoes</div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Observações</div>
                         <div>{payment.notes || '--'}</div>
                       </div>
                     </div>
@@ -316,10 +316,10 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
                   Registrar pagamento
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Informe o instrutor, valor, data e observacoes do repasse.
+                  Informe o instrutor, valor, data e observações do repasse.
                 </p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} aria-label="Fechar modal de pagamento de comissao">
+              <Button variant="ghost" size="icon" onClick={() => setCreateModalOpen(false)} aria-label="Fechar modal de pagamento de comissão">
                 <X size={18} />
               </Button>
             </div>
@@ -345,7 +345,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor da comissao *</label>
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor da comissão *</label>
                     <Input
                       name="amount"
                       type="number"
@@ -369,7 +369,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Observacoes</label>
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Observações</label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400 pointer-events-none">
                       <FileText size={14} />

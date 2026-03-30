@@ -28,6 +28,7 @@ interface ProcessTripPaymentResponse {
 }
 
 export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title }: Props) {
+  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site'>('pay_now')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -86,29 +87,30 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
 
   const formReady = fullName.trim() && email.trim()
 
-  if (result?.status === 'approved') {
+  if (result?.status === 'approved' || result?.status === 'pay_on_site') {
+    const payOnSite = result.status === 'pay_on_site'
     return (
-      <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-[linear-gradient(145deg,#ecfdf5_0%,#d1fae5_42%,#dbeafe_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+      <section className={`overflow-hidden rounded-[28px] border shadow-[0_24px_80px_rgba(15,23,42,0.08)] ${payOnSite ? 'border-sky-200 bg-[linear-gradient(145deg,#eff6ff_0%,#dbeafe_48%,#ecfeff_100%)]' : 'border-emerald-200 bg-[linear-gradient(145deg,#ecfdf5_0%,#d1fae5_42%,#dbeafe_100%)]'}`}>
         <div className="relative px-6 py-8 sm:px-10 sm:py-10">
-          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-300/35 blur-3xl" />
+          <div className={`absolute -right-10 -top-10 h-36 w-36 rounded-full blur-3xl ${payOnSite ? 'bg-sky-300/35' : 'bg-emerald-300/35'}`} />
           <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-sky-300/30 blur-3xl" />
 
           <div className="relative text-center">
-            <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-[linear-gradient(135deg,#10b981,#0284c7)] text-white shadow-[0_18px_45px_rgba(16,185,129,0.28)]">
+            <div className={`mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full text-white ${payOnSite ? 'bg-[linear-gradient(135deg,#0284c7,#0891b2)] shadow-[0_18px_45px_rgba(2,132,199,0.28)]' : 'bg-[linear-gradient(135deg,#10b981,#0284c7)] shadow-[0_18px_45px_rgba(16,185,129,0.28)]'}`}>
               <div className="relative">
                 <Waves size={28} />
-                <CheckCircle2 size={22} className="absolute -right-4 -top-4 rounded-full bg-white text-emerald-500" />
+                <CheckCircle2 size={22} className={`absolute -right-4 -top-4 rounded-full bg-white ${payOnSite ? 'text-sky-500' : 'text-emerald-500'}`} />
               </div>
             </div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${payOnSite ? 'text-sky-700' : 'text-emerald-700'}`}>
               <PartyPopper size={14} />
-              Pagamento aprovado
+              {payOnSite ? 'Reserva confirmada' : 'Pagamento aprovado'}
             </div>
             <h2 className="font-condensed text-4xl font-bold uppercase tracking-wide text-slate-900 sm:text-5xl">
-              Sua vaga esta garantida
+              {payOnSite ? 'Sua vaga foi reservada' : 'Sua vaga esta garantida'}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-              {result.message} Agora e so arrumar a prancha, separar o protetor solar e se preparar para a trip.
+              {result.message} {payOnSite ? 'Leve essa confirmacao para concluir o pagamento presencialmente.' : 'Agora e so arrumar a prancha, separar o protetor solar e se preparar para a trip.'}
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -117,7 +119,7 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
                 <div className="space-y-3">
                   <SuccessRow label="Trip" value={title} />
                   <SuccessRow label="Participante" value={fullName} />
-                  <SuccessRow label="Valor pago" value={formatPrice(amount)} />
+                  <SuccessRow label={payOnSite ? 'Valor combinado' : 'Valor pago'} value={formatPrice(amount)} />
                   <SuccessRow label="E-mail" value={email} />
                 </div>
               </div>
@@ -125,12 +127,12 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
               <div className="rounded-2xl border border-white/80 bg-white/75 p-5 text-left backdrop-blur-sm">
                 <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
                   <Sparkles size={14} />
-                  Proximos passos
+                  Próximos passos
                 </div>
                 <div className="space-y-3 text-sm text-slate-600">
-                  <p>Voce recebera as informacoes da trip no e-mail informado durante a inscricao.</p>
-                  <p>Se precisar revisar os detalhes do pagamento, o comprovante continua disponivel logo abaixo.</p>
-                  {result.ticketUrl && (
+                  <p>Você receberá as informações da trip no e-mail informado durante a inscrição.</p>
+                  <p>{payOnSite ? 'O pagamento ficara marcado como pendente ate ser recebido pela escola.' : 'Se precisar revisar os detalhes do pagamento, o comprovante continua disponivel logo abaixo.'}</p>
+                  {!payOnSite && result.ticketUrl && (
                     <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="inline-flex font-bold text-emerald-700 underline">
                       Abrir comprovante
                     </a>
@@ -154,7 +156,28 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="mb-4">
           <div className="font-condensed text-2xl font-bold uppercase text-slate-900">Inscreva-se na trip</div>
-          <p className="mt-1 text-sm text-slate-500">Preencha seus dados e conclua o pagamento para garantir sua vaga.</p>
+          <p className="mt-1 text-sm text-slate-500">Preencha seus dados e escolha se prefere pagar agora ou combinar o pagamento no local.</p>
+        </div>
+
+        <div className="mb-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setPaymentMode('pay_now')}
+            className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_now' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
+          >
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opcao 1</div>
+            <div className="mt-1 font-semibold text-slate-900">Pagar agora</div>
+            <div className="mt-1 text-sm text-slate-500">Pix ou cartao pelo checkout.</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMode('pay_on_site')}
+            className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
+          >
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opcao 2</div>
+            <div className="mt-1 font-semibold text-slate-900">Pagar no local</div>
+            <div className="mt-1 text-sm text-slate-500">Reserva a vaga e deixa o pagamento pendente.</div>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -177,7 +200,7 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
             <div className="flex h-11 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">{formatPrice(amount)}</div>
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Observacoes">
+            <Field label="Observações">
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="w-full rounded-sm border border-slate-200 px-3 py-2 text-sm" />
             </Field>
           </div>
@@ -198,7 +221,7 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
           {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
           {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Abrir comprovante</a>}
         </div>
-      ) : (
+      ) : paymentMode === 'pay_now' ? (
         <div className="relative rounded-2xl border border-slate-200 bg-white p-4">
           {!formReady && (
             <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -266,6 +289,58 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
             </div>
           )}
           {!formReady && <div className="absolute inset-0 z-[5] rounded-2xl bg-white/35" />}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          {!formReady && (
+            <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Preencha pelo menos nome e e-mail para reservar sua vaga.
+            </div>
+          )}
+          <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
+            Sua vaga sera registrada como confirmada, com pagamento pendente para ser feito no local.
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button
+              type="button"
+              disabled={!formReady || submitting}
+              onClick={async () => {
+                if (!formReady) {
+                  setError('Preencha nome e e-mail antes de reservar.')
+                  return
+                }
+
+                setSubmitting(true)
+                setError(null)
+                try {
+                  const response = await fetch('/api/trips/process-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      tripId,
+                      schoolId,
+                      paymentMode: 'pay_on_site',
+                      registrant: { fullName, email, phone, notes },
+                      checkoutData: { formData: {} },
+                    }),
+                  })
+
+                  const payload = await response.json()
+                  if (!response.ok) {
+                    const message = payload.error || 'Nao foi possivel reservar a inscricao.'
+                    setError(message)
+                    throw new Error(message)
+                  }
+
+                  setResult(payload as ProcessTripPaymentResponse)
+                } finally {
+                  setSubmitting(false)
+                }
+              }}
+            >
+              {submitting ? 'Reservando...' : 'Reservar e pagar no local'}
+            </Button>
+          </div>
         </div>
       )}
 

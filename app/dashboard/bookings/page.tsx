@@ -12,6 +12,7 @@ export default async function BookingsPage() {
       bookings={bookings}
       students={bookingOptions.students}
       instructors={bookingOptions.instructors}
+      bookingRules={bookingOptions.bookingRules}
     />
   )
 }

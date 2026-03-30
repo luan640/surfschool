@@ -50,7 +50,7 @@ export function ReportsFilters({ instructors, coupons, onPendingChange }: Props)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded border border-slate-200 bg-white p-5 md:grid-cols-2 xl:grid-cols-5">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded border border-slate-200 bg-white p-5 md:grid-cols-2 xl:grid-cols-6">
       <FilterField label="Data inicial">
         <input
           name="from"
@@ -96,6 +96,18 @@ export function ReportsFilters({ instructors, coupons, onPendingChange }: Props)
               {coupon.label}{coupon.inactive ? ' (inativo)' : ''}
             </option>
           ))}
+        </select>
+      </FilterField>
+
+      <FilterField label="Origem do pagamento">
+        <select
+          name="paymentOrigin"
+          defaultValue={searchParams.get('paymentOrigin') ?? ''}
+          className="h-11 w-full rounded border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+        >
+          <option value="">Todos</option>
+          <option value="online">Online</option>
+          <option value="presential">Presencial</option>
         </select>
       </FilterField>
 

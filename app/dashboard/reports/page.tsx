@@ -14,9 +14,10 @@ export default async function ReportsPage({ searchParams }: Props) {
   const rawTo = typeof params?.to === 'string' ? params.to : undefined
   const rawInstructorId = typeof params?.instructorId === 'string' ? params.instructorId : undefined
   const rawCouponId = typeof params?.couponId === 'string' ? params.couponId : undefined
+  const rawPaymentOrigin = typeof params?.paymentOrigin === 'string' ? params.paymentOrigin : undefined
 
   const filtersOptions = await getReportFilterOptions()
-  const suspenseKey = `${rawFrom ?? ''}:${rawTo ?? ''}:${rawInstructorId ?? ''}:${rawCouponId ?? ''}`
+  const suspenseKey = `${rawFrom ?? ''}:${rawTo ?? ''}:${rawInstructorId ?? ''}:${rawCouponId ?? ''}:${rawPaymentOrigin ?? ''}`
 
   return (
     <div className="dashboard-page">
@@ -39,6 +40,7 @@ export default async function ReportsPage({ searchParams }: Props) {
             to={rawTo}
             instructorId={rawInstructorId}
             couponId={rawCouponId}
+            paymentOrigin={rawPaymentOrigin}
           />
         </Suspense>
       </ReportsPageClient>

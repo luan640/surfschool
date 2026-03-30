@@ -20,6 +20,7 @@ interface ReportFilters {
   to?: string
   instructorId?: string
   couponId?: string
+  paymentOrigin?: string
 }
 
 interface PaymentTransactionReportRow {
@@ -145,6 +146,8 @@ export async function getReportsData(filters: ReportFilters) {
   if (normalizedFilters.from) scopeBookingIdsQuery = scopeBookingIdsQuery.gte('lesson_date', normalizedFilters.from)
   if (normalizedFilters.to) scopeBookingIdsQuery = scopeBookingIdsQuery.lte('lesson_date', normalizedFilters.to)
   if (normalizedFilters.instructorId) scopeBookingIdsQuery = scopeBookingIdsQuery.eq('instructor_id', normalizedFilters.instructorId)
+  if (normalizedFilters.paymentOrigin === 'online') scopeBookingIdsQuery = scopeBookingIdsQuery.not('payment_transaction_id', 'is', null)
+  if (normalizedFilters.paymentOrigin === 'presential') scopeBookingIdsQuery = scopeBookingIdsQuery.is('payment_transaction_id', null)
   if (couponBookingIds) scopeBookingIdsQuery = scopeBookingIdsQuery.in('id', couponBookingIds)
 
   const { data: scopeBookingIdsRows } = await scopeBookingIdsQuery
@@ -175,6 +178,8 @@ export async function getReportsData(filters: ReportFilters) {
   if (normalizedFilters.from) query = query.gte('lesson_date', normalizedFilters.from)
   if (normalizedFilters.to) query = query.lte('lesson_date', normalizedFilters.to)
   if (normalizedFilters.instructorId) query = query.eq('instructor_id', normalizedFilters.instructorId)
+  if (normalizedFilters.paymentOrigin === 'online') query = query.not('payment_transaction_id', 'is', null)
+  if (normalizedFilters.paymentOrigin === 'presential') query = query.is('payment_transaction_id', null)
   if (couponBookingIds) query = query.in('id', couponBookingIds)
 
   const { data } = await query
@@ -214,6 +219,7 @@ function normalizeFilters(filters: ReportFilters) {
     to: filters.to && /^\d{4}-\d{2}-\d{2}$/.test(filters.to) ? filters.to : today.toISOString().slice(0, 10),
     instructorId: filters.instructorId || '',
     couponId: filters.couponId || '',
+    paymentOrigin: filters.paymentOrigin === 'online' || filters.paymentOrigin === 'presential' ? filters.paymentOrigin : '',
   }
 }
 
@@ -251,7 +257,14 @@ function buildKpis(
     0
   )
   const uniqueStudents = new Set(bookings.map((booking) => booking.student?.id).filter(Boolean)).size
+  const relevantTransactionIds = new Set(
+    bookings
+      .map((booking) => booking.payment_transaction_id)
+      .filter((transactionId): transactionId is string => Boolean(transactionId)),
+  )
   const relevantTransactions = transactions.filter((transaction) => {
+    if (relevantTransactionIds.has(transaction.id)) return true
+
     const bookingIds = transaction.booking_ids ?? []
     if (bookingIds.length === 0) return false
 
@@ -369,15 +382,33 @@ function buildFinancialAllocations(
 ): BookingFinancialAllocation[] {
   const paidBookings = bookings.filter((booking) => booking.payment_status === 'paid')
   const paidBookingMap = new Map(paidBookings.map((booking) => [booking.id, booking]))
+  const bookingsByTransactionId = new Map<string, BookingReportRow[]>()
+
+  paidBookings.forEach((booking) => {
+    if (!booking.payment_transaction_id) return
+    const current = bookingsByTransactionId.get(booking.payment_transaction_id) ?? []
+    current.push(booking)
+    bookingsByTransactionId.set(booking.payment_transaction_id, current)
+  })
+
   const allocations: BookingFinancialAllocation[] = []
   const allocatedBookingIds = new Set<string>()
 
   transactions
     .filter((transaction) => transaction.status === 'paid')
     .forEach((transaction) => {
-      const matchedBookings = (transaction.booking_ids ?? [])
-        .map((bookingId) => paidBookingMap.get(bookingId))
-        .filter((booking): booking is BookingReportRow => Boolean(booking))
+      const matchedBookingsMap = new Map<string, BookingReportRow>()
+
+      ;(bookingsByTransactionId.get(transaction.id) ?? []).forEach((booking) => {
+        matchedBookingsMap.set(booking.id, booking)
+      })
+
+      ;(transaction.booking_ids ?? []).forEach((bookingId) => {
+        const booking = paidBookingMap.get(bookingId)
+        if (booking) matchedBookingsMap.set(booking.id, booking)
+      })
+
+      const matchedBookings = [...matchedBookingsMap.values()]
 
       if (matchedBookings.length === 0) return
 

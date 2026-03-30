@@ -15,9 +15,16 @@ interface Props {
   instructors?: Instructor[]
 }
 
+function formatBookingDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('pt-BR')
+}
+
 export function BookingStatusActions({ bookingId, status, booking, instructors = [] }: Props) {
   const [loading, setLoading] = useState(false)
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
+  const [completeOpen, setCompleteOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
   const { success, error: showError } = useToast()
 
   async function change(next: BookingStatus) {
@@ -55,7 +62,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
         )}
         {status !== 'completed' && (
         <button
-          onClick={() => change('completed')}
+          onClick={() => setCompleteOpen(true)}
           disabled={loading}
           title="Marcar como concluída"
           className="p-1.5 rounded hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors disabled:opacity-50"
@@ -65,7 +72,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
         )}
         {status !== 'confirmed' && status !== 'completed' && (
         <button
-          onClick={() => change('confirmed')}
+          onClick={() => setConfirmOpen(true)}
           disabled={loading}
           title="Confirmar"
           className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-50"
@@ -74,7 +81,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
         </button>
         )}
         <button
-          onClick={() => change('cancelled')}
+          onClick={() => setCancelOpen(true)}
           disabled={loading}
           title="Cancelar"
           className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
@@ -107,6 +114,188 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 onCancel={() => setRescheduleOpen(false)}
                 onSuccess={() => setRescheduleOpen(false)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="w-full max-w-md rounded border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+                  Confirmar aula
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Esta acao vai marcar o agendamento como confirmado.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setConfirmOpen(false)} aria-label="Fechar modal de confirmacao">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="space-y-4 px-6 py-5">
+              {booking ? (
+                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  <p>
+                    <span className="font-semibold text-slate-800">Aluno:</span>{' '}
+                    {booking.student?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
+                    {booking.instructor?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Horario:</span> {booking.time_slots.join(', ')}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Deseja confirmar este agendamento agora?
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={loading}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={async () => {
+                    await change('confirmed')
+                    setConfirmOpen(false)
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? 'Confirmando...' : 'Confirmar aula'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {completeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="w-full max-w-md rounded border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+                  Concluir aula
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Esta ação vai marcar o agendamento como concluido.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setCompleteOpen(false)} aria-label="Fechar modal de conclusao">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="space-y-4 px-6 py-5">
+              {booking ? (
+                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  <p>
+                    <span className="font-semibold text-slate-800">Aluno:</span>{' '}
+                    {booking.student?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
+                    {booking.instructor?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Horario:</span> {booking.time_slots.join(', ')}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Deseja concluir este agendamento agora?
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setCompleteOpen(false)} disabled={loading}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="success"
+                  onClick={async () => {
+                    await change('completed')
+                    setCompleteOpen(false)
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? 'Concluindo...' : 'Concluir aula'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cancelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="w-full max-w-md rounded border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+                  Cancelar aula
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Esta acao vai cancelar o agendamento.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setCancelOpen(false)} aria-label="Fechar modal de cancelamento">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="space-y-4 px-6 py-5">
+              {booking ? (
+                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  <p>
+                    <span className="font-semibold text-slate-800">Aluno:</span>{' '}
+                    {booking.student?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
+                    {booking.instructor?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Horario:</span> {booking.time_slots.join(', ')}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Deseja cancelar este agendamento agora?
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setCancelOpen(false)} disabled={loading}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={async () => {
+                    await change('cancelled')
+                    setCancelOpen(false)
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? 'Cancelando...' : 'Cancelar aula'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

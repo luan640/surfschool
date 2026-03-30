@@ -257,10 +257,10 @@ export async function createManualTripRegistration(tripId: string, formData: For
       phone: payload.data.phone,
       notes: payload.data.notes,
       status: 'confirmed',
-      payment_status: 'paid',
+      payment_status: payload.data.paymentStatus,
       payment_method: payload.data.paymentMethod,
       amount: payload.data.amount,
-      mercadopago_status_detail: `Pagamento presencial registrado manualmente via ${formatTripPaymentMethodLabel(payload.data.paymentMethod)}.`,
+      mercadopago_status_detail: buildManualTripPaymentDetail(payload.data.paymentMethod, payload.data.paymentStatus),
     })
 
   if (error) {
@@ -303,9 +303,10 @@ export async function updateManualTripRegistration(registrationId: string, formD
       email: payload.data.email,
       phone: payload.data.phone,
       notes: payload.data.notes,
+      payment_status: payload.data.paymentStatus,
       payment_method: payload.data.paymentMethod,
       amount: payload.data.amount,
-      mercadopago_status_detail: `Pagamento presencial registrado manualmente via ${formatTripPaymentMethodLabel(payload.data.paymentMethod)}.`,
+      mercadopago_status_detail: buildManualTripPaymentDetail(payload.data.paymentMethod, payload.data.paymentStatus),
     })
     .eq('id', registration.id)
 
@@ -536,6 +537,7 @@ function parseManualTripRegistrationFormData(formData: FormData):
       email: string
       phone: string | null
       notes: string | null
+      paymentStatus: 'pending' | 'paid'
       paymentMethod: PaymentMethod
       amount: number
     } }
@@ -543,6 +545,7 @@ function parseManualTripRegistrationFormData(formData: FormData):
   const fullName = ((formData.get('full_name') as string | null) ?? '').trim()
   const email = ((formData.get('email') as string | null) ?? '').trim().toLowerCase()
   const notes = ((formData.get('notes') as string | null) ?? '').trim() || null
+  const paymentStatus = ((formData.get('payment_status') as string | null) ?? 'paid').trim() as 'pending' | 'paid'
   const paymentMethod = ((formData.get('payment_method') as string | null) ?? '').trim() as PaymentMethod
   const amount = Number(formData.get('amount') ?? 0)
   const phoneValue = formData.get('phone')
@@ -560,6 +563,10 @@ function parseManualTripRegistrationFormData(formData: FormData):
     return { success: false, error: phoneResult.error }
   }
 
+  if (!['pending', 'paid'].includes(paymentStatus)) {
+    return { success: false, error: 'Selecione uma situacao de pagamento valida.' }
+  }
+
   if (!['pix', 'credit_card', 'debit_card', 'cash'].includes(paymentMethod)) {
     return { success: false, error: 'Selecione uma forma de pagamento valida.' }
   }
@@ -575,8 +582,17 @@ function parseManualTripRegistrationFormData(formData: FormData):
       email,
       phone: phoneResult.value,
       notes,
+      paymentStatus,
       paymentMethod,
       amount: Number(amount.toFixed(2)),
     },
   }
+}
+
+function buildManualTripPaymentDetail(paymentMethod: PaymentMethod, paymentStatus: 'pending' | 'paid') {
+  if (paymentStatus === 'pending') {
+    return 'Pagamento combinado para ser feito no local.'
+  }
+
+  return `Pagamento presencial registrado manualmente via ${formatTripPaymentMethodLabel(paymentMethod)}.`
 }

@@ -9,6 +9,7 @@ interface ReportsResultsProps {
   to?: string
   instructorId?: string
   couponId?: string
+  paymentOrigin?: string
 }
 
 export async function ReportsResults({
@@ -16,12 +17,14 @@ export async function ReportsResults({
   to,
   instructorId,
   couponId,
+  paymentOrigin,
 }: ReportsResultsProps) {
   const report = await getReportsData({
     from,
     to,
     instructorId,
     couponId,
+    paymentOrigin,
   })
 
   return (

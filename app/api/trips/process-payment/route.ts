@@ -14,6 +14,7 @@ import {
 interface RequestBody {
   tripId: string
   schoolId: string
+  paymentMode?: 'pay_now' | 'pay_on_site'
   registrant: {
     fullName: string
     email: string
@@ -57,11 +58,47 @@ export async function POST(request: Request) {
         .from('trip_registrations')
         .select('*', { count: 'exact', head: true })
         .eq('trip_id', trip.id)
-        .eq('payment_status', 'paid')
+        .in('payment_status', ['paid', 'pending'])
 
       if ((count ?? 0) >= trip.capacity) {
         return NextResponse.json({ error: 'As vagas desta trip se encerraram.' }, { status: 409 })
       }
+    }
+
+    const paymentMode = body.paymentMode === 'pay_on_site' ? 'pay_on_site' : 'pay_now'
+
+    if (paymentMode === 'pay_on_site') {
+      const { data: registration, error: registrationError } = await admin
+        .from('trip_registrations')
+        .insert({
+          trip_id: trip.id,
+          school_id: trip.school_id,
+          full_name: body.registrant.fullName,
+          email: body.registrant.email,
+          phone: phoneResult.value,
+          notes: body.registrant.notes || null,
+          payment_status: 'pending',
+          status: 'confirmed',
+          payment_method: null,
+          amount: trip.price,
+          mercadopago_status_detail: 'Pagamento sera realizado no local.',
+        })
+        .select('id')
+        .single()
+
+      if (registrationError || !registration) {
+        return NextResponse.json({ error: registrationError?.message ?? 'Nao foi possivel reservar a vaga.' }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        registrationId: registration.id,
+        paymentId: null,
+        status: 'pay_on_site',
+        message: 'Sua inscricao foi reservada. O pagamento ficara pendente para ser feito no local.',
+        qrCode: null,
+        qrCodeBase64: null,
+        ticketUrl: null,
+      })
     }
 
     const accessToken = await getValidMercadoPagoAccessTokenForSchool(trip.school_id)

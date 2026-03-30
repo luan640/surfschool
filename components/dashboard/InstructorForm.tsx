@@ -283,7 +283,7 @@ export function InstructorForm({
           name="bio"
           rows={3}
           defaultValue={instructor?.bio ?? ''}
-          placeholder="Certificacoes, experiencia e estilo de ensino."
+          placeholder="Certificações, experiência e estilo de ensino."
           className="w-full rounded-sm border border-slate-200 px-3 py-2 text-sm text-slate-800 bg-white resize-none focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/10"
         />
       </div>
@@ -362,12 +362,12 @@ export function InstructorForm({
 
       <div className="flex flex-wrap justify-end gap-3">
         <Button type="submit" variant="primary" disabled={loading}>
-          {loading ? 'Salvando...' : instructor ? 'Salvar alteracoes' : 'Criar instrutor'}
+          {loading ? 'Salvando...' : instructor ? 'Salvar alterações' : 'Criar instrutor'}
         </Button>
 
         {layout === 'modal' && activeSection === 'profile' && (
           <Button type="button" variant="ghost" onClick={() => setActiveSection('availability')}>
-            Ir para horarios
+            Ir para horários
           </Button>
         )}
 
@@ -401,7 +401,7 @@ export function InstructorForm({
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="rounded border border-slate-200 bg-white p-3 h-fit">
             <p className="px-2 pb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-              Configuracao
+              Configuração
             </p>
 
             <div className="space-y-2">

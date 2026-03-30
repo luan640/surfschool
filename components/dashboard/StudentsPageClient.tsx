@@ -26,7 +26,7 @@ export function StudentsPageClient({ students }: Props) {
   return (
     <>
       <div className="dashboard-page">
-        <div className="mb-8 flex items-center justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
               Alunos
@@ -35,7 +35,7 @@ export function StudentsPageClient({ students }: Props) {
               {students.length} aluno{students.length !== 1 ? 's' : ''} cadastrado{students.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button size="sm" onClick={() => setCreateModalOpen(true)}>
+          <Button size="sm" onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto">
             <Plus size={15} /> Novo aluno
           </Button>
         </div>

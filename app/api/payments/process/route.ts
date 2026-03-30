@@ -23,6 +23,7 @@ interface ProcessPaymentRequestBody {
   schoolId: string
   selectionType: 'single' | 'package'
   instructorId: string
+  paymentMode?: 'pay_now' | 'pay_on_site'
   packageId?: string | null
   selectedDate?: string
   selectedSlots?: string[]
@@ -34,7 +35,13 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ProcessPaymentRequestBody
 
-    if (!body.schoolId || !body.selectionType || !body.instructorId || !body.checkoutData?.formData) {
+    const paymentMode = body.paymentMode === 'pay_on_site' ? 'pay_on_site' : 'pay_now'
+
+    if (!body.schoolId || !body.selectionType || !body.instructorId) {
+      return NextResponse.json({ error: 'Payload de pagamento invalido.' }, { status: 400 })
+    }
+
+    if (paymentMode === 'pay_now' && !body.checkoutData?.formData) {
       return NextResponse.json({ error: 'Payload de pagamento invalido.' }, { status: 400 })
     }
 
@@ -59,11 +66,6 @@ export async function POST(request: Request) {
     }
 
     const rules = await getBookingRulesForSchool(school.id)
-
-    const schoolAccessToken = await getValidMercadoPagoAccessTokenForSchool(school.id)
-    if (!schoolAccessToken) {
-      return NextResponse.json({ error: 'A escola ainda nao conectou o Mercado Pago para receber pagamentos.' }, { status: 409 })
-    }
 
     const { data: student, error: studentError } = await admin
       .from('student_profiles')
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
         p_lesson_date: body.selectedDate,
         p_time_slots: normalizedSelectedSlots,
         p_unit_price: instructor.hourly_price,
-        p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
+        p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
         p_billing_mode: 'hourly',
         p_package_id: null,
       })
@@ -128,7 +130,7 @@ export async function POST(request: Request) {
           p_lesson_date: body.selectedDate,
           p_time_slots: normalizedSelectedSlots,
           p_unit_price: instructor.hourly_price,
-          p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
+          p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
         })
 
         booking = fallback.data
@@ -187,7 +189,7 @@ export async function POST(request: Request) {
         p_package_id: pkg.id,
         p_lessons: normalizedLessons,
         p_total_amount: amount,
-        p_payment_method: resolveLocalPaymentMethod(body.checkoutData),
+        p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
       })
 
       if (packagePlanError || !packagePlanId) {
@@ -199,6 +201,40 @@ export async function POST(request: Request) {
 
       studentPackageId = packagePlanId as string
       bookingIds = await getBookingIdsForStudentPackage(studentPackageId)
+    }
+
+    if (paymentMode === 'pay_on_site') {
+      const { error: bookingUpdateError } = await admin
+        .from('bookings')
+        .update({
+          status: 'confirmed',
+          payment_status: 'pending',
+          payment_method: null,
+        })
+        .in('id', bookingIds)
+
+      if (bookingUpdateError) {
+        return NextResponse.json({ error: bookingUpdateError.message }, { status: 500 })
+      }
+
+      return NextResponse.json(
+        {
+          transactionId: null,
+          paymentId: null,
+          status: 'pay_on_site',
+          statusDetail: null,
+          message: 'Agendamento confirmado. O pagamento ficará pendente para ser feito na hora.',
+          qrCode: null,
+          qrCodeBase64: null,
+          ticketUrl: null,
+        },
+        { status: 200 },
+      )
+    }
+
+    const schoolAccessToken = await getValidMercadoPagoAccessTokenForSchool(school.id)
+    if (!schoolAccessToken) {
+      return NextResponse.json({ error: 'A escola ainda não conectou o Mercado Pago para receber pagamentos.' }, { status: 409 })
     }
 
     const paymentMethod = resolveLocalPaymentMethod(body.checkoutData)

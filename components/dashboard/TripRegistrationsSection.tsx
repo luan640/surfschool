@@ -211,6 +211,17 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
                   <Input name="phone" type="tel" placeholder="+55 11 99999-9999" defaultValue={editingRegistration?.phone ?? ''} />
                 </div>
                 <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Situacao do pagamento *</label>
+                  <select
+                    name="payment_status"
+                    defaultValue={editingRegistration?.payment_status === 'pending' ? 'pending' : 'paid'}
+                    className="h-11 rounded-sm border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-[var(--primary)] focus:outline-none"
+                  >
+                    <option value="paid">Pago</option>
+                    <option value="pending">Pagar no local</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Forma de pagamento *</label>
                   <select
                     name="payment_method"
@@ -223,7 +234,7 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
                     <option value="cash">Dinheiro</option>
                   </select>
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor pago *</label>
                   <Input name="amount" type="number" min="0" step="0.01" required defaultValue={editingRegistration?.amount ?? trip.price} />
                 </div>

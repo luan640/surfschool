@@ -170,6 +170,7 @@ export interface Booking {
   unit_price: number
   total_amount: number
   status: BookingStatus
+  payment_transaction_id: string | null
   payment_method: PaymentMethod | null
   payment_status: PaymentStatus
   payment_ref: string | null

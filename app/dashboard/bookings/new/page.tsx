@@ -5,7 +5,7 @@ import { getManualBookingOptions } from '@/actions/bookings'
 import { ManualBookingForm } from '@/components/dashboard/ManualBookingForm'
 
 export default async function NewManualBookingPage() {
-  const { students, instructors } = await getManualBookingOptions()
+  const { students, instructors, bookingRules } = await getManualBookingOptions()
 
   if (students.length === 0) {
     redirect('/dashboard/students/new')
@@ -30,7 +30,7 @@ export default async function NewManualBookingPage() {
         </p>
       </div>
 
-      <ManualBookingForm students={students} instructors={instructors} />
+      <ManualBookingForm students={students} instructors={instructors} bookingRules={bookingRules} />
     </div>
   )
 }

@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronLeft, ChevronRight, Clock, MapPin, Package, User, Waves } from 'lucide-react'
-import { getStudentProfile, getTakenSlots } from '@/actions/bookings'
-import { getPublicSchoolRulesBySlug } from '@/actions/dashboard'
+import { ArrowLeft, ArrowRight, Calendar, Check, ChevronLeft, ChevronRight, Clock, MapPin, Package, User } from 'lucide-react'
+import { getTakenSlots } from '@/actions/bookings'
+import { getPublicMercadoPagoConnectionBySlug, getPublicSchoolRulesBySlug } from '@/actions/dashboard'
 import { getInstructorsBySchoolSlug } from '@/actions/instructors'
 import { getPublicLessonPackagesBySchoolSlug } from '@/actions/packages'
 import { MercadoPagoCheckoutBrick } from '@/components/checkout/MercadoPagoCheckoutBrick'
@@ -28,15 +27,13 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const [schoolRules, setSchoolRules] = useState<SchoolRules | null>(null)
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [packages, setPackages] = useState<LessonPackage[]>([])
-  const [student, setStudent] = useState<{ id: string; full_name: string } | null>(null)
   const [studentEmail, setStudentEmail] = useState<string | null>(null)
+  const [mercadoPagoReady, setMercadoPagoReady] = useState(false)
   const [authReady, setAuthReady] = useState(false)
   const [takenSlots, setTakenSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [packageStepMessage, setPackageStepMessage] = useState<string | null>(null)
-  const [paymentState, setPaymentState] = useState<'approved' | 'pending' | null>(null)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [productTab, setProductTab] = useState<'single' | 'package'>('single')
   const packagePlannerRef = useRef<HTMLDivElement | null>(null)
@@ -77,6 +74,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     getInstructorsBySchoolSlug(slug).then(setInstructors)
     getPublicLessonPackagesBySchoolSlug(slug).then(setPackages)
     getPublicSchoolRulesBySlug(slug).then(setSchoolRules)
+    getPublicMercadoPagoConnectionBySlug(slug).then((connection) => setMercadoPagoReady(connection?.status === 'connected'))
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return
@@ -107,13 +105,6 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
       subscription.unsubscribe()
     }
   }, [router, slug])
-
-  useEffect(() => {
-    if (!school) return
-    getStudentProfile(school.id).then((profile) => {
-      if (profile) setStudent({ id: profile.id, full_name: profile.full_name })
-    })
-  }, [school])
 
   const isPackageFlow = wizard.selectionType === 'package' && !!wizard.selectedPackage
   const activePackageLesson = wizard.packageLessons[wizard.activePackageLessonIndex] ?? null
@@ -205,9 +196,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   function resetForProduct() {
     setError(null)
-    setSuccessMessage(null)
     setPackageStepMessage(null)
-    setPaymentState(null)
     setTakenSlots([])
     setCalendarMonth(new Date())
   }
@@ -430,109 +419,6 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     )
   }
 
-  if (paymentState === 'approved') {
-    return (
-      <div className="min-h-dvh bg-slate-50">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
-          <button type="button" onClick={() => router.push(`/${slug}`)} className="font-condensed text-lg font-bold uppercase">{school?.name ?? 'vamosurfar'}</button>
-        </header>
-
-        <div className="mx-auto max-w-4xl px-4 py-8">
-          <section className="overflow-hidden rounded-[28px] border border-sky-200 bg-[linear-gradient(145deg,#e0f2fe_0%,#dbeafe_38%,#f0fdf4_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-            <div className="relative px-6 py-8 sm:px-10 sm:py-10">
-              <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-sky-300/35 blur-3xl" />
-              <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-emerald-300/30 blur-3xl" />
-
-              <div className="relative">
-                <div className="mb-8 flex flex-col items-center text-center">
-                  <div className="relative mb-5 flex h-28 w-28 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0284c7,#0f172a)] text-white shadow-[0_18px_45px_rgba(2,132,199,0.35)]">
-                    <div className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white ring-4 ring-white/70">
-                      <Check size={18} />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <Waves size={28} />
-                      <span className="mt-1 font-condensed text-xl font-bold uppercase">{student ? initials(student.full_name) : 'SB'}</span>
-                    </div>
-                  </div>
-                  <div className="mb-2 inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">
-                    Pagamento aprovado
-                  </div>
-                  <h1 className="font-condensed text-4xl font-bold uppercase tracking-wide text-slate-900 sm:text-5xl">
-                    Aula confirmada
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-                    {successMessage ?? 'Seu agendamento foi confirmado com sucesso.'} Agora ficou facil acompanhar suas aulas e nao esquecer o horario.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-white/80 bg-white/75 p-5 backdrop-blur-sm">
-                    <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Resumo do agendamento</div>
-                    <div className="space-y-3">
-                      <ConfirmationRow label="Produto" value={isPackageFlow ? wizard.selectedPackage?.name ?? 'Pacote' : 'Aula avulsa'} />
-                      <ConfirmationRow label="Instrutor" value={wizard.selectedInstructor?.full_name ?? '--'} />
-                      {!isPackageFlow && (
-                        <>
-                          <ConfirmationRow label="Data" value={wizard.selectedDate ? formatDate(wizard.selectedDate) : '--'} />
-                          <ConfirmationRow label="Horario" value={wizard.selectedSlots[0] ?? '--'} />
-                        </>
-                      )}
-                      {isPackageFlow && <ConfirmationRow label="Aulas" value={`${wizard.packageLessons.length} aulas planejadas`} />}
-                      <ConfirmationRow label="Total pago" value={formatPrice(totalAmount)} />
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/80 bg-white/75 p-5 backdrop-blur-sm">
-                    <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Proximos passos</div>
-                    <div className="space-y-3">
-                      <Link
-                        href={`/${slug}/minhas-aulas`}
-                        className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold uppercase text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)]"
-                      >
-                        Ir para minhas aulas
-                      </Link>
-                      {!isPackageFlow && singleCalendarUrl && (
-                        <a
-                          href={singleCalendarUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-sky-600 px-4 text-sm font-bold uppercase text-white"
-                        >
-                          Adicionar ao Google Calendar
-                        </a>
-                      )}
-                      {isPackageFlow && packageCalendarLinks.length > 0 && (
-                        <div className="space-y-2">
-                          {packageCalendarLinks.map((lesson) => (
-                            <a
-                              key={lesson.sequence}
-                              href={lesson.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-sky-600 px-4 text-sm font-bold uppercase text-white"
-                            >
-                              {lesson.label} no Google Calendar
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                      <Link
-                        href={`/${slug}`}
-                        className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold uppercase text-slate-700"
-                      >
-                        Voltar para a escola
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-dvh bg-slate-50">
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
@@ -556,7 +442,6 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
       <div className="mx-auto max-w-6xl px-4 py-6">
         <main className="space-y-6">
-          {successMessage && <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</div>}
           {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
           {school.address && (
@@ -701,10 +586,11 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {wizard.step === finalStep && wizard.selectedInstructor && (
             <section className="space-y-4">
-              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Confirmar e pagar</h1><p className="text-sm text-slate-500">Revise o agendamento antes de concluir.</p></div>
-              <div className="overflow-hidden rounded border border-slate-200 bg-white">
+              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Confirmar agendamento</h1><p className="text-sm text-slate-500">Revise o agendamento e escolha se prefere pagar agora ou pagar na hora.</p></div>
+              {false && (
+                <div className="overflow-hidden rounded border border-slate-200 bg-white">
                 <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Produto</div><div className="font-semibold text-slate-900">{isPackageFlow ? wizard.selectedPackage?.name : 'Aula avulsa'}</div></div>
-                <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Instrutor</div><div className="font-semibold text-slate-900">{wizard.selectedInstructor.full_name}</div></div>
+                <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Instrutor</div><div className="font-semibold text-slate-900">{wizard.selectedInstructor?.full_name ?? ''}</div></div>
                 {isPackageFlow ? (
                   <div className="px-4 py-3">
                     <div className="mb-3 text-[11px] font-bold uppercase text-slate-400">Aulas planejadas</div>
@@ -718,17 +604,20 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   </div>
                 ) : (
                   <>
-                    <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Data</div><div className="font-semibold text-slate-900">{wizard.selectedDate ? formatDate(wizard.selectedDate) : ''}</div></div>
+                    <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Data</div><div className="font-semibold text-slate-900">{wizard.selectedDate ? formatDate(wizard.selectedDate ?? new Date()) : ''}</div></div>
                     <div className="px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Horarios</div><div className="font-semibold text-slate-900">{wizard.selectedSlots.join(', ')}</div></div>
                   </>
                 )}
                 <div className="flex items-center justify-between bg-slate-950 px-4 py-3 text-white"><span className="font-condensed text-lg font-bold uppercase">Total</span><span className="font-condensed text-3xl font-bold">{formatPrice(totalAmount)}</span></div>
-              </div>
+                </div>
+              )}
               <MercadoPagoCheckoutBrick
+                schoolSlug={slug}
                 schoolId={school!.id}
                 selectionType={isPackageFlow ? 'package' : 'single'}
                 amount={totalAmount}
                 title={isPackageFlow ? wizard.selectedPackage?.name ?? 'Pacote de aulas' : 'Aula avulsa'}
+                onlineEnabled={mercadoPagoReady}
                 description={isPackageFlow
                   ? `${wizard.packageLessons.length} aulas com ${wizard.selectedInstructor.full_name}`
                   : `${formatDate(wizard.selectedDate!)} • ${wizard.selectedSlots.join(', ')}`}
@@ -741,9 +630,9 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   timeSlots: lesson.slots,
                 })) : undefined}
                 payerEmail={studentEmail}
-                onApproved={(message) => { setError(null); setPaymentState('approved'); setSuccessMessage(message) }}
-                onPending={(message) => { setError(null); setPaymentState('pending'); setSuccessMessage(message) }}
-                onFailure={(message) => { setPaymentState(null); setSuccessMessage(null); setError(message) }}
+                onApproved={() => { setError(null) }}
+                onPending={() => { setError(null) }}
+                onFailure={(message) => { setError(message) }}
               />
             </section>
           )}
@@ -752,8 +641,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
       <div className="sticky bottom-0 border-t border-slate-200 bg-white px-4 py-3">
         <div className="mx-auto flex max-w-6xl gap-3">
-          <button type="button" onClick={() => { if (wizard.step === 1) router.push(`/${slug}`); else goToStep(wizard.step - 1) }} className="flex h-11 flex-1 items-center justify-center gap-2 rounded border border-slate-200 font-bold uppercase text-slate-600"><ArrowLeft size={15} />Voltar</button>
-          {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-11 flex-1 items-center justify-center gap-2 rounded font-bold uppercase text-white disabled:opacity-40" style={{ background: primaryColor }}>Proximo<ArrowRight size={15} /></button>}
+          {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-11 w-full items-center justify-center gap-2 rounded font-bold uppercase text-white disabled:opacity-40" style={{ background: primaryColor }}>Proximo<ArrowRight size={15} /></button>}
         </div>
       </div>
     </div>

@@ -25,13 +25,24 @@ const STATUS_VARIANT: Record<string, 'neutral' | 'default' | 'success' | 'danger
   cancelled: 'danger',
 }
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: 'Dinheiro',
+  pix: 'Pix',
+  credit_card: 'Cartao de credito',
+  debit_card: 'Cartao de debito',
+}
+
 interface Props {
   bookings: Booking[]
   students: Pick<StudentProfile, 'id' | 'full_name' | 'phone'>[]
   instructors: Instructor[]
+  bookingRules: {
+    minimumBookingNoticeHours: number
+    bookingWindowDays: number
+  }
 }
 
-export function BookingsPageClient({ bookings, students, instructors }: Props) {
+export function BookingsPageClient({ bookings, students, instructors, bookingRules }: Props) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const canCreateBooking = students.length > 0 && instructors.length > 0
   const [currentPage, setCurrentPage] = useState(1)
@@ -45,7 +56,7 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
   return (
     <>
       <div className="dashboard-page">
-        <div className="mb-8 flex items-center justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-condensed text-3xl font-bold uppercase text-slate-800 tracking-wide">
               Agendamentos
@@ -54,9 +65,16 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
               {bookings.length} agendamento{bookings.length !== 1 ? 's' : ''} encontrado{bookings.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button size="sm" onClick={() => setCreateModalOpen(true)}>
-            <Plus size={15} /> Agendar aula manualmente
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <Button asChild variant="ghost" size="sm" className="w-full sm:w-auto">
+              <Link href="/dashboard/bookings/today">
+                Hoje
+              </Link>
+            </Button>
+            <Button size="sm" onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto">
+              <Plus size={15} /> Agendar aula manualmente
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded overflow-hidden">
@@ -75,6 +93,8 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
                       <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Aluno</th>
                       <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Instrutor</th>
                       <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Horarios</th>
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Origem</th>
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Pagamento</th>
                       <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Total</th>
                       <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">Status</th>
                       <th className="px-4 py-3"></th>
@@ -95,6 +115,8 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
                             ))}
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-slate-700">{getBookingOriginLabel(booking)}</td>
+                        <td className="px-4 py-3 text-slate-700">{getBookingPaymentLabel(booking)}</td>
                         <td className="px-4 py-3 text-right font-bold text-[var(--primary)]">{formatPrice(booking.total_amount)}</td>
                         <td className="px-4 py-3 text-center">
                           <Badge variant={STATUS_VARIANT[booking.status]}>{STATUS_LABEL[booking.status]}</Badge>
@@ -145,6 +167,16 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
                             </span>
                           ))}
                         </div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Origem</div>
+                        <div>{getBookingOriginLabel(booking)}</div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Pagamento</div>
+                        <div>{getBookingPaymentLabel(booking)}</div>
                       </div>
 
                       <div>
@@ -200,6 +232,7 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
                 <ManualBookingForm
                   students={students}
                   instructors={instructors}
+                  bookingRules={bookingRules}
                   onCancel={() => setCreateModalOpen(false)}
                   onSuccess={() => setCreateModalOpen(false)}
                 />
@@ -238,4 +271,12 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
       )}
     </>
   )
+}
+
+function getBookingOriginLabel(booking: Booking) {
+  return booking.payment_transaction_id ? 'Online' : 'Presencial'
+}
+
+function getBookingPaymentLabel(booking: Booking) {
+  return booking.payment_method ? PAYMENT_METHOD_LABEL[booking.payment_method] ?? 'Nao informado' : 'Nao informado'
 }

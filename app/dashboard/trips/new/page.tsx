@@ -8,7 +8,7 @@ export default function NewTripPage() {
           Nova trip
         </h1>
         <p className="mt-1 text-sm text-slate-400">
-          Monte uma pagina publica com informacoes, fotos e inscricao com pagamento online.
+          Monte uma página pública com informaçõees, fotos e inscrição com pagamento online.
         </p>
       </div>
 

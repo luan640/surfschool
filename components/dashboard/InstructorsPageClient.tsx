@@ -19,7 +19,7 @@ export function InstructorsPageClient({ instructors }: Props) {
   return (
     <>
       <div className="dashboard-page">
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-condensed text-3xl font-bold uppercase text-slate-800 tracking-wide">
               Instrutores
@@ -28,7 +28,7 @@ export function InstructorsPageClient({ instructors }: Props) {
               {instructors.length} instrutor{instructors.length !== 1 ? 'es' : ''} cadastrado{instructors.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button size="sm" onClick={() => setCreateModalOpen(true)}>
+          <Button size="sm" onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto">
             <Plus size={15} /> Novo Instrutor
           </Button>
         </div>

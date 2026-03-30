@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getMySchool } from './instructors'
+import { filterBookableSlots, getDefaultBookingRules } from '@/lib/booking-rules'
 import type { ActionResult, Booking, BookingStatus, Instructor, PaymentMethod, StudentProfile } from '@/lib/types'
 
 export async function createBooking(params: {
@@ -247,10 +248,15 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
   const studentId = (formData.get('student_id') as string | null) ?? ''
   const instructorId = (formData.get('instructor_id') as string | null) ?? ''
   const lessonDate = (formData.get('lesson_date') as string | null) ?? ''
+  const paymentMethod = ((formData.get('payment_method') as string | null) ?? 'cash') as PaymentMethod
   const selectedSlots = formData.getAll('time_slots').map(String).filter(Boolean).sort()
 
   if (!studentId || !instructorId || !lessonDate || selectedSlots.length === 0) {
     return { success: false, error: 'Selecione aluno, instrutor, data e pelo menos um horario.' }
+  }
+
+  if (!['cash', 'pix', 'credit_card', 'debit_card'].includes(paymentMethod)) {
+    return { success: false, error: 'Selecione uma forma de pagamento valida.' }
   }
 
   const [{ data: student }, { data: instructor }] = await Promise.all([
@@ -272,6 +278,13 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
   if (!student) return { success: false, error: 'Aluno invalido para esta escola.' }
   if (!instructor) return { success: false, error: 'Instrutor invalido para esta escola.' }
 
+  const bookingRules = await getBookingRulesForSchool(school.id)
+  const allowedSlots = filterBookableSlots(lessonDate, selectedSlots, bookingRules)
+
+  if (allowedSlots.length !== selectedSlots.length) {
+    return { success: false, error: 'Os horarios selecionados nao respeitam a antecedencia minima ou ja passaram.' }
+  }
+
   const bookingResult = await createBooking({
     schoolId: school.id,
     studentId,
@@ -279,7 +292,7 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
     lessonDate,
     timeSlots: selectedSlots,
     unitPrice: Number(instructor.hourly_price),
-    paymentMethod: 'cash',
+    paymentMethod,
   })
 
   if (!bookingResult.success) return bookingResult
@@ -289,7 +302,7 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
     .update({
       status: 'confirmed',
       payment_status: 'paid',
-      payment_method: 'cash',
+      payment_method: paymentMethod,
     })
     .eq('id', bookingResult.data.id)
 
@@ -304,12 +317,22 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
 export async function getManualBookingOptions(): Promise<{
   students: Pick<StudentProfile, 'id' | 'full_name' | 'phone'>[]
   instructors: Instructor[]
+  bookingRules: {
+    minimumBookingNoticeHours: number
+    bookingWindowDays: number
+  }
 }> {
   const supabase = await createClient()
   const school = await getMySchool()
-  if (!school) return { students: [], instructors: [] }
+  if (!school) {
+    return {
+      students: [],
+      instructors: [],
+      bookingRules: getDefaultBookingRules(),
+    }
+  }
 
-  const [{ data: students }, { data: instructors }] = await Promise.all([
+  const [{ data: students }, { data: instructors }, bookingRules] = await Promise.all([
     supabase
       .from('student_profiles')
       .select('id, full_name, phone')
@@ -321,11 +344,27 @@ export async function getManualBookingOptions(): Promise<{
       .eq('school_id', school.id)
       .eq('active', true)
       .order('full_name', { ascending: true }),
+    getBookingRulesForSchool(school.id),
   ])
 
   return {
     students: ((students ?? []) as Pick<StudentProfile, 'id' | 'full_name' | 'phone'>[]),
     instructors: (instructors ?? []) as Instructor[],
+    bookingRules,
+  }
+}
+
+async function getBookingRulesForSchool(schoolId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('school_rules')
+    .select('minimum_booking_notice_hours, booking_window_days')
+    .eq('school_id', schoolId)
+    .maybeSingle()
+
+  return {
+    minimumBookingNoticeHours: data?.minimum_booking_notice_hours ?? getDefaultBookingRules().minimumBookingNoticeHours,
+    bookingWindowDays: data?.booking_window_days ?? getDefaultBookingRules().bookingWindowDays,
   }
 }
 

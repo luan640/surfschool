@@ -325,7 +325,7 @@ export function CouponForm({ coupon, packages }: Props) {
 
       <div className="flex gap-3">
         <Button type="submit" variant="primary" disabled={loading}>
-          {loading ? 'Salvando...' : coupon ? 'Salvar alteracoes' : 'Criar cupom'}
+          {loading ? 'Salvando...' : coupon ? 'Salvar alterações' : 'Criar cupom'}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.push('/dashboard/coupons')} disabled={loading}>
           Cancelar

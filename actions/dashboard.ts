@@ -477,6 +477,28 @@ export async function getPublicSchoolRulesBySlug(slug: string): Promise<SchoolRu
   }
 }
 
+export async function getPublicMercadoPagoConnectionBySlug(slug: string): Promise<PaymentProviderConnection | null> {
+  if (!slug) return null
+
+  const admin = createAdminClient()
+  const { data: school } = await admin
+    .from('schools')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (!school) return null
+
+  const { data } = await admin
+    .from('payment_provider_connections')
+    .select('id, school_id, provider, mp_user_id, expires_at, status, last_error, connected_at, updated_at')
+    .eq('school_id', school.id)
+    .eq('provider', 'mercadopago')
+    .maybeSingle()
+
+  return (data ?? null) as PaymentProviderConnection | null
+}
+
 export async function updateSchoolSettings(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
   const school = await getMySchool()
