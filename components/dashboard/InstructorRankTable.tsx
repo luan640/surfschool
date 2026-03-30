@@ -4,7 +4,7 @@ import { Trophy } from 'lucide-react'
 
 export function InstructorRankTable({ data }: { data: InstructorRankRow[] }) {
   if (!data.length) {
-    return <p className="text-sm text-slate-400 text-center py-8">Nenhum instrutor cadastrado.</p>
+    return <p className="text-sm text-slate-400 text-center py-8">Nenhuma aula paga encontrada para montar o ranking.</p>
   }
 
   return (
@@ -30,12 +30,21 @@ export function InstructorRankTable({ data }: { data: InstructorRankRow[] }) {
               </td>
               <td className="py-3">
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-condensed text-xs font-bold flex-shrink-0"
-                    style={{ background: (row as { color?: string }).color ?? 'var(--primary)' }}
-                  >
-                    {initials(row.full_name)}
-                  </div>
+                  {row.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={row.photo_url}
+                      alt={row.full_name}
+                      className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-condensed text-xs font-bold flex-shrink-0"
+                      style={{ background: (row as { color?: string }).color ?? 'var(--primary)' }}
+                    >
+                      {initials(row.full_name)}
+                    </div>
+                  )}
                   <div>
                     <div className="font-semibold text-slate-800 text-xs">{row.full_name}</div>
                     <div className="text-slate-400 text-[11px]">{formatPrice(row.hourly_price)}/h</div>

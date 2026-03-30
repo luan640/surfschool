@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
+import { CheckCircle2, PartyPopper, Sparkles, Waves } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import { formatPhone, PHONE_INPUT_MAX_LENGTH } from '@/lib/phone'
@@ -83,6 +85,69 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
   }), [amount, email, title])
 
   const formReady = fullName.trim() && email.trim()
+
+  if (result?.status === 'approved') {
+    return (
+      <section className="overflow-hidden rounded-[28px] border border-emerald-200 bg-[linear-gradient(145deg,#ecfdf5_0%,#d1fae5_42%,#dbeafe_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+        <div className="relative px-6 py-8 sm:px-10 sm:py-10">
+          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-300/35 blur-3xl" />
+          <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-sky-300/30 blur-3xl" />
+
+          <div className="relative text-center">
+            <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-[linear-gradient(135deg,#10b981,#0284c7)] text-white shadow-[0_18px_45px_rgba(16,185,129,0.28)]">
+              <div className="relative">
+                <Waves size={28} />
+                <CheckCircle2 size={22} className="absolute -right-4 -top-4 rounded-full bg-white text-emerald-500" />
+              </div>
+            </div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
+              <PartyPopper size={14} />
+              Pagamento aprovado
+            </div>
+            <h2 className="font-condensed text-4xl font-bold uppercase tracking-wide text-slate-900 sm:text-5xl">
+              Sua vaga esta garantida
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              {result.message} Agora e so arrumar a prancha, separar o protetor solar e se preparar para a trip.
+            </p>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-white/80 bg-white/75 p-5 text-left backdrop-blur-sm">
+                <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Resumo da inscricao</div>
+                <div className="space-y-3">
+                  <SuccessRow label="Trip" value={title} />
+                  <SuccessRow label="Participante" value={fullName} />
+                  <SuccessRow label="Valor pago" value={formatPrice(amount)} />
+                  <SuccessRow label="E-mail" value={email} />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/80 bg-white/75 p-5 text-left backdrop-blur-sm">
+                <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  <Sparkles size={14} />
+                  Proximos passos
+                </div>
+                <div className="space-y-3 text-sm text-slate-600">
+                  <p>Voce recebera as informacoes da trip no e-mail informado durante a inscricao.</p>
+                  <p>Se precisar revisar os detalhes do pagamento, o comprovante continua disponivel logo abaixo.</p>
+                  {result.ticketUrl && (
+                    <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="inline-flex font-bold text-emerald-700 underline">
+                      Abrir comprovante
+                    </a>
+                  )}
+                </div>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <Button asChild variant="primary">
+                    <Link href={`/${schoolSlug}`}>Voltar para a escola</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -204,11 +269,6 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
         </div>
       )}
 
-      {result?.status === 'approved' && (
-        <Button asChild variant="primary">
-          <a href={`/${schoolSlug}`}>Voltar para a escola</a>
-        </Button>
-      )}
     </div>
   )
 }
@@ -219,5 +279,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{label}</div>
       {children}
     </label>
+  )
+}
+
+function SuccessRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
+      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</div>
+      <div className="text-right text-sm font-semibold text-slate-800">{value}</div>
+    </div>
   )
 }

@@ -15,7 +15,7 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/utils'
-import { AlertTriangle, CalendarDays, Clock, DollarSign, Users } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Clock, DollarSign, Receipt, Users } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -78,16 +78,30 @@ export default async function OverviewPage() {
         </Link>
       )}
 
-      <div className="mb-8 grid grid-cols-2 gap-4 xl:grid-cols-5">
+      <div className="mb-8 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard
-          label="Faturamento este mes"
-          value={formatPrice(kpis.revenueThisMonth)}
-          current={kpis.revenueThisMonth}
-          previous={kpis.revenueLastMonth}
+          label="Faturamento bruto no mes"
+          value={formatPrice(kpis.grossRevenueThisMonth)}
+          current={kpis.grossRevenueThisMonth}
+          previous={kpis.grossRevenueLastMonth}
           icon={<DollarSign size={18} />}
         />
         <KpiCard
-          label="Aulas concluidas este mes"
+          label="Taxas Mercado Pago"
+          value={formatPrice(kpis.mercadoPagoFeesThisMonth)}
+          current={kpis.mercadoPagoFeesThisMonth}
+          previous={kpis.mercadoPagoFeesLastMonth}
+          icon={<Receipt size={18} />}
+        />
+        <KpiCard
+          label="Faturamento liquido no mes"
+          value={formatPrice(kpis.netRevenueThisMonth)}
+          current={kpis.netRevenueThisMonth}
+          previous={kpis.netRevenueLastMonth}
+          icon={<DollarSign size={18} />}
+        />
+        <KpiCard
+          label="Aulas pagas no mes"
           value={String(kpis.bookingsThisMonth)}
           current={kpis.bookingsThisMonth}
           previous={kpis.bookingsLastMonth}
@@ -113,7 +127,7 @@ export default async function OverviewPage() {
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded border border-slate-200 bg-white p-5 lg:col-span-2">
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Faturamento Mensal
+            Faturamento Mensal Bruto x Liquido
           </h2>
           <Suspense fallback={<div className="h-52 rounded bg-slate-100 animate-pulse" />}>
             <RevenueChart data={revenue} />
@@ -132,10 +146,10 @@ export default async function OverviewPage() {
       <div className="mb-6 rounded border border-slate-200 bg-white p-5">
         <div className="mb-4">
           <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Calendario de Aulas Concluidas
+            Calendario de Aulas Pagas
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Visualize apenas as aulas pagas e concluidas, filtrando por instrutor ou exibindo toda a escola.
+            Visualize as aulas pagas da escola, sejam agendadas ou concluidas, filtrando por instrutor.
           </p>
         </div>
         <BookingsCalendar bookings={calendar.bookings} instructors={calendar.instructors} />

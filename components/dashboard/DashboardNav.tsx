@@ -12,6 +12,7 @@ import {
   CreditCard,
   LayoutDashboard,
   LogOut,
+  PanelLeftClose,
   Package,
   ReceiptText,
   Settings,
@@ -91,9 +92,11 @@ interface Props {
   schoolName: string
   schoolLogoUrl: string | null
   ownerName: string
+  mobile?: boolean
+  onNavigate?: () => void
 }
 
-export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
+export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = false, onNavigate }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
@@ -102,6 +105,12 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
   })
 
   const sections = useMemo(() => NAV_SECTIONS, [])
+
+  useEffect(() => {
+    if (mobile) {
+      setCollapsed(false)
+    }
+  }, [mobile])
 
   useEffect(() => {
     for (const section of NAV_SECTIONS) {
@@ -117,8 +126,10 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
   return (
     <aside
       className={cn(
-        'sticky top-0 flex h-screen min-h-screen shrink-0 flex-col bg-[#0d1b2a] transition-[width] duration-200',
-        collapsed ? 'w-20' : 'w-64',
+        'flex shrink-0 flex-col bg-[#0d1b2a] transition-[width] duration-200',
+        mobile
+          ? 'h-full min-h-full w-full max-w-none'
+          : cn('sticky top-0 h-screen min-h-screen', collapsed ? 'w-20' : 'w-64'),
       )}
     >
       <div className={cn('border-b border-white/5', collapsed ? 'px-3 py-5' : 'px-6 py-5')}>
@@ -144,18 +155,27 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCollapsed((value) => !value)}
-          className={cn(
-            'mt-4 flex h-9 items-center rounded border border-white/10 bg-white/5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white',
-            collapsed ? 'w-full justify-center' : 'w-full justify-between px-3',
-          )}
-          title={collapsed ? 'Expandir menu' : 'Fechar menu'}
-        >
-          {!collapsed && <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Menu</span>}
-          <ChevronLeft size={16} className={cn('transition-transform', collapsed && 'rotate-180')} />
-        </button>
+        {mobile ? (
+          <div className="mt-4 flex h-9 items-center justify-between rounded border border-white/10 bg-white/5 px-3 text-slate-300">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Menu</span>
+            <button type="button" onClick={onNavigate} aria-label="Fechar menu mobile">
+              <PanelLeftClose size={16} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className={cn(
+              'mt-4 flex h-9 items-center rounded border border-white/10 bg-white/5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white',
+              collapsed ? 'w-full justify-center' : 'w-full justify-between px-3',
+            )}
+            title={collapsed ? 'Expandir menu' : 'Fechar menu'}
+          >
+            {!collapsed && <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Menu</span>}
+            <ChevronLeft size={16} className={cn('transition-transform', collapsed && 'rotate-180')} />
+          </button>
+        )}
       </div>
 
       <nav className={cn('flex-1 overflow-y-auto py-4', collapsed ? 'px-2' : 'px-3')}>
@@ -221,6 +241,7 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
                               key={child.href}
                               href={child.href}
                               prefetch
+                              onClick={onNavigate}
                               className={cn(
                                 'rounded px-3 py-2 text-sm transition-colors',
                                 pathname === child.href
@@ -243,6 +264,7 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName }: Props) {
                     href={href}
                     prefetch
                     title={label}
+                    onClick={onNavigate}
                     className={cn(
                       'flex items-center rounded text-sm font-medium transition-colors',
                       collapsed ? 'justify-center px-3 py-3' : 'gap-3 px-3 py-2.5',

@@ -79,6 +79,7 @@ export async function POST(request: Request) {
         email: body.registrant.email,
         phone: phoneResult.value,
         notes: body.registrant.notes || null,
+        payment_method: resolveTripPaymentMethod(body.checkoutData),
         amount: trip.price,
         external_reference: externalReference,
       })
@@ -161,6 +162,14 @@ export async function POST(request: Request) {
       { status: 500 },
     )
   }
+}
+
+function resolveTripPaymentMethod(checkoutData: CheckoutBrickPayload) {
+  return checkoutData.paymentType === 'bank_transfer'
+    || checkoutData.selectedPaymentMethod === 'bank_transfer'
+    || checkoutData.formData.payment_method_id === 'pix'
+    ? 'pix'
+    : 'credit_card'
 }
 
 function mapTripPaymentStatus(status?: string) {

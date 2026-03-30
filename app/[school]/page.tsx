@@ -47,7 +47,7 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
         </div>
         <Link
           href={`/${slug}/entrar?mode=login&next=minhas-aulas`}
-          className="text-white/75 border border-white/25 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide hover:bg-white/10 transition-colors"
+          className="relative z-10 text-white/75 border border-white/25 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide hover:bg-white/10 transition-colors"
         >
           Já tenho conta
         </Link>
@@ -73,12 +73,12 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
 
         <div className="flex flex-col sm:flex-row gap-3 mb-10">
           <Link href={`/${slug}/entrar?next=agendar`}
-            className="inline-flex items-center justify-center gap-2 font-condensed font-bold uppercase tracking-wide text-white rounded px-8 py-4 transition-all hover:-translate-y-px active:scale-[.97]"
+            className="relative z-10 inline-flex items-center justify-center gap-2 font-condensed font-bold uppercase tracking-wide text-white rounded px-8 py-4 transition-all hover:-translate-y-px active:scale-[.97]"
             style={{ background: 'var(--cta)', boxShadow: '0 4px 18px rgba(247,127,0,.4)' }}>
             <ArrowRight size={17} /> Agendar minha aula
           </Link>
           <Link href={`/${slug}/entrar?mode=login&next=minhas-aulas`}
-            className="inline-flex items-center justify-center gap-2 font-condensed font-bold uppercase tracking-wide text-white rounded px-8 py-4 border-2 border-white/40 hover:bg-white/10 transition-colors">
+            className="relative z-10 inline-flex items-center justify-center gap-2 font-condensed font-bold uppercase tracking-wide text-white rounded px-8 py-4 border-2 border-white/40 hover:bg-white/10 transition-colors">
             Entrar
           </Link>
         </div>

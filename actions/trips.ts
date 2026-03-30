@@ -4,9 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { ensurePublicBucket } from '@/lib/supabase/storage'
+import { validatePhoneField } from '@/lib/phone'
+import { formatTripPaymentMethodLabel } from '@/lib/trips'
 import { slugify } from '@/lib/utils'
 import { getMySchool } from './instructors'
-import type { ActionResult, Trip, TripImage } from '@/lib/types'
+import type { ActionResult, PaymentMethod, Trip, TripImage, TripRegistration } from '@/lib/types'
 
 const SCHOOL_ASSETS_BUCKET = 'school-assets'
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -61,6 +63,21 @@ export async function getTripById(id: string): Promise<Trip | null> {
     .maybeSingle()
 
   return (data as Trip | null) ?? null
+}
+
+export async function getTripRegistrations(tripId: string): Promise<TripRegistration[]> {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return []
+
+  const { data } = await supabase
+    .from('trip_registrations')
+    .select('*')
+    .eq('school_id', school.id)
+    .eq('trip_id', tripId)
+    .order('created_at', { ascending: false })
+
+  return (data ?? []) as TripRegistration[]
 }
 
 export async function getPublicTripBySlugs(schoolSlug: string, tripSlug: string): Promise<(Trip & { school_name: string; school_slug: string; school_whatsapp: string | null }) | null> {
@@ -188,6 +205,117 @@ export async function updateTrip(id: string, formData: FormData): Promise<Action
 
   revalidatePath('/dashboard/trips')
   revalidatePath(`/dashboard/trips/${id}`)
+  return { success: true, data: undefined }
+}
+
+export async function createManualTripRegistration(tripId: string, formData: FormData): Promise<ActionResult> {
+  const admin = createAdminClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const payload = parseManualTripRegistrationFormData(formData)
+  if (!payload.success) return payload
+
+  const { data: trip, error: tripError } = await admin
+    .from('trips')
+    .select('id, school_id, title, price, capacity, allow_over_capacity, allow_late_registrations, ends_at, active')
+    .eq('school_id', school.id)
+    .eq('id', tripId)
+    .maybeSingle()
+
+  if (tripError || !trip) {
+    return { success: false, error: tripError?.message ?? 'Trip nao encontrada.' }
+  }
+
+  if (!trip.active) {
+    return { success: false, error: 'Ative a trip antes de registrar pessoas manualmente.' }
+  }
+
+  if (!trip.allow_late_registrations && new Date(trip.ends_at).getTime() < Date.now()) {
+    return { success: false, error: 'As inscricoes para esta trip ja foram encerradas.' }
+  }
+
+  if (trip.capacity && !trip.allow_over_capacity) {
+    const { count } = await admin
+      .from('trip_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('trip_id', trip.id)
+      .eq('payment_status', 'paid')
+
+    if ((count ?? 0) >= trip.capacity) {
+      return { success: false, error: 'As vagas desta trip se encerraram.' }
+    }
+  }
+
+  const { error } = await admin
+    .from('trip_registrations')
+    .insert({
+      trip_id: trip.id,
+      school_id: school.id,
+      full_name: payload.data.fullName,
+      email: payload.data.email,
+      phone: payload.data.phone,
+      notes: payload.data.notes,
+      status: 'confirmed',
+      payment_status: 'paid',
+      payment_method: payload.data.paymentMethod,
+      amount: payload.data.amount,
+      mercadopago_status_detail: `Pagamento presencial registrado manualmente via ${formatTripPaymentMethodLabel(payload.data.paymentMethod)}.`,
+    })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath('/dashboard/trips')
+  revalidatePath(`/dashboard/trips/${trip.id}`)
+  revalidatePath('/dashboard/sales-history')
+  return { success: true, data: undefined }
+}
+
+export async function updateManualTripRegistration(registrationId: string, formData: FormData): Promise<ActionResult> {
+  const admin = createAdminClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const payload = parseManualTripRegistrationFormData(formData)
+  if (!payload.success) return payload
+
+  const { data: registration, error: registrationError } = await admin
+    .from('trip_registrations')
+    .select('id, trip_id, school_id, external_reference, mercadopago_payment_id')
+    .eq('school_id', school.id)
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (registrationError || !registration) {
+    return { success: false, error: registrationError?.message ?? 'Inscricao nao encontrada.' }
+  }
+
+  if (registration.external_reference || registration.mercadopago_payment_id) {
+    return { success: false, error: 'So inscricoes registradas manualmente podem ser editadas por aqui.' }
+  }
+
+  const { error } = await admin
+    .from('trip_registrations')
+    .update({
+      full_name: payload.data.fullName,
+      email: payload.data.email,
+      phone: payload.data.phone,
+      notes: payload.data.notes,
+      payment_method: payload.data.paymentMethod,
+      amount: payload.data.amount,
+      mercadopago_status_detail: `Pagamento presencial registrado manualmente via ${formatTripPaymentMethodLabel(payload.data.paymentMethod)}.`,
+    })
+    .eq('id', registration.id)
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath('/dashboard/trips')
+  revalidatePath(`/dashboard/trips/${registration.trip_id}`)
+  revalidatePath('/dashboard/sales-history')
   return { success: true, data: undefined }
 }
 
@@ -400,4 +528,55 @@ async function syncTripMedia(input: {
 
 function getFileExtension(name: string) {
   return name.includes('.') ? name.split('.').pop()?.toLowerCase() ?? 'jpg' : 'jpg'
+}
+
+function parseManualTripRegistrationFormData(formData: FormData):
+  | { success: true; data: {
+      fullName: string
+      email: string
+      phone: string | null
+      notes: string | null
+      paymentMethod: PaymentMethod
+      amount: number
+    } }
+  | { success: false; error: string } {
+  const fullName = ((formData.get('full_name') as string | null) ?? '').trim()
+  const email = ((formData.get('email') as string | null) ?? '').trim().toLowerCase()
+  const notes = ((formData.get('notes') as string | null) ?? '').trim() || null
+  const paymentMethod = ((formData.get('payment_method') as string | null) ?? '').trim() as PaymentMethod
+  const amount = Number(formData.get('amount') ?? 0)
+  const phoneValue = formData.get('phone')
+  const phoneResult = validatePhoneField(typeof phoneValue === 'string' ? phoneValue : null, 'Telefone')
+
+  if (!fullName || !email) {
+    return { success: false, error: 'Preencha nome completo e e-mail.' }
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: 'Informe um e-mail valido.' }
+  }
+
+  if (phoneResult.error) {
+    return { success: false, error: phoneResult.error }
+  }
+
+  if (!['pix', 'credit_card', 'debit_card', 'cash'].includes(paymentMethod)) {
+    return { success: false, error: 'Selecione uma forma de pagamento valida.' }
+  }
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { success: false, error: 'Informe um valor pago valido.' }
+  }
+
+  return {
+    success: true,
+    data: {
+      fullName,
+      email,
+      phone: phoneResult.value,
+      notes,
+      paymentMethod,
+      amount: Number(amount.toFixed(2)),
+    },
+  }
 }

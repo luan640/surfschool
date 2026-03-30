@@ -96,6 +96,7 @@ export interface TripRegistration {
   notes: string | null
   status: 'pending' | 'confirmed' | 'cancelled'
   payment_status: PaymentStatus
+  payment_method: PaymentMethod | null
   amount: number
   external_reference: string | null
   mercadopago_payment_id: number | null
@@ -234,6 +235,8 @@ export interface SalesHistoryEntry {
   created_at: string
   updated_at: string
   can_refund: boolean
+  coupon_usage: string[]
+  refund_reason: string | null
 }
 
 // ─── Wizard state ─────────────────────────────────────────────────────────────
@@ -256,6 +259,9 @@ export interface BookingMetric {
   month: string
   total_bookings: number
   total_revenue: number
+  gross_revenue: number
+  fee_amount: number
+  net_revenue: number
   completed: number
   cancelled: number
 }
@@ -273,6 +279,12 @@ export interface InstructorRankRow {
 export interface DashboardKPIs {
   revenueThisMonth: number
   revenueLastMonth: number
+  grossRevenueThisMonth: number
+  grossRevenueLastMonth: number
+  mercadoPagoFeesThisMonth: number
+  mercadoPagoFeesLastMonth: number
+  netRevenueThisMonth: number
+  netRevenueLastMonth: number
   bookingsThisMonth: number
   bookingsLastMonth: number
   activeInstructors: number
@@ -298,6 +310,9 @@ export interface ReportFilterOptions {
 export interface ReportTrendPoint {
   date: string
   revenue: number
+  gross_revenue: number
+  fee_amount: number
+  net_revenue: number
   bookings: number
   discount_amount: number
 }
@@ -306,6 +321,7 @@ export interface ReportInstructorSummary {
   id: string
   full_name: string
   color: string
+  photo_url?: string | null
   bookings: number
   revenue: number
 }
@@ -320,6 +336,9 @@ export interface ReportCouponSummary {
 
 export interface ReportKpis {
   totalRevenue: number
+  grossRevenue: number
+  mercadoPagoFees: number
+  netRevenue: number
   totalBookings: number
   averageTicket: number
   uniqueStudents: number
@@ -327,6 +346,8 @@ export interface ReportKpis {
   totalDiscounts: number
   completedBookings: number
   pendingBookings: number
+  refundedAmount: number
+  abandonedOrders: number
 }
 
 // ─── Server Action result ─────────────────────────────────────────────────────

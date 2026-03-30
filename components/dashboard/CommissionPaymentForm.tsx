@@ -191,7 +191,7 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
@@ -246,6 +246,54 @@ export function CommissionPaymentForm({ instructors, payments }: Props) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="space-y-3 p-4 md:hidden">
+                {paginatedPayments.map((payment) => (
+                  <article key={payment.id} className="rounded border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-start gap-3">
+                      {payment.instructor?.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={payment.instructor.photo_url} alt={payment.instructor.full_name} className="h-11 w-11 rounded-full object-cover" />
+                      ) : (
+                        <div
+                          className="flex h-11 w-11 items-center justify-center rounded-full font-condensed text-sm font-bold text-white"
+                          style={{ background: payment.instructor?.color ?? '#0f172a' }}
+                        >
+                          {initials(payment.instructor?.full_name ?? 'Instrutor')}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-slate-800">{payment.instructor?.full_name ?? 'Instrutor'}</div>
+                        <div className="mt-1 text-xs text-slate-400">ID {payment.instructor_id.slice(0, 8)}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 text-sm text-slate-600">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Pagamento</div>
+                          <div>{new Date(`${payment.payment_date}T00:00:00`).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Registrado em</div>
+                          <div>{new Date(payment.created_at).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Valor</div>
+                        <div className="font-condensed text-2xl font-bold text-[var(--primary)]">
+                          {formatPrice(Number(payment.amount))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Observacoes</div>
+                        <div>{payment.notes || '--'}</div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
               <PaginationControls
                 currentPage={currentPage}

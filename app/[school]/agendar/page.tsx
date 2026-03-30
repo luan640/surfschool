@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronLeft, ChevronRight, Clock, Package, User, Waves } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Calendar, Check, ChevronLeft, ChevronRight, Clock, MapPin, Package, User, Waves } from 'lucide-react'
 import { getStudentProfile, getTakenSlots } from '@/actions/bookings'
 import { getPublicSchoolRulesBySlug } from '@/actions/dashboard'
 import { getInstructorsBySchoolSlug } from '@/actions/instructors'
@@ -23,12 +24,13 @@ interface Props {
 export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const router = useRouter()
   const [slug, setSlug] = useState('')
-  const [school, setSchool] = useState<{ id: string; name: string; primary_color: string; cta_color: string } | null>(null)
+  const [school, setSchool] = useState<{ id: string; name: string; address: string | null; primary_color: string; cta_color: string } | null>(null)
   const [schoolRules, setSchoolRules] = useState<SchoolRules | null>(null)
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [packages, setPackages] = useState<LessonPackage[]>([])
   const [student, setStudent] = useState<{ id: string; full_name: string } | null>(null)
   const [studentEmail, setStudentEmail] = useState<string | null>(null)
+  const [authReady, setAuthReady] = useState(false)
   const [takenSlots, setTakenSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,13 +61,15 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     if (!slug) return
 
     const supabase = createClient()
+    let active = true
+
     supabase
       .from('schools')
-      .select('id, name, primary_color, cta_color')
+      .select('id, name, address, primary_color, cta_color')
       .eq('slug', slug)
       .single()
       .then(({ data }) => {
-        if (!data) return
+        if (!active || !data) return
         setSchool(data)
         setWizard((current) => ({ ...current, schoolId: data.id }))
       })
@@ -73,10 +77,35 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     getInstructorsBySchoolSlug(slug).then(setInstructors)
     getPublicLessonPackagesBySchoolSlug(slug).then(setPackages)
     getPublicSchoolRulesBySlug(slug).then(setSchoolRules)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setStudentEmail(user?.email ?? null)
-      if (!user) router.push(`/${slug}/entrar?mode=login&next=agendar`)
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return
+
+      setStudentEmail(session?.user?.email ?? null)
+      setAuthReady(true)
+
+      if (!session?.user) {
+        router.replace(`/${slug}/entrar?mode=login&next=agendar`)
+      }
     })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return
+
+      setStudentEmail(session?.user?.email ?? null)
+      setAuthReady(true)
+
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        router.replace(`/${slug}/entrar?mode=login&next=agendar`)
+      }
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [router, slug])
 
   useEffect(() => {
@@ -384,6 +413,23 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         .filter((lesson): lesson is { sequence: number; label: string; url: string } => Boolean(lesson.url))
     : []
 
+  if (!authReady || !school) {
+    return (
+      <div className="min-h-dvh bg-slate-50">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
+          <button type="button" onClick={() => router.push(`/${slug || ''}`)} className="font-condensed text-lg font-bold uppercase">
+            {school?.name ?? 'vamosurfar'}
+          </button>
+        </header>
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <div className="rounded border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+            Carregando sua area de agendamento...
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (paymentState === 'approved') {
     return (
       <div className="min-h-dvh bg-slate-50">
@@ -439,13 +485,12 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   <div className="rounded-2xl border border-white/80 bg-white/75 p-5 backdrop-blur-sm">
                     <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Proximos passos</div>
                     <div className="space-y-3">
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/${slug}/minhas-aulas`)}
+                      <Link
+                        href={`/${slug}/minhas-aulas`}
                         className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold uppercase text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)]"
                       >
                         Ir para minhas aulas
-                      </button>
+                      </Link>
                       {!isPackageFlow && singleCalendarUrl && (
                         <a
                           href={singleCalendarUrl}
@@ -471,13 +516,12 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                           ))}
                         </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/${slug}`)}
+                      <Link
+                        href={`/${slug}`}
                         className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold uppercase text-slate-700"
                       >
                         Voltar para a escola
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -514,6 +558,18 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         <main className="space-y-6">
           {successMessage && <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</div>}
           {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+
+          {school.address && (
+            <div className="flex items-start gap-3 rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sky-900">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                <MapPin size={16} />
+              </span>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Localizacao da escola</div>
+                <div className="mt-1 text-sm font-medium">{school.address}</div>
+              </div>
+            </div>
+          )}
 
           {wizard.step === 1 && (
             <section className="space-y-4">

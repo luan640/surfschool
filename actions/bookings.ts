@@ -132,14 +132,28 @@ export async function getBookings(filters?: {
 }
 
 export async function getTakenSlots(instructorId: string, date: string): Promise<string[]> {
+  return getTakenSlotsForBooking(instructorId, date)
+}
+
+export async function getTakenSlotsForBooking(
+  instructorId: string,
+  date: string,
+  excludeBookingId?: string,
+): Promise<string[]> {
   const supabase = await createClient()
 
-  const { data } = await supabase
+  let query = supabase
     .from('bookings')
     .select('time_slots')
     .eq('instructor_id', instructorId)
     .eq('lesson_date', date)
     .neq('status', 'cancelled')
+
+  if (excludeBookingId) {
+    query = query.neq('id', excludeBookingId)
+  }
+
+  const { data } = await query
 
   if (!data) return []
   return data.flatMap(b => b.time_slots as string[])
@@ -153,6 +167,75 @@ export async function updateBookingStatus(
   const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
   if (error) return { success: false, error: error.message }
   revalidatePath('/dashboard/bookings')
+  return { success: true, data: undefined }
+}
+
+export async function rescheduleBooking(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const bookingId = (formData.get('booking_id') as string | null) ?? ''
+  const instructorId = (formData.get('instructor_id') as string | null) ?? ''
+  const lessonDate = (formData.get('lesson_date') as string | null) ?? ''
+  const selectedSlots = formData.getAll('time_slots').map(String).filter(Boolean).sort()
+
+  if (!bookingId || !instructorId || !lessonDate || selectedSlots.length === 0) {
+    return { success: false, error: 'Selecione instrutor, data e pelo menos um horario.' }
+  }
+
+  const [{ data: booking }, { data: instructor }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('id, school_id, status, payment_status, billing_mode, package_id')
+      .eq('id', bookingId)
+      .eq('school_id', school.id)
+      .maybeSingle(),
+    supabase
+      .from('instructors')
+      .select('id, school_id, hourly_price')
+      .eq('id', instructorId)
+      .eq('school_id', school.id)
+      .eq('active', true)
+      .maybeSingle(),
+  ])
+
+  if (!booking) return { success: false, error: 'Agendamento invalido para esta escola.' }
+  if (!instructor) return { success: false, error: 'Instrutor invalido para esta escola.' }
+
+  if (booking.status === 'cancelled' || booking.status === 'completed') {
+    return { success: false, error: 'Apenas agendamentos pendentes ou confirmados podem ser reagendados.' }
+  }
+
+  const takenSlots = await getTakenSlotsForBooking(instructorId, lessonDate, bookingId)
+  const conflictingSlot = selectedSlots.find((slot) => takenSlots.includes(slot))
+  if (conflictingSlot) {
+    return { success: false, error: `O horario ${conflictingSlot} ja esta reservado para este instrutor.` }
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    instructor_id: instructorId,
+    lesson_date: lessonDate,
+    time_slots: selectedSlots,
+    total_hours: selectedSlots.length,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (booking.billing_mode === 'hourly' && !booking.package_id) {
+    updatePayload.unit_price = Number(instructor.hourly_price)
+    updatePayload.total_amount = Number(instructor.hourly_price) * selectedSlots.length
+  }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update(updatePayload)
+    .eq('id', bookingId)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/dashboard/bookings')
+  revalidatePath('/dashboard/overview')
+  revalidatePath('/dashboard/reports')
   return { success: true, data: undefined }
 }
 

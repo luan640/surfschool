@@ -67,7 +67,7 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
@@ -100,12 +100,71 @@ export function BookingsPageClient({ bookings, students, instructors }: Props) {
                           <Badge variant={STATUS_VARIANT[booking.status]}>{STATUS_LABEL[booking.status]}</Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <BookingStatusActions bookingId={booking.id} status={booking.status} />
+                          <BookingStatusActions
+                            bookingId={booking.id}
+                            status={booking.status}
+                            booking={booking}
+                            instructors={instructors}
+                          />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="space-y-3 p-4 md:hidden">
+                {paginatedBookings.map((booking) => (
+                  <article key={booking.id} className="rounded border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-slate-800">
+                          {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR')}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-500">
+                          {booking.student?.full_name ?? '-'}
+                        </div>
+                      </div>
+                      <Badge variant={STATUS_VARIANT[booking.status]}>{STATUS_LABEL[booking.status]}</Badge>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 text-sm text-slate-600">
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Instrutor</div>
+                        <div>{booking.instructor?.full_name ?? '-'}</div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Horarios</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {booking.time_slots.map((slot) => (
+                            <span
+                              key={slot}
+                              className="rounded bg-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700"
+                            >
+                              {slot}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Total</div>
+                        <div className="font-condensed text-2xl font-bold text-[var(--primary)]">
+                          {formatPrice(booking.total_amount)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <BookingStatusActions
+                        bookingId={booking.id}
+                        status={booking.status}
+                        booking={booking}
+                        instructors={instructors}
+                      />
+                    </div>
+                  </article>
+                ))}
               </div>
               <PaginationControls
                 currentPage={currentPage}

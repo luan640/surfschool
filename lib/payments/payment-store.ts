@@ -222,6 +222,7 @@ export async function markPaymentTransactionRefunded(input: {
   transactionId: string
   mercadopagoPaymentId: number
   refundResponse: unknown
+  refundReason: string
 }) {
   const admin = createAdminClient()
   const { data: transaction, error: transactionError } = await admin
@@ -246,6 +247,8 @@ export async function markPaymentTransactionRefunded(input: {
       mercadopago_payment_id: input.mercadopagoPaymentId,
       mercadopago_status: 'refunded',
       mercadopago_status_detail: 'Pagamento reembolsado.',
+      refund_reason: input.refundReason,
+      refunded_at: new Date().toISOString(),
       gateway_response: mergedGatewayResponse,
     })
     .eq('id', transaction.id)

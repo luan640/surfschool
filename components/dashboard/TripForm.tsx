@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, ImagePlus, MapPin, NotebookText, Tag, Users } from 'lucide-react'
+import { CalendarDays, ImagePlus, MapPin, Tag, Users } from 'lucide-react'
 import { createTrip, updateTrip } from '@/actions/trips'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,19 @@ export function TripForm({ trip }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mediaError, setMediaError] = useState('')
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(trip?.cover_image_url ?? null)
+
+  useEffect(() => {
+    setCoverPreviewUrl(trip?.cover_image_url ?? null)
+  }, [trip?.cover_image_url])
+
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(coverPreviewUrl)
+      }
+    }
+  }, [coverPreviewUrl])
 
   function validateFiles(files: FileList | null, mode: 'cover' | 'gallery') {
     if (!files || files.length === 0) {
@@ -192,19 +205,40 @@ export function TripForm({ trip }: Props) {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="space-y-3 rounded border border-dashed border-slate-200 bg-slate-50 p-4">
             <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Capa</div>
-            {trip?.cover_image_url && (
+            {coverPreviewUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={trip.cover_image_url} alt={`Capa de ${trip.title}`} className="h-40 w-full rounded object-cover" />
+              <img src={coverPreviewUrl} alt={`Capa de ${trip?.title ?? 'nova trip'}`} className="h-40 w-full rounded object-cover" />
             )}
             <input
               type="file"
               name="cover_image"
               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               onChange={(event) => {
-                if (!validateFiles(event.target.files, 'cover')) event.target.value = ''
+                if (!validateFiles(event.target.files, 'cover')) {
+                  event.target.value = ''
+                  return
+                }
+
+                const file = event.target.files?.[0]
+                if (!file) {
+                  setCoverPreviewUrl(trip?.cover_image_url ?? null)
+                  return
+                }
+
+                setCoverPreviewUrl((current) => {
+                  if (current?.startsWith('blob:')) {
+                    URL.revokeObjectURL(current)
+                  }
+                  return URL.createObjectURL(file)
+                })
               }}
               className="block w-full text-sm text-slate-600 file:mr-4 file:rounded file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-bold file:uppercase file:text-white"
             />
+            <div className="rounded border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">
+              {coverPreviewUrl
+                ? 'Preview da capa selecionada. Essa imagem sera usada no destaque principal da trip.'
+                : 'Escolha uma capa para destacar a trip na tela publica.'}
+            </div>
           </div>
 
           <div className="space-y-3 rounded border border-dashed border-slate-200 bg-slate-50 p-4">
@@ -237,15 +271,6 @@ export function TripForm({ trip }: Props) {
           </div>
         </div>
       </div>
-
-      {trip && (
-        <div className="rounded border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-          <div className="inline-flex items-center gap-2">
-            <NotebookText size={14} />
-            Pagina publica: <span className="font-mono">{`/${'[school]'}/trips/${trip.slug}`}</span>
-          </div>
-        </div>
-      )}
 
       {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 

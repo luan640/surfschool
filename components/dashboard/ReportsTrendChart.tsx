@@ -18,7 +18,11 @@ export function ReportsRevenueTrendChart({ data }: Props) {
     <ResponsiveContainer width="100%" height={260}>
       <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
         <defs>
-          <linearGradient id="reportsRevenueGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="reportsRevenueGrossGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="reportsRevenueNetGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
             <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
           </linearGradient>
@@ -32,10 +36,17 @@ export function ReportsRevenueTrendChart({ data }: Props) {
           tickFormatter={(value) => value >= 1000 ? `R$${Math.round(value / 1000)}k` : `R$${value}`}
         />
         <Tooltip
-          formatter={(value: number) => formatPrice(Number(value))}
+          formatter={(value: number, name: string, item) => {
+            if (item?.dataKey === 'fee_amount') {
+              return [formatPrice(Number(value)), 'Taxas']
+            }
+
+            return [formatPrice(Number(value)), name === 'gross_revenue' ? 'Bruto' : 'Liquido']
+          }}
           labelFormatter={(_, payload) => payload?.[0]?.payload?.date ? new Date(`${payload[0].payload.date}T00:00:00`).toLocaleDateString('pt-BR') : ''}
         />
-        <Area type="monotone" dataKey="revenue" stroke="var(--primary)" fill="url(#reportsRevenueGradient)" strokeWidth={2.5} />
+        <Area type="monotone" dataKey="gross_revenue" stroke="#f59e0b" fill="url(#reportsRevenueGrossGradient)" strokeWidth={2} />
+        <Area type="monotone" dataKey="net_revenue" stroke="var(--primary)" fill="url(#reportsRevenueNetGradient)" strokeWidth={2.5} />
       </AreaChart>
     </ResponsiveContainer>
   )

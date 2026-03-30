@@ -35,6 +35,8 @@ export async function getSalesHistoryPageData(): Promise<{
         payment_method,
         amount,
         status,
+        booking_ids,
+        refund_reason,
         external_reference,
         mercadopago_payment_id,
         mercadopago_status,
@@ -56,6 +58,9 @@ export async function getSalesHistoryPageData(): Promise<{
         amount,
         status,
         payment_status,
+        payment_method,
+        refund_reason,
+        qr_code,
         external_reference,
         mercadopago_payment_id,
         mercadopago_status,
@@ -76,6 +81,7 @@ export async function getSalesHistoryPageData(): Promise<{
         total_amount,
         status,
         lesson_date,
+        refund_reason,
         created_at,
         updated_at,
         student:student_profiles(full_name, phone)
@@ -115,6 +121,8 @@ export async function getSalesHistoryPageData(): Promise<{
       created_at: row.created_at as string,
       updated_at: row.updated_at as string,
       can_refund: row.status === 'paid' && Boolean(row.mercadopago_payment_id),
+      coupon_usage: [] as string[],
+      refund_reason: (row.refund_reason as string | null) ?? null,
     } satisfies SalesHistoryEntry
   })
 
@@ -135,7 +143,10 @@ export async function getSalesHistoryPageData(): Promise<{
       : row.status === 'pending'
         ? 'Inscricao pendente'
         : 'Inscricao cancelada',
-    payment_method_label: 'Mercado Pago',
+    payment_method_label: formatTripPaymentMethodLabel(
+      (row.payment_method as 'pix' | 'credit_card' | 'debit_card' | 'cash' | null)
+        ?? (row.qr_code ? 'pix' : 'credit_card')
+    ),
     external_reference: (row.external_reference as string | null) ?? null,
     mercadopago_payment_id: row.mercadopago_payment_id ?? null,
     mercadopago_status: row.mercadopago_status ?? null,
@@ -143,6 +154,8 @@ export async function getSalesHistoryPageData(): Promise<{
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
     can_refund: row.payment_status === 'paid' && Boolean(row.mercadopago_payment_id),
+    coupon_usage: [] as string[],
+    refund_reason: (row.refund_reason as string | null) ?? null,
     })
   })
 
@@ -173,22 +186,91 @@ export async function getSalesHistoryPageData(): Promise<{
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
     can_refund: false,
+    coupon_usage: [] as string[],
+    refund_reason: (row.refund_reason as string | null) ?? null,
     })
   })
 
-  const sales = [...lessonAndPackageSales, ...tripSales, ...manualSales].sort((a, b) =>
+  const bookingIds = new Set<string>()
+  ;(transactionsResult.data ?? []).forEach((row) => {
+    const transactionBookingIds = (row.booking_ids as string[] | null) ?? []
+    transactionBookingIds.forEach((bookingId) => bookingIds.add(bookingId))
+  })
+  ;(manualBookingsResult.data ?? []).forEach((row) => bookingIds.add(row.id as string))
+
+  const { data: couponRedemptions } = bookingIds.size
+    ? await supabase
+        .from('discount_coupon_redemptions')
+        .select(`
+          booking_id,
+          coupon:discount_coupons(code, name)
+        `)
+        .in('booking_id', [...bookingIds])
+    : { data: [] as Array<{ booking_id: string; coupon?: { code: string; name: string } | { code: string; name: string }[] | null }> }
+
+  const couponUsageByBookingId = new Map<string, string[]>()
+
+  ;(couponRedemptions ?? []).forEach((row) => {
+    const coupon = Array.isArray(row.coupon) ? row.coupon[0] ?? null : row.coupon ?? null
+    if (!row.booking_id || !coupon?.code) return
+
+    const current = couponUsageByBookingId.get(row.booking_id) ?? []
+    current.push(coupon.name ? `${coupon.code} - ${coupon.name}` : coupon.code)
+    couponUsageByBookingId.set(row.booking_id, [...new Set(current)])
+  })
+
+  const lessonAndPackageSalesWithCoupons = lessonAndPackageSales.map((sale, index) => {
+    const bookingIdsForSale = (((transactionsResult.data ?? [])[index]?.booking_ids as string[] | null) ?? [])
+    const couponUsage = [...new Set(bookingIdsForSale.flatMap((bookingId) => couponUsageByBookingId.get(bookingId) ?? []))]
+
+    return {
+      ...sale,
+      coupon_usage: couponUsage,
+    }
+  })
+
+  const manualSalesWithCoupons = manualSales.map((sale, index) => {
+    const bookingId = (manualBookingsResult.data ?? [])[index]?.id as string | undefined
+
+    return {
+      ...sale,
+      coupon_usage: bookingId ? couponUsageByBookingId.get(bookingId) ?? [] : [],
+    }
+  })
+
+  const sales = [...lessonAndPackageSalesWithCoupons, ...tripSales, ...manualSalesWithCoupons].sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   )
 
   return { sales }
 }
 
+function formatTripPaymentMethodLabel(paymentMethod: 'pix' | 'credit_card' | 'debit_card' | 'cash' | null) {
+  switch (paymentMethod) {
+    case 'pix':
+      return 'Pix'
+    case 'credit_card':
+      return 'Cartao de credito'
+    case 'debit_card':
+      return 'Cartao de debito'
+    case 'cash':
+      return 'Dinheiro'
+    default:
+      return 'Nao informado'
+  }
+}
+
 export async function refundSale(formData: FormData): Promise<ActionResult<{ refunded: true }>> {
   const saleId = (formData.get('sale_id') as string | null)?.trim() ?? ''
   const saleKind = (formData.get('sale_kind') as string | null)?.trim() ?? ''
+  const refundReason = (formData.get('refund_reason') as string | null)?.trim() ?? ''
 
   if (!saleId || !saleKind) {
     return { success: false, error: 'Venda invalida para reembolso.' }
+  }
+
+  if (!refundReason) {
+    return { success: false, error: 'Informe o motivo do reembolso.' }
   }
 
   const school = await getMySchool()
@@ -239,6 +321,8 @@ export async function refundSale(formData: FormData): Promise<ActionResult<{ ref
           status: 'cancelled',
           mercadopago_status: 'refunded',
           mercadopago_status_detail: 'Pagamento reembolsado.',
+          refund_reason: refundReason,
+          refunded_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', tripSale.id)
@@ -289,6 +373,7 @@ export async function refundSale(formData: FormData): Promise<ActionResult<{ ref
       transactionId: transaction.id,
       mercadopagoPaymentId: transaction.mercadopago_payment_id,
       refundResponse: refund,
+      refundReason,
     })
 
     revalidatePath('/dashboard/sales-history')

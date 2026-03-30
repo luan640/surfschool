@@ -84,6 +84,11 @@ export default async function TripsPage() {
                   <div className="flex items-center gap-2">
                     {school && <CopyBookingLinkButton url={`${appUrl}/${school.slug}/trips/${trip.slug}`} />}
                     <Button asChild variant="ghost" size="sm">
+                      <Link href={`/dashboard/trips/${trip.id}/registrations`}>
+                        <Users size={15} /> Pessoas
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" size="sm">
                       <Link href={`/dashboard/trips/${trip.id}`}>Editar</Link>
                     </Button>
                   </div>

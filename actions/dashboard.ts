@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { validatePhoneField } from '@/lib/phone'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { emptyFinancialBreakdown, getPaymentFinancialBreakdown } from '@/lib/payments/financials'
 import { ensurePublicBucket } from '@/lib/supabase/storage'
 import { getMySchool } from './instructors'
 import type {
@@ -31,11 +32,26 @@ type DashboardBookingQueryRow = {
 
 type DashboardRevenueRow = {
   lesson_date: string
+  created_at: string
   total_amount: number
+  payment_transaction_id: string | null
+  status: DashboardCalendarBooking['status']
+}
+
+type DashboardRevenueBookingCountRow = {
+  created_at: string
+  status: DashboardCalendarBooking['status']
+}
+
+type DashboardPaymentTransactionRow = {
+  amount: number
+  created_at: string
+  gateway_response: unknown
 }
 
 type DashboardInstructorRankingRow = {
   total_amount: number
+  status: DashboardCalendarBooking['status']
   time_slots: string[]
   instructor?: DashboardBookingRelation<Pick<Instructor, 'id' | 'full_name' | 'photo_url' | 'hourly_price'>>
 }
@@ -52,6 +68,12 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
     return {
       revenueThisMonth: 0,
       revenueLastMonth: 0,
+      grossRevenueThisMonth: 0,
+      grossRevenueLastMonth: 0,
+      mercadoPagoFeesThisMonth: 0,
+      mercadoPagoFeesLastMonth: 0,
+      netRevenueThisMonth: 0,
+      netRevenueLastMonth: 0,
       bookingsThisMonth: 0,
       bookingsLastMonth: 0,
       activeInstructors: 0,
@@ -67,27 +89,40 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
   const today = now.toISOString().slice(0, 10)
 
   const [
-    { data: thisMonth },
-    { data: lastMonth },
+    { data: paidBookings },
+    { data: paidTransactions },
+    { data: thisMonthBookings },
+    { data: lastMonthBookings },
     { data: completedLessons },
     { data: paidScheduledLessons },
     { data: instructors },
   ] = await Promise.all([
     supabase
       .from('bookings')
-      .select('total_amount')
+      .select('created_at, total_amount, payment_transaction_id')
       .eq('school_id', school.id)
       .eq('payment_status', 'paid')
-      .eq('status', 'completed')
-      .gte('lesson_date', thisMonthStart),
+      .neq('status', 'cancelled'),
+    supabase
+      .from('payment_transactions')
+      .select('amount, created_at, gateway_response')
+      .eq('school_id', school.id)
+      .eq('status', 'paid'),
     supabase
       .from('bookings')
-      .select('total_amount')
+      .select('created_at')
       .eq('school_id', school.id)
       .eq('payment_status', 'paid')
-      .eq('status', 'completed')
+      .gte('lesson_date', thisMonthStart)
+      .neq('status', 'cancelled'),
+    supabase
+      .from('bookings')
+      .select('created_at')
+      .eq('school_id', school.id)
+      .eq('payment_status', 'paid')
       .gte('lesson_date', lastMonthStart)
-      .lte('lesson_date', lastMonthEnd),
+      .lte('lesson_date', lastMonthEnd)
+      .neq('status', 'cancelled'),
     supabase
       .from('bookings')
       .select('id')
@@ -108,14 +143,52 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
       .eq('active', true),
   ])
 
-  const sum = (rows: { total_amount: number }[] | null) =>
-    (rows ?? []).reduce((acc, row) => acc + Number(row.total_amount), 0)
+  const currentMonthFinancials = emptyFinancialBreakdown()
+  const lastMonthFinancials = emptyFinancialBreakdown()
+
+  for (const row of (paidTransactions ?? []) as DashboardPaymentTransactionRow[]) {
+    const breakdown = getPaymentFinancialBreakdown(row.gateway_response, Number(row.amount))
+    const createdAt = new Date(row.created_at)
+    const monthKey = new Date(createdAt.getFullYear(), createdAt.getMonth(), 1).toISOString().slice(0, 10)
+
+    if (monthKey === thisMonthStart) {
+      currentMonthFinancials.gross += breakdown.gross
+      currentMonthFinancials.fee += breakdown.fee
+      currentMonthFinancials.net += breakdown.net
+    } else if (monthKey === lastMonthStart) {
+      lastMonthFinancials.gross += breakdown.gross
+      lastMonthFinancials.fee += breakdown.fee
+      lastMonthFinancials.net += breakdown.net
+    }
+  }
+
+  for (const row of (paidBookings ?? []) as DashboardRevenueRow[]) {
+    if (row.payment_transaction_id) continue
+
+    const gross = Number(row.total_amount)
+    const createdAt = new Date(row.created_at)
+    const monthKey = new Date(createdAt.getFullYear(), createdAt.getMonth(), 1).toISOString().slice(0, 10)
+
+    if (monthKey === thisMonthStart) {
+      currentMonthFinancials.gross += gross
+      currentMonthFinancials.net += gross
+    } else if (monthKey === lastMonthStart) {
+      lastMonthFinancials.gross += gross
+      lastMonthFinancials.net += gross
+    }
+  }
 
   return {
-    revenueThisMonth: sum(thisMonth),
-    revenueLastMonth: sum(lastMonth),
-    bookingsThisMonth: (thisMonth ?? []).length,
-    bookingsLastMonth: (lastMonth ?? []).length,
+    revenueThisMonth: Number(currentMonthFinancials.net.toFixed(2)),
+    revenueLastMonth: Number(lastMonthFinancials.net.toFixed(2)),
+    grossRevenueThisMonth: Number(currentMonthFinancials.gross.toFixed(2)),
+    grossRevenueLastMonth: Number(lastMonthFinancials.gross.toFixed(2)),
+    mercadoPagoFeesThisMonth: Number(currentMonthFinancials.fee.toFixed(2)),
+    mercadoPagoFeesLastMonth: Number(lastMonthFinancials.fee.toFixed(2)),
+    netRevenueThisMonth: Number(currentMonthFinancials.net.toFixed(2)),
+    netRevenueLastMonth: Number(lastMonthFinancials.net.toFixed(2)),
+    bookingsThisMonth: (thisMonthBookings ?? []).length,
+    bookingsLastMonth: (lastMonthBookings ?? []).length,
     activeInstructors: (instructors ?? []).length,
     upcomingLessons: (completedLessons ?? []).length,
     paidScheduledLessons: (paidScheduledLessons ?? []).length,
@@ -127,12 +200,19 @@ export async function getRevenueMetrics(months = 6): Promise<BookingMetric[]> {
   const school = await getMySchool()
   if (!school) return []
 
-  const { data } = await supabase
-    .from('bookings')
-    .select('lesson_date, total_amount')
-    .eq('school_id', school.id)
-    .eq('payment_status', 'paid')
-    .eq('status', 'completed')
+  const [{ data: bookings }, { data: transactions }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('created_at, payment_transaction_id, total_amount, status')
+      .eq('school_id', school.id)
+      .eq('payment_status', 'paid')
+      .neq('status', 'cancelled'),
+    supabase
+      .from('payment_transactions')
+      .select('amount, created_at, gateway_response')
+      .eq('school_id', school.id)
+      .eq('status', 'paid'),
+  ])
 
   const now = new Date()
   const startMonth = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
@@ -145,21 +225,54 @@ export async function getRevenueMetrics(months = 6): Promise<BookingMetric[]> {
       month: monthKey,
       total_bookings: 0,
       total_revenue: 0,
+      gross_revenue: 0,
+      fee_amount: 0,
+      net_revenue: 0,
       completed: 0,
       cancelled: 0,
     })
   }
 
-  for (const row of (data ?? []) as DashboardRevenueRow[]) {
-    const lessonDate = new Date(`${row.lesson_date}T00:00:00`)
-    const monthKey = new Date(lessonDate.getFullYear(), lessonDate.getMonth(), 1).toISOString().slice(0, 10)
+  for (const row of (bookings ?? []) as DashboardRevenueBookingCountRow[]) {
+    const createdAt = new Date(row.created_at)
+    const monthKey = new Date(createdAt.getFullYear(), createdAt.getMonth(), 1).toISOString().slice(0, 10)
     const metric = metricsMap.get(monthKey)
 
     if (!metric) continue
 
     metric.total_bookings += 1
-    metric.total_revenue += Number(row.total_amount)
-    metric.completed += 1
+    if (row.status === 'completed') {
+      metric.completed += 1
+    }
+  }
+
+  for (const row of (transactions ?? []) as DashboardPaymentTransactionRow[]) {
+    const createdAt = new Date(row.created_at)
+    const monthKey = new Date(createdAt.getFullYear(), createdAt.getMonth(), 1).toISOString().slice(0, 10)
+    const metric = metricsMap.get(monthKey)
+
+    if (!metric) continue
+
+    const breakdown = getPaymentFinancialBreakdown(row.gateway_response, Number(row.amount))
+    metric.gross_revenue += breakdown.gross
+    metric.fee_amount += breakdown.fee
+    metric.net_revenue += breakdown.net
+    metric.total_revenue += breakdown.net
+  }
+
+  for (const row of (bookings ?? []) as DashboardRevenueRow[]) {
+    if (row.payment_transaction_id) continue
+
+    const createdAt = new Date(row.created_at)
+    const monthKey = new Date(createdAt.getFullYear(), createdAt.getMonth(), 1).toISOString().slice(0, 10)
+    const metric = metricsMap.get(monthKey)
+
+    if (!metric) continue
+
+    const gross = Number(row.total_amount)
+    metric.gross_revenue += gross
+    metric.net_revenue += gross
+    metric.total_revenue += gross
   }
 
   return [...metricsMap.values()]
@@ -174,12 +287,13 @@ export async function getInstructorRanking(): Promise<InstructorRankRow[]> {
     .from('bookings')
     .select(`
       total_amount,
+      status,
       time_slots,
       instructor:instructors(id, full_name, photo_url, hourly_price)
     `)
     .eq('school_id', school.id)
     .eq('payment_status', 'paid')
-    .eq('status', 'completed')
+    .neq('status', 'cancelled')
 
   const rankingMap = new Map<string, InstructorRankRow>()
 
@@ -261,7 +375,7 @@ export async function getDashboardCalendarData(): Promise<{
       `)
       .eq('school_id', school.id)
       .eq('payment_status', 'paid')
-      .eq('status', 'completed')
+      .neq('status', 'cancelled')
       .order('lesson_date', { ascending: true }),
   ])
 

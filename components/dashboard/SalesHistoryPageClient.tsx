@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Filter, ReceiptText, RefreshCcw, Search } from 'lucide-react'
+import { CalendarDays, Filter, ReceiptText, RefreshCcw, Search, TicketPercent, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { refundSale } from '@/actions/sales-history'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,8 @@ export function SalesHistoryPageClient({ sales }: Props) {
   const [filterTo, setFilterTo] = useState('')
   const [filterQuery, setFilterQuery] = useState('')
   const [refundingId, setRefundingId] = useState<string | null>(null)
+  const [refundModalSale, setRefundModalSale] = useState<SalesHistoryEntry | null>(null)
+  const [refundReason, setRefundReason] = useState('')
 
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
@@ -43,6 +45,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
           sale.customer_phone ?? '',
           sale.external_reference ?? '',
           sale.mercadopago_payment_id ? String(sale.mercadopago_payment_id) : '',
+          sale.coupon_usage.join(' '),
         ]
           .join(' ')
           .toLowerCase()
@@ -70,18 +73,21 @@ export function SalesHistoryPageClient({ sales }: Props) {
     setFilterQuery('')
   }
 
-  async function handleRefund(sale: SalesHistoryEntry) {
-    if (!sale.can_refund) return
+  async function handleRefund() {
+    if (!refundModalSale?.can_refund) return
+    if (!refundReason.trim()) {
+      showError('Informe o motivo do reembolso.', 'Descreva resumidamente por que a venda esta sendo reembolsada.')
+      return
+    }
 
-    const confirmed = window.confirm(`Deseja reembolsar a venda de ${sale.customer_name}?`)
-    if (!confirmed) return
-
+    const sale = refundModalSale
     setRefundingId(sale.id)
 
     try {
       const formData = new FormData()
       formData.set('sale_id', sale.id)
       formData.set('sale_kind', sale.kind)
+      formData.set('refund_reason', refundReason.trim())
 
       const result = await refundSale(formData)
       if (!result.success) {
@@ -90,6 +96,8 @@ export function SalesHistoryPageClient({ sales }: Props) {
       }
 
       success('Venda reembolsada com sucesso no Mercado Pago.')
+      setRefundModalSale(null)
+      setRefundReason('')
       router.refresh()
     } catch (error) {
       showError(
@@ -122,7 +130,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
               Filtros do historico
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Busque por cliente, referencia, tipo de venda, periodo ou situacao do pagamento.
+              Busque por cliente, referencia, tipo de venda, periodo ou uso de cupom.
             </p>
           </div>
         </div>
@@ -186,7 +194,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
@@ -195,6 +203,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
                     <th className="px-5 py-3">Data</th>
                     <th className="px-5 py-3">Valor</th>
                     <th className="px-5 py-3">Meio</th>
+                    <th className="px-5 py-3">Cupom</th>
                     <th className="px-5 py-3">Pagamento</th>
                     <th className="px-5 py-3">Mercado Pago</th>
                     <th className="px-5 py-3 text-right">Acoes</th>
@@ -240,6 +249,23 @@ export function SalesHistoryPageClient({ sales }: Props) {
                         {sale.payment_method_label}
                       </td>
 
+                      <td className="px-5 py-4 text-sm text-slate-600">
+                        {sale.coupon_usage.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {sale.coupon_usage.map((coupon) => (
+                              <span
+                                key={coupon}
+                                className="inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700"
+                              >
+                                {coupon}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          '--'
+                        )}
+                      </td>
+
                       <td className="px-5 py-4">
                         <span className={statusPillClass(sale.payment_status)}>
                           {statusLabel(sale.payment_status)}
@@ -262,7 +288,10 @@ export function SalesHistoryPageClient({ sales }: Props) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRefund(sale)}
+                            onClick={() => {
+                              setRefundModalSale(sale)
+                              setRefundReason('')
+                            }}
                             disabled={refundingId === sale.id}
                           >
                             <RefreshCcw size={14} />
@@ -280,6 +309,94 @@ export function SalesHistoryPageClient({ sales }: Props) {
               </table>
             </div>
 
+            <div className="space-y-3 p-4 md:hidden">
+              {paginatedSales.map((sale) => (
+                <article key={`${sale.kind}:${sale.id}`} className="rounded border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-800">{sale.title}</div>
+                      <div className="mt-1 text-xs text-slate-400">{sale.external_reference ?? '--'}</div>
+                    </div>
+                    <span className={statusPillClass(sale.payment_status)}>{statusLabel(sale.payment_status)}</span>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 text-sm text-slate-600">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Cliente</div>
+                      <div className="font-medium text-slate-800">{sale.customer_name}</div>
+                      {sale.customer_email && <div>{sale.customer_email}</div>}
+                      {sale.customer_phone && <div>{sale.customer_phone}</div>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Valor</div>
+                        <div className="font-condensed text-2xl font-bold text-[var(--primary)]">
+                          {formatPrice(Number(sale.amount))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Meio</div>
+                        <div>{sale.payment_method_label}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Data</div>
+                      <div>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Uso de cupom</div>
+                      {sale.coupon_usage.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {sale.coupon_usage.map((coupon) => (
+                            <span
+                              key={coupon}
+                              className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700"
+                            >
+                              <TicketPercent size={12} />
+                              {coupon}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div>--</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Mercado Pago</div>
+                      <div>ID: {sale.mercadopago_payment_id ?? '--'}</div>
+                      <div className="text-xs text-slate-400">
+                        {sale.mercadopago_status_detail ?? sale.mercadopago_status ?? '--'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    {sale.can_refund ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRefundModalSale(sale)
+                          setRefundReason('')
+                        }}
+                        disabled={refundingId === sale.id}
+                      >
+                        <RefreshCcw size={14} />
+                        {refundingId === sale.id ? 'Reembolsando...' : 'Reembolsar'}
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-400">--</span>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+
             <PaginationControls
               currentPage={currentPage}
               pageSize={PAGE_SIZE}
@@ -290,6 +407,70 @@ export function SalesHistoryPageClient({ sales }: Props) {
           </>
         )}
       </section>
+
+      {refundModalSale && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="relative w-full max-w-lg rounded border border-slate-200 bg-slate-50 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
+              <div>
+                <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+                  Reembolsar venda
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Informe o motivo do reembolso para {refundModalSale.customer_name}.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (refundingId) return
+                  setRefundModalSale(null)
+                  setRefundReason('')
+                }}
+                aria-label="Fechar modal de reembolso"
+              >
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="space-y-4 p-6">
+              <div className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                <div className="font-semibold text-slate-800">{refundModalSale.title}</div>
+                <div className="mt-1">{formatPrice(Number(refundModalSale.amount))}</div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Motivo do reembolso *</label>
+                <textarea
+                  value={refundReason}
+                  onChange={(event) => setRefundReason(event.target.value)}
+                  rows={4}
+                  placeholder="Ex: cliente cancelou antes da confirmacao da aula."
+                  className="w-full rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 resize-none focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/10"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    if (refundingId) return
+                    setRefundModalSale(null)
+                    setRefundReason('')
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="button" variant="primary" onClick={handleRefund} disabled={refundingId === refundModalSale.id}>
+                  {refundingId === refundModalSale.id ? 'Reembolsando...' : 'Confirmar reembolso'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -55,7 +55,7 @@ export function StudentsPageClient({ students }: Props) {
           </div>
         ) : (
           <div className="overflow-hidden rounded border border-slate-200 bg-white">
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
@@ -120,6 +120,64 @@ export function StudentsPageClient({ students }: Props) {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="space-y-3 p-4 md:hidden">
+              {paginatedStudents.map((student) => (
+                <article key={student.id} className="rounded border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-slate-800">{student.full_name}</div>
+                      <div className="mt-1 text-sm text-slate-400">{student.email ?? 'Sem e-mail visivel'}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      <Badge variant="default">{student.total_bookings} total</Badge>
+                      <Badge variant={student.upcoming_bookings > 0 ? 'success' : 'neutral'}>
+                        {student.upcoming_bookings} futuras
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 text-sm text-slate-600">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Contato</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Mail size={14} className="text-slate-400" />
+                        <span>{student.email ?? '--'}</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Phone size={14} className="text-slate-400" />
+                        <span>{student.phone ?? '--'}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">CPF</div>
+                        <div>{student.cpf ? formatCpf(student.cpf) : '--'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Nascimento</div>
+                        <div>
+                          {student.birth_date
+                            ? new Date(`${student.birth_date}T00:00:00`).toLocaleDateString('pt-BR')
+                            : '--'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Cadastro</div>
+                      <div>
+                        {new Date(student.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
             <PaginationControls
               currentPage={currentPage}
