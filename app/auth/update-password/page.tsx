@@ -1,20 +1,71 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Lock, Waves } from 'lucide-react'
 import { updatePassword } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toaster'
+import { createClient } from '@/lib/supabase/client'
 
 export default function UpdatePasswordPage() {
   const { error: showError } = useToast()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [verifyingLink, setVerifyingLink] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    async function prepareSession() {
+      const supabase = createClient()
+      const code = searchParams.get('code')
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (exchangeError) {
+          if (!active) return
+          setError('O link de redefinicao e invalido ou expirou. Solicite um novo e-mail.')
+          setVerifyingLink(false)
+          return
+        }
+
+        router.replace('/auth/update-password')
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!active) return
+
+      if (!user) {
+        setError('Abra o link recebido por e-mail para redefinir sua senha.')
+        setSessionReady(false)
+        setVerifyingLink(false)
+        return
+      }
+
+      setSessionReady(true)
+      setVerifyingLink(false)
+    }
+
+    prepareSession()
+
+    return () => {
+      active = false
+    }
+  }, [router, searchParams])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!sessionReady) return
     setLoading(true)
     setError('')
 
@@ -71,18 +122,18 @@ export default function UpdatePasswordPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Nova senha</label>
-              <Input name="password" type="password" required placeholder="Minimo 6 caracteres" icon={<Lock size={14} />} />
+              <Input name="password" type="password" required placeholder="Minimo 6 caracteres" icon={<Lock size={14} />} disabled={!sessionReady || verifyingLink || loading} />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Confirmar senha</label>
-              <Input name="confirm_password" type="password" required placeholder="Repita a nova senha" icon={<Lock size={14} />} />
+              <Input name="confirm_password" type="password" required placeholder="Repita a nova senha" icon={<Lock size={14} />} disabled={!sessionReady || verifyingLink || loading} />
             </div>
 
             {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
 
-            <Button type="submit" variant="primary" fullWidth disabled={loading}>
-              {loading ? 'Salvando...' : <><span>Atualizar senha</span><ArrowRight size={15} /></>}
+            <Button type="submit" variant="primary" fullWidth disabled={loading || verifyingLink || !sessionReady}>
+              {verifyingLink ? 'Validando link...' : loading ? 'Salvando...' : <><span>Atualizar senha</span><ArrowRight size={15} /></>}
             </Button>
           </form>
 

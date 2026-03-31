@@ -37,6 +37,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [productTab, setProductTab] = useState<'single' | 'package'>('single')
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
+  const [navigationLocked, setNavigationLocked] = useState(false)
   const packagePlannerRef = useRef<HTMLDivElement | null>(null)
 
   const [wizard, setWizard] = useState<BookingWizardState>({
@@ -462,7 +463,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
           {wizard.step === 1 && (
             <section className="space-y-4">
               <div>
-                <h1 className="text-[24px] font-semibold text-slate-900">Escolha o servico</h1>
+                <h1 className="text-[24px] font-semibold text-slate-900">Escolha o serviço</h1>
                 <p className="mt-1 text-[14px] text-slate-500">Selecione o formato de reserva para continuar.</p>
               </div>
 
@@ -487,7 +488,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
               {productTab === 'single' ? (
                 <button type="button" onClick={chooseSingle} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectionType === 'single' ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
-                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: primaryColor }}><Clock size={18} /></div><div><div className="text-[16px] font-semibold text-slate-900">Aula avulsa</div><p className="mt-1 text-[13px] text-slate-500">Escolha dia, instrutor e horario para uma unica aula.</p></div></div>
+                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: primaryColor }}><Clock size={18} /></div><div><div className="text-[16px] font-semibold text-slate-900">Aula avulsa</div><p className="mt-1 text-[13px] text-slate-500">Escolha dia, instrutor e horário para uma única aula.</p></div></div>
                 </button>
               ) : packages.length === 0 ? (
                 <div className="rounded-[18px] border border-dashed border-slate-200 bg-white p-6 text-[14px] text-slate-500">
@@ -507,7 +508,20 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
             <section className="space-y-4">
               <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha o profissional</h1><p className="mt-1 text-[14px] text-slate-500">{isPackageFlow ? 'O instrutor sera o mesmo em todas as aulas do pacote.' : 'A disponibilidade considera o dia escolhido.'}</p></div>
               {eligibleInstructors.map((instructor) => (
-                <button key={instructor.id} type="button" onClick={() => selectInstructor(instructor)} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectedInstructor?.id === instructor.id ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
+                <div
+                  key={instructor.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => selectInstructor(instructor)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      selectInstructor(instructor)
+                    }
+                  }}
+                  className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
+                  style={wizard.selectedInstructor?.id === instructor.id ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}
+                >
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -526,7 +540,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                       <div className="truncate text-[15px] font-medium text-slate-900">{instructor.full_name}</div>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </section>
           )}
@@ -636,6 +650,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 onApproved={() => { setError(null) }}
                 onPending={() => { setError(null) }}
                 onFailure={(message) => { setError(message) }}
+                onNavigationLockChange={setNavigationLocked}
               />
             </section>
           )}
@@ -644,7 +659,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/96 px-3 py-3 backdrop-blur sm:px-5">
         <div className="mx-auto flex w-full max-w-md gap-3 sm:max-w-2xl">
-          {wizard.step > 1 && (
+          {wizard.step > 1 && !navigationLocked && (
             <button
               type="button"
               onClick={() => goToStep(wizard.step - 1)}

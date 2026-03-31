@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ChevronRight, Waves } from 'lucide-react'
 
 import heroImage from '@/img_lp/pexels-phoenix-main-269814337-13265588.jpg'
@@ -61,7 +62,21 @@ const faqItems = [
   'O aluno pode entrar para ver histórico e próximas aulas?',
 ]
 
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ code?: string; type?: string; next?: string }>
+}) {
+  const params = await searchParams
+  const code = typeof params?.code === 'string' ? params.code : ''
+
+  if (code) {
+    const target = new URLSearchParams({ code })
+    if (typeof params?.type === 'string' && params.type) target.set('type', params.type)
+    if (typeof params?.next === 'string' && params.next) target.set('next', params.next)
+    redirect(`/auth/update-password?${target.toString()}`)
+  }
+
   const currentYear = new Date().getFullYear()
 
   return (

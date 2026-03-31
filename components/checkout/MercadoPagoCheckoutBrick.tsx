@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
 import type { IPaymentFormData, IAdditionalData } from '@mercadopago/sdk-react/esm/bricks/payment/type'
 import Link from 'next/link'
-import { CheckCircle2, PartyPopper, Sparkles, Waves } from 'lucide-react'
+import { PartyPopper, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PaymentSuccessAnimation } from '@/components/checkout/PaymentSuccessAnimation'
 import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import { formatPrice } from '@/lib/utils'
 
@@ -31,6 +32,7 @@ interface Props {
   onApproved: (message: string) => void
   onPending: (message: string) => void
   onFailure: (message: string) => void
+  onNavigationLockChange?: (locked: boolean) => void
 }
 
 interface ProcessPaymentResponse {
@@ -55,6 +57,10 @@ export function MercadoPagoCheckoutBrick(props: Props) {
   useEffect(() => {
     setPaymentMode(null)
   }, [props.onlineEnabled, props.schoolId, props.selectionType, props.selectedDate, props.packageId, props.instructorId])
+
+  useEffect(() => {
+    props.onNavigationLockChange?.(result?.status === 'pay_on_site')
+  }, [props, result?.status])
 
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
@@ -135,11 +141,8 @@ export function MercadoPagoCheckoutBrick(props: Props) {
           <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-sky-300/30 blur-3xl" />
 
           <div className="relative text-center">
-            <div className={`mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full text-white ${payOnSite ? 'bg-[linear-gradient(135deg,#0284c7,#0891b2)] shadow-[0_18px_45px_rgba(2,132,199,0.28)]' : 'bg-[linear-gradient(135deg,#10b981,#0284c7)] shadow-[0_18px_45px_rgba(16,185,129,0.28)]'}`}>
-              <div className="relative">
-                <Waves size={28} />
-                <CheckCircle2 size={22} className={`absolute -right-4 -top-4 rounded-full bg-white ${payOnSite ? 'text-sky-500' : 'text-emerald-500'}`} />
-              </div>
+            <div className="mx-auto mb-2 flex items-center justify-center">
+              <PaymentSuccessAnimation size={190} />
             </div>
             <div className={`mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${payOnSite ? 'text-sky-700' : 'text-emerald-700'}`}>
               <PartyPopper size={14} />
@@ -219,7 +222,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
               onClick={() => setPaymentMode('pay_on_site')}
               className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
             >
-              <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opcao 2</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opção 2</div>
               <div className="mt-1 font-semibold text-slate-900">Pague na hora</div>
               <div className="mt-1 text-sm text-slate-500">Confirma o agendamento e deixa o pagamento pendente.</div>
             </button>
@@ -306,7 +309,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
           ) : paymentMode === 'pay_on_site' ? (
             <div className="space-y-4">
               <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
-                Seu agendamento sera confirmado agora, e o pagamento ficara pendente para ser feito na hora.
+                Seu agendamento será confirmado agora, e o pagamento ficará pendente para ser feito na hora.
               </div>
               <div className="flex justify-end">
                 <Button
@@ -362,6 +365,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             <div className="absolute inset-0 z-10 overflow-hidden rounded bg-white/80 backdrop-blur-[1px]">
               <SurfLoading
                 compact
+                fitParent
                 title="Processando pagamento"
                 subtitle="Estamos validando o metodo escolhido e finalizando a cobranca."
               />
@@ -430,5 +434,3 @@ function PaymentFeedback({
     </div>
   )
 }
-
-

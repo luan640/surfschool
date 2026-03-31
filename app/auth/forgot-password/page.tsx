@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
             <span className="text-[#00b4d8]">da sua escola</span>
           </h1>
           <p className="text-sm leading-relaxed text-white/70 max-w-md">
-            Envie um link de redefinicao para o seu e-mail e crie uma nova senha com seguranca.
+            Envie um link de redefinição para o seu e-mail e crie uma nova senha com segurança.
           </p>
         </div>
       </div>
@@ -72,12 +72,12 @@ export default function ForgotPasswordPage() {
             Esqueci minha senha
           </h1>
           <p className="text-slate-400 text-sm mb-7">
-            Digite o e-mail da conta proprietaria para receber o link de redefinicao.
+            Digite o e-mail da conta proprietária para receber o link de redefinição.
           </p>
 
           {sent ? (
             <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              Se existir uma conta para esse e-mail, enviamos o link de redefinicao. Verifique sua caixa de entrada.
+              Se existir uma conta para esse e-mail, enviamos o link de redefinição. Verifique sua caixa de entrada e spam.
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
