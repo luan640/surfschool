@@ -54,12 +54,12 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
 
         <div className="relative z-10">
           <h2 className="font-condensed text-4xl font-bold text-white uppercase leading-tight mb-3">
-            {isCompleteMode ? 'Conclua o cadastro da sua escola.' : <>Comece grÃ¡tis.<br /><span className="text-[#00b4d8]">CresÃ§a</span> sem limites.</>}
+            {isCompleteMode ? 'Conclua o cadastro da sua escola.' : <>Comece grátis.<br /><span className="text-[#00b4d8]">Cresça</span> sem limites.</>}
           </h2>
           <p className="text-white/60 text-sm leading-relaxed">
             {isCompleteMode
               ? 'Sua conta foi criada, mas faltou registrar a escola. Finalize isso para acessar o dashboard.'
-              : 'Cadastre sua escola em minutos. Seus alunos jÃ¡ podem agendar aulas pelo link personalizado.'}
+              : 'Cadastre sua escola em minutos. Seus alunos já podem agendar aulas pelo link personalizado.'}
           </p>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
 
           {!isCompleteMode && (
             <p className="text-center text-sm text-slate-400 mt-6">
-              JÃ¡ tem conta?{' '}
+              Já tem conta?{' '}
               <Link href="/auth/login" className="text-[#0077b6] font-semibold hover:underline">
                 Fazer login
               </Link>

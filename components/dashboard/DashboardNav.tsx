@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   CircleDollarSign,
   CreditCard,
+  Crown,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
@@ -77,6 +78,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Conta',
     items: [
+      { href: '/dashboard/settings/plan', label: 'Plano', icon: Crown },
       {
         href: '/dashboard/settings',
         label: 'Configurações',

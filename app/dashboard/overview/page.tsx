@@ -70,7 +70,7 @@ export default async function OverviewPage() {
           icon={<Receipt size={18} />}
         />
         <KpiCard
-          label="Faturamento liquido no mes"
+          label="Faturamento líquido no mes"
           value={formatPrice(kpis.netRevenueThisMonth)}
           current={kpis.netRevenueThisMonth}
           previous={kpis.netRevenueLastMonth}

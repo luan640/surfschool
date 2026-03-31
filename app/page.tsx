@@ -2,19 +2,41 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronRight, Waves } from 'lucide-react'
 
-import heroImage from '@/img_lp/pexels-phoenix-main-269814337-13265591.jpg'
-import surferTallImage from '@/img_lp/pexels-kampus-6299932.jpg'
+import heroImage from '@/img_lp/pexels-phoenix-main-269814337-13265588.jpg'
 import paddleImage from '@/img_lp/pexels-kampus-6299959.jpg'
 import boardImage from '@/img_lp/pexels-thom-gonzalez-3126166-9321377.jpg'
 import lifestyleImage from '@/img_lp/pexels-dgnrflrs-28379217.jpg'
-import beachImage from '@/img_lp/pexels-alohaphotostudio-18879747.jpg'
+import surfTripsImage from '@/img_lp/pexels-phoenix-main-269814337-13265591.jpg'
 
 const topNav = ['Recursos', 'Como funciona', 'Planos', 'FAQ']
+
+const faqEntries = [
+  {
+    question: 'Como o aluno encontra a página da escola?',
+    answer:
+      'Cada escola recebe uma página pública própria com link para divulgar aulas, trips, datas disponíveis e inscrições em um só lugar.',
+  },
+  {
+    question: 'A plataforma aceita PIX e cartão?',
+    answer:
+      'Sim. A escola pode receber pagamentos digitais no mesmo fluxo da inscrição, o que reduz atrito e facilita a confirmação da vaga.',
+  },
+  {
+    question: 'Consigo vender aula avulsa, pacote e surf trip?',
+    answer:
+      'Sim. A plataforma foi pensada para centralizar a operação da escola, incluindo reservas de aulas, vendas de pacotes e gestão de surf trips.',
+  },
+  {
+    question: 'O aluno pode acompanhar inscrições e próximos passos?',
+    answer:
+      'Sim. O painel permite acompanhar status das inscrições, vagas preenchidas, pagamentos e andamento de cada viagem com mais clareza.',
+  },
+]
 
 const benefitCards = [
   {
     title: 'PÁGINA DA ESCOLA',
-    description: 'Cada escola ganha um link prÓprio para divulgar aulas, instrutores e horÁrios.',
+    description: 'Cada escola ganha um link próprio para divulgar aulas, instrutores e horários.',
     image: boardImage,
     imageAlt: 'Surfista em uma onda, representando a pagina publica da escola',
   },
@@ -33,10 +55,10 @@ const benefitCards = [
 ]
 
 const faqItems = [
-  'Como o aluno encontra a pagina da escola?',
-  'A plataforma aceita pix e cartao?',
+  'Como o aluno encontra a página da escola?',
+  'A plataforma aceita pix e cartão?',
   'Consigo vender aula avulsa e pacote?',
-  'O aluno pode entrar para ver historico e proximas aulas?',
+  'O aluno pode entrar para ver histórico e próximas aulas?',
 ]
 
 export default function HomePage() {
@@ -91,7 +113,7 @@ export default function HomePage() {
                     href="/auth/register"
                     className="inline-flex items-center gap-2 border border-[#b6f000] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-[#b6f000] hover:text-[#051725]"
                   >
-                    Join
+                    Cadastrar
                   </Link>
                 </div>
               </div>
@@ -99,9 +121,9 @@ export default function HomePage() {
               <div className="flex flex-1 items-center py-10 sm:py-14">
                 <div className="max-w-[520px]">
                   <h1 className="mt-3 font-condensed text-5xl font-bold uppercase leading-[0.84] tracking-[0.02em] text-white sm:text-6xl lg:text-[5.75rem]">
-                    <span className="text-[#c7ff3c]">GESTÃO</span>
+                    <span className="text-[#c7ff3c]">GESTÃO </span>DA SUA ESCOLA
                     <br />
-                    DA SUA ESCOLA
+                    
                   </h1>
                   <p className="mt-4 max-w-[430px] text-base leading-relaxed text-white/80 sm:text-lg">
                     Uma plataforma para organizar agenda, pagamentos, alunos e operacao da sua escola de surf.
@@ -174,70 +196,26 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-white px-4 py-8 shadow-[0_26px_70px_rgba(15,23,42,0.08)] sm:px-6 lg:px-10">
-          <div className="mx-auto grid max-w-[1400px] gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
-            <div>
-              <h2 className="mt-4 font-condensed text-4xl font-bold uppercase leading-[0.88] tracking-[0.04em] text-slate-950 sm:text-5xl">
-                SURF TRIPS
-              </h2>
-              <p className="mt-5 max-w-[440px] text-base leading-relaxed text-slate-600">
-                Organize viagens da escola com pagina pública, vagas, datas, pagamento e acompanhamento das inscrições no mesmo painel.
+        <section
+          id="como-funciona"
+          className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#051725] px-4 py-8 shadow-[0_26px_70px_rgba(15,23,42,0.08)] sm:px-6 lg:px-10"
+        >
+          <div className="relative mx-auto min-h-[520px] max-w-[1400px] overflow-hidden">
+            <Image
+              src={surfTripsImage}
+              alt="Grupo em surf trip na praia"
+              fill
+              className="object-cover object-[center_78%]"
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,23,37,0.82)_0%,rgba(5,23,37,0.42)_45%,rgba(5,23,37,0.28)_100%)]" />
+            <div className="relative z-10 flex min-h-[520px] items-end py-6 sm:py-8 lg:py-12">
+              <p className="max-w-[720px] text-xl font-medium leading-relaxed text-white sm:text-2xl lg:text-3xl">
+                {'Organize viagens da escola com pagina p\u00fablica, vagas, datas, pagamento e acompanhamento das inscri\u00e7\u00f5es no mesmo painel.'}
               </p>
-
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                <div className="border-l-4 border-[#0d1b2a] pl-3">
-                  <p className="font-condensed text-3xl font-bold uppercase tracking-[0.05em] text-slate-950">PUBLICA</p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Pagina da trip</p>
-                </div>
-                <div className="border-l-4 border-[#0d1b2a] pl-3">
-                  <p className="font-condensed text-3xl font-bold uppercase tracking-[0.05em] text-slate-950">ONLINE</p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Inscricao</p>
-                </div>
-                <div className="border-l-4 border-[#0d1b2a] pl-3">
-                  <p className="font-condensed text-3xl font-bold uppercase tracking-[0.05em] text-slate-950">TOTAL</p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Controle</p>
-                </div>
-              </div>
-
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                {[paddleImage, lifestyleImage, beachImage].map((image, index) => (
-                  <div key={index} className="relative aspect-[1.15/1] overflow-hidden border border-slate-200">
-                    <Image src={image} alt={`Galeria da plataforma ${index + 1}`} fill className="object-cover" sizes="180px" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="relative aspect-[16/9] overflow-hidden border border-slate-200 bg-slate-100">
-                <Image src={surferTallImage} alt="Surfista em pe na prancha" fill className="object-cover" sizes="(max-width: 1024px) 100vw, 42vw" />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,23,37,0.52))]" />
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="border border-slate-200 bg-[#f7f9fb] p-5">
-                  <h3 className="font-condensed text-2xl font-bold uppercase tracking-[0.05em] text-slate-950">
-                    PARA QUE SERVE?
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                    Para escolas que promovem surf trips e querem centralizar divulgacao, inscricoes e status dos participantes.
-                  </p>
-                </div>
-                <div id="como-funciona" className="border border-slate-200 bg-[#f7f9fb] p-5">
-                  <h3 className="font-condensed text-2xl font-bold uppercase tracking-[0.05em] text-slate-950">
-                    FLUXO
-                  </h3>
-                  <div className="mt-3 grid gap-2 text-sm text-slate-600">
-                    <p>01. Escola publica a surf trip.</p>
-                    <p>02. Aluno se inscreve e paga.</p>
-                    <p>03. Painel acompanha vagas e inscritos.</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
-
         <section id="planos" className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-white px-4 py-8 shadow-[0_26px_70px_rgba(15,23,42,0.08)] sm:px-6 lg:px-10">
           <div className="mx-auto max-w-[1400px]">
             <h2 className="text-center font-condensed text-4xl font-bold uppercase tracking-[0.04em] text-slate-950 sm:text-5xl">
@@ -269,10 +247,13 @@ export default function HomePage() {
           <section id="faq" className="rounded-[2rem] bg-[#061b2a] px-5 py-6 text-white shadow-[0_26px_70px_rgba(6,27,42,0.16)] sm:px-6 sm:py-8">
             <h2 className="font-condensed text-4xl font-bold uppercase tracking-[0.04em]">FAQ</h2>
             <div className="mt-6 divide-y divide-white/10 border-y border-white/10">
-              {faqItems.map((item) => (
-                <div key={item} className="flex items-center justify-between gap-4 py-5">
-                  <p className="text-sm font-bold uppercase tracking-[0.12em] text-white/88">{item}</p>
-                  <span className="text-[#c7ff3c]">+</span>
+              {faqEntries.map((item) => (
+                <div key={item.question} className="py-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-bold uppercase tracking-[0.12em] text-white/88">{item.question}</p>
+                    <span className="text-[#c7ff3c]">+</span>
+                  </div>
+                  <p className="mt-3 max-w-[920px] text-sm leading-relaxed text-white/70">{item.answer}</p>
                 </div>
               ))}
             </div>
@@ -295,17 +276,6 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col gap-3 md:items-end">
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/aluno" className="transition-colors hover:text-slate-950">
-                Sou aluno
-              </Link>
-              <Link href="/auth/login" className="transition-colors hover:text-slate-950">
-                Ja tenho escola cadastrada
-              </Link>
-              <Link href="/auth/register" className="transition-colors hover:text-slate-950">
-                Cadastrar escola
-              </Link>
-            </div>
             <p>{currentYear} vamosurfar. Todos os direitos reservados.</p>
           </div>
         </div>

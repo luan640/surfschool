@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { MailCheck, Waves } from 'lucide-react'
+import { ResendConfirmationForm } from '@/components/auth/ResendConfirmationForm'
 
 interface Props {
   searchParams?: Promise<{ email?: string }>
@@ -60,6 +61,8 @@ export default async function RegisterSuccessPage({ searchParams }: Props) {
           <div className="mt-6 rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             Se nao encontrar a mensagem, verifique tambem a caixa de spam ou lixo eletronico.
           </div>
+
+          <ResendConfirmationForm email={email} initialCooldownSeconds={60} hideEmailField />
 
           <div className="mt-6 flex flex-col gap-3">
             <Link

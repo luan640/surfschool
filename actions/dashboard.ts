@@ -401,6 +401,23 @@ export async function getSchoolSettings() {
   return getMySchool()
 }
 
+export async function getActiveSubscription() {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return null
+
+  const { data } = await supabase
+    .from('school_subscriptions')
+    .select('id, status, payer_email, next_payment_date, created_at')
+    .eq('school_id', school.id)
+    .in('status', ['authorized', 'pending'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return data
+}
+
 export async function getMercadoPagoConnection() {
   const supabase = await createClient()
   const school = await getMySchool()
