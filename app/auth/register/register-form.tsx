@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { completeOwnerSchoolRegistration, signUpOwner } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toaster'
 import { Mail, Lock, User, Building2, Phone, Waves, ArrowRight, AlertTriangle } from 'lucide-react'
+import registerImage from '../../../img_lp/pexels-renestrgar-18338691.jpg'
 
 type RegisterMode = 'signup' | 'complete'
 
@@ -40,7 +42,14 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
   return (
     <div className="min-h-dvh grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between bg-[#0d1b2a] p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0d1b2a] via-[#023e8a] to-[#0077b6] opacity-80" />
+        <Image
+          src={registerImage}
+          alt="Surfista no mar"
+          fill
+          priority
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[140%] h-1/2 bg-[radial-gradient(ellipse,rgba(0,180,216,.25)_0%,transparent_70%)] pointer-events-none" />
 
         <div className="relative z-10">

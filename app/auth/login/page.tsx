@@ -2,28 +2,40 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { signInOwner } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toaster'
 import { Mail, Lock, Waves, ArrowRight } from 'lucide-react'
+import loginImage from '../../../img_lp/pexels-jess-vide-4318913.jpg'
 
 export default function OwnerLoginPage() {
-  const { error: showError } = useToast()
+  const { error: showError, success: showSuccess } = useToast()
   const [urlError, setUrlError] = useState<string | null>(null)
+  const [resetSuccess, setResetSuccess] = useState(false)
+  const [infoMessage, setInfoMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setUrlError(params.get('error'))
+    setResetSuccess(params.get('reset') === 'success')
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setInfoMessage('')
     const result = await signInOwner(new FormData(e.currentTarget))
+    if (result && result.success && result.data?.resentConfirmation) {
+      setInfoMessage(result.data.message ?? 'Enviamos um novo link de confirmacao para o seu e-mail.')
+      showSuccess('Novo link de confirmacao enviado.', result.data.message)
+      setLoading(false)
+      return
+    }
     if (result && !result.success) {
       setError(result.error)
       showError('Nao foi possivel entrar.', result.error)
@@ -35,7 +47,14 @@ export default function OwnerLoginPage() {
     <div className="min-h-dvh grid grid-cols-1 lg:grid-cols-2">
       {/* Left panel */}
       <div className="hidden lg:flex flex-col justify-between bg-[#0d1b2a] p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0d1b2a] via-[#023e8a] to-[#0077b6] opacity-80" />
+        <Image
+          src={loginImage}
+          alt="Pessoa em prancha no mar"
+          fill
+          priority
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[140%] h-1/2
           bg-[radial-gradient(ellipse,rgba(0,180,216,.25)_0%,transparent_70%)] pointer-events-none" />
 
@@ -90,6 +109,18 @@ export default function OwnerLoginPage() {
             </p>
           )}
 
+          {resetSuccess && !error && !urlError && (
+            <p className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+              Senha atualizada com sucesso. Entre com a nova senha.
+            </p>
+          )}
+
+          {infoMessage && !error && !urlError && (
+            <p className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+              {infoMessage}
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">E-mail</label>
@@ -98,6 +129,12 @@ export default function OwnerLoginPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Senha</label>
               <Input name="password" type="password" required placeholder="••••••••" icon={<Lock size={14} />} />
+            </div>
+
+            <div className="-mt-1 text-right">
+              <Link href="/auth/forgot-password" className="text-sm font-semibold text-[#0077b6] hover:underline">
+                Esqueci a senha
+              </Link>
             </div>
 
             {error && <p className="text-sm text-red-500 font-medium">{error}</p>}

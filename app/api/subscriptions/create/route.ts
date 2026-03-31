@@ -41,22 +41,25 @@ export async function POST(request: Request) {
 
     const mp = new MercadoPagoConfig({ accessToken })
     const preApprovalClient = new PreApproval(mp)
+    const preApprovalBody = {
+      preapproval_plan_id: planId,
+      payer_email: payerEmail,
+      card_token_id: token,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: 1.00,
+        currency_id: 'BRL',
+      },
+      back_url: `${appUrl}/dashboard/settings/plan?subscription=success`,
+      notification_url: `${appUrl}/api/subscriptions/webhook`,
+      status: 'authorized',
+    } as Parameters<typeof preApprovalClient.create>[0]['body'] & {
+      notification_url: string
+    }
 
     const preapproval = await preApprovalClient.create({
-      body: {
-        preapproval_plan_id: planId,
-        payer_email: payerEmail,
-        card_token_id: token,
-        auto_recurring: {
-          frequency: 1,
-          frequency_type: 'months',
-          transaction_amount: 1.00,
-          currency_id: 'BRL',
-        },
-        back_url: `${appUrl}/dashboard/settings/plan?subscription=success`,
-        notification_url: `${appUrl}/api/subscriptions/webhook`,
-        status: 'authorized',
-      },
+      body: preApprovalBody,
     })
 
     const admin = createAdminClient()

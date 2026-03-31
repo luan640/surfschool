@@ -54,12 +54,12 @@ export default async function RegisterSuccessPage({ searchParams }: Props) {
             Verifique seu e-mail
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-500">
-            Enviamos um e-mail de confirmacao para {email ? <strong className="text-slate-700">{email}</strong> : 'o endereco informado'}.
-            Clique no link de confirmacao antes de fazer login.
+            Enviamos um e-mail de confirmação para {email ? <strong className="text-slate-700">{email}</strong> : 'o endereco informado'}.
+            Clique no link de confirmação antes de fazer login.
           </p>
 
           <div className="mt-6 rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            Se nao encontrar a mensagem, verifique tambem a caixa de spam ou lixo eletronico.
+            Se não encontrar a mensagem, verifique também a caixa de spam ou lixo eletrônico.
           </div>
 
           <ResendConfirmationForm email={email} initialCooldownSeconds={60} hideEmailField />

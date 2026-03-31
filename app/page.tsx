@@ -211,7 +211,7 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,23,37,0.82)_0%,rgba(5,23,37,0.42)_45%,rgba(5,23,37,0.28)_100%)]" />
             <div className="relative z-10 flex min-h-[520px] items-end py-6 sm:py-8 lg:py-12">
               <p className="max-w-[720px] text-xl font-medium leading-relaxed text-white sm:text-2xl lg:text-3xl">
-                {'Organize viagens da escola com pagina p\u00fablica, vagas, datas, pagamento e acompanhamento das inscri\u00e7\u00f5es no mesmo painel.'}
+                {'Organize viagens da escola com a galera e obtenha uma página p\u00fablica, com: vagas, datas, pagamento e acompanhamento das inscri\u00e7\u00f5es no mesmo painel.'}
               </p>
             </div>
           </div>
@@ -219,22 +219,36 @@ export default function HomePage() {
         <section id="planos" className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-white px-4 py-8 shadow-[0_26px_70px_rgba(15,23,42,0.08)] sm:px-6 lg:px-10">
           <div className="mx-auto max-w-[1400px]">
             <h2 className="text-center font-condensed text-4xl font-bold uppercase tracking-[0.04em] text-slate-950 sm:text-5xl">
-              ESCOLHA SEU PLANO
+              ESCOLHA SEU PLANO E TENHA 7 DIAS GRÁTIS
             </h2>
 
             <div className="mt-6 flex justify-center">
               <article className="w-full max-w-[760px] border border-[#d7f86d] bg-[#061b2a] p-6 text-center text-white shadow-[0_14px_40px_rgba(15,23,42,0.05)] sm:p-8">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#c7ff3c]">Plano da plataforma</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#c7ff3c]">VSPro</p>
                 <h3 className="mt-4 font-condensed text-5xl font-bold uppercase tracking-[0.05em] sm:text-6xl">99,90/mês</h3>
-                <p className="mx-auto mt-4 max-w-[420px] text-sm leading-relaxed text-white/72 sm:text-base">
-                  Um plano para centralizar agenda, pagamentos, trips e operação da sua escola.
-                </p>
+                <div className="mx-auto mt-4 max-w-[520px] text-left">
+                  <p className="text-sm leading-relaxed text-white/72 sm:text-base">
+                    Um plano para centralizar agenda, pagamentos, trips e operacao da sua escola.
+                  </p>
+                  <ul className="mt-4 space-y-2 text-sm leading-relaxed text-white/82 sm:text-base">
+                    <li>- Cadastro de instrutores ilimitado</li>
+                    <li>- Controle financeiro completo</li>
+                    <li>- Pagamento direto na plataforma</li>
+                    <li>- Gerenciamento de trips</li>
+                    <li>- Agenda online com reservas e pacotes</li>
+                    <li>- Pagina publica da escola com link proprio</li>
+                    <li>- Historico de aulas, alunos e inscricoes</li>
+                    <li>- Dashboard com indicadores da operacao</li>
+                    <li>- Controle de disponibilidade por instrutor</li>
+                    <li>- Acompanhamento de pagamentos e status das vendas</li>
+                  </ul>
+                </div>
                 <div className="mt-6 flex justify-center">
                   <Link
                     href="/auth/register"
                     className="inline-flex items-center justify-center gap-2 border border-[#d7f86d] bg-[#d7f86d] px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#061b2a]"
                   >
-                    Começar agora
+                    Começar grátis
                     <ChevronRight size={14} />
                   </Link>
                 </div>

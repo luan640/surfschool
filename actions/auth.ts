@@ -42,7 +42,7 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
   })
 
   if (schoolErr) {
-    return { success: false, error: 'Conta criada, mas escola não pôde ser registrada: ' + schoolErr.message }
+    return { success: false, error: 'Conta criada, mas escola não pode ser registrada: ' + schoolErr.message }
   }
 
   redirect(`/auth/register/success?email=${encodeURIComponent(email)}`)
@@ -50,7 +50,9 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
 
 export async function completeOwnerSchoolRegistration(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     return { success: false, error: 'Sessão inválida. Faça login novamente.' }
@@ -87,14 +89,45 @@ export async function completeOwnerSchoolRegistration(formData: FormData): Promi
   redirect('/dashboard/overview')
 }
 
-export async function signInOwner(formData: FormData): Promise<ActionResult> {
+export async function signInOwner(
+  formData: FormData,
+): Promise<ActionResult<{ resentConfirmation?: boolean; message?: string }>> {
   const supabase = await createClient()
 
-  const email = formData.get('email') as string
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = formData.get('password') as string
 
   const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) return { success: false, error: 'E-mail ou senha inválidos' }
+
+  if (error) {
+    if (isEmailNotConfirmedError(error)) {
+      const existingAuthUser = await findAuthUserByEmail(email)
+
+      if (existingAuthUser && !existingAuthUser.email_confirmed_at) {
+        const { error: resendError } = await supabase.auth.resend({
+          type: 'signup',
+          email,
+          options: {
+            emailRedirectTo: buildAuthCallbackUrl(getEmailConfirmationStatusPath('success', email)),
+          },
+        })
+
+        if (resendError) {
+          return { success: false, error: resendError.message }
+        }
+
+        return {
+          success: true,
+          data: {
+            resentConfirmation: true,
+            message: 'Sua conta ainda não foi confirmada. Enviamos um novo link de acesso para o seu e-mail.',
+          },
+        }
+      }
+    }
+
+    return { success: false, error: 'E-mail ou senha inválidos' }
+  }
 
   redirect('/dashboard/overview')
 }
@@ -177,7 +210,7 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
   })
 
   if (profileErr) {
-    return { success: false, error: 'Conta criada, mas perfil não pôde ser registrado: ' + profileErr.message }
+    return { success: false, error: 'Conta criada, mas perfil nao pode ser registrado: ' + profileErr.message }
   }
 
   redirect(next)
@@ -185,10 +218,12 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
 
 export async function completeStudentProfileRegistration(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    return { success: false, error: 'Sessão inválida. Faça login novamente.' }
+    return { success: false, error: 'Sessao invalida. Faca login novamente.' }
   }
 
   const fullName = formData.get('full_name') as string
@@ -257,7 +292,7 @@ export async function completeStudentProfileRegistration(formData: FormData): Pr
   })
 
   if (error) {
-    return { success: false, error: 'Não foi possível concluir seu cadastro nesta escola: ' + error.message }
+    return { success: false, error: 'Nao foi possivel concluir seu cadastro nesta escola: ' + error.message }
   }
 
   redirect(next)
@@ -275,7 +310,7 @@ export async function signInStudent(formData: FormData): Promise<ActionResult> {
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error || !data.user) {
-    return { success: false, error: 'E-mail ou senha inválidos' }
+    return { success: false, error: 'E-mail ou senha invalidos' }
   }
 
   const { data: profile } = await supabase
@@ -319,6 +354,55 @@ export async function resendConfirmationEmail(formData: FormData): Promise<Actio
   }
 
   return { success: true, data: undefined }
+}
+
+export async function sendPasswordResetEmail(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
+
+  if (!email) {
+    return { success: false, error: 'Informe o e-mail para recuperar a senha.' }
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: buildAuthCallbackUrl('/auth/update-password'),
+  })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, data: undefined }
+}
+
+export async function updatePassword(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient()
+  const password = String(formData.get('password') ?? '')
+  const confirmPassword = String(formData.get('confirm_password') ?? '')
+
+  if (!password || password.length < 6) {
+    return { success: false, error: 'A nova senha precisa ter pelo menos 6 caracteres.' }
+  }
+
+  if (password !== confirmPassword) {
+    return { success: false, error: 'A confirmacao de senha nao confere.' }
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { success: false, error: 'Sessao invalida ou expirada. Abra o link do e-mail novamente.' }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  redirect('/auth/login?reset=success')
 }
 
 async function createSchoolForOwner({
@@ -365,4 +449,8 @@ function buildAuthCallbackUrl(nextPath: string) {
 
 function getEmailConfirmationStatusPath(status: 'success' | 'expired', email: string) {
   return `/auth/confirmation-status?status=${status}&email=${encodeURIComponent(email)}`
+}
+
+function isEmailNotConfirmedError(error: { code?: string; message?: string }) {
+  return error.code === 'email_not_confirmed' || error.message?.toLowerCase().includes('email not confirmed')
 }
