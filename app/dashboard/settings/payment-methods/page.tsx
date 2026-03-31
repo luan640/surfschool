@@ -64,7 +64,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
           <a href="/api/integrations/mercadopago/connect" className="inline-flex h-10 items-center justify-center rounded bg-[#009ee3] px-4 text-sm font-bold uppercase text-white">
             {connection?.status === 'connected' ? 'Reconectar Mercado Pago' : 'Conectar Mercado Pago'}
           </a>
-          {connection && <DisconnectMercadoPagoButton />}
+          {connection?.status === 'connected' && <DisconnectMercadoPagoButton />}
         </div>
       </section>
     </div>
