@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getMercadoPagoConnection, getSchoolSettings } from '@/actions/dashboard'
 import { CopyBookingLinkButton } from '@/components/dashboard/CopyBookingLinkButton'
+import { DisconnectMercadoPagoButton } from '@/components/dashboard/settings/DisconnectMercadoPagoButton'
 import { Banner, ConnectionBadge } from '@/components/dashboard/settings/SettingsStatus'
 import { Button } from '@/components/ui/button'
 import { CreditCard, Globe } from 'lucide-react'
@@ -28,7 +29,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
       </div>
 
       {params?.mp === 'connected' && <Banner tone="success" text="Mercado Pago conectado com sucesso." />}
-      {params?.mp === 'disconnected' && <Banner tone="warning" text="Conexao com o Mercado Pago removida." />}
+      {params?.mp === 'disconnected' && <Banner tone="warning" text="Conta do Mercado Pago desvinculada." />}
       {params?.mp === 'error' && <Banner tone="error" text="Nao foi possivel concluir a autenticacao do Mercado Pago." />}
 
       <div className="mb-6 flex items-center gap-3 rounded border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
@@ -63,11 +64,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
           <a href="/api/integrations/mercadopago/connect" className="inline-flex h-10 items-center justify-center rounded bg-[#009ee3] px-4 text-sm font-bold uppercase text-white">
             {connection?.status === 'connected' ? 'Reconectar Mercado Pago' : 'Conectar Mercado Pago'}
           </a>
-          {connection && (
-            <form action="/api/integrations/mercadopago/disconnect" method="post">
-              <Button type="submit" variant="outline">Desconectar</Button>
-            </form>
-          )}
+          {connection && <DisconnectMercadoPagoButton />}
         </div>
       </section>
     </div>
