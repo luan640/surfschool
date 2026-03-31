@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { BookingWizardState, Instructor, LessonPackage, SchoolRules } from '@/lib/types'
 import { formatDate, formatPrice, initials, MONTHS_PT, WEEKDAYS_PT } from '@/lib/utils'
 
-const SINGLE_STEPS = ['Produto', 'Data', 'Instrutor', 'Horarios', 'Confirmar'] as const
+const SINGLE_STEPS = ['Produto', 'Instrutor', 'Data', 'Horarios', 'Confirmar'] as const
 const PACKAGE_STEPS = ['Produto', 'Instrutor', 'Aulas', 'Confirmar'] as const
 
 interface Props {
@@ -36,6 +36,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const [packageStepMessage, setPackageStepMessage] = useState<string | null>(null)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [productTab, setProductTab] = useState<'single' | 'package'>('single')
+  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
   const packagePlannerRef = useRef<HTMLDivElement | null>(null)
 
   const [wizard, setWizard] = useState<BookingWizardState>({
@@ -239,7 +240,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   }
 
   function setSingleDate(date: Date) {
-    setWizard((current) => ({ ...current, selectedDate: date, selectedInstructor: null, selectedSlots: [] }))
+    setWizard((current) => ({ ...current, selectedDate: date, selectedSlots: [] }))
   }
 
   function setPackageLessonDate(index: number, date: Date) {
@@ -262,7 +263,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         : current.packageLessons,
       activePackageLessonIndex: 0,
       selectedSlots: [],
-      step: isPackageFlow ? 3 : 4,
+      step: isPackageFlow ? 3 : 2,
     }))
   }
 
@@ -338,9 +339,9 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   function canAdvance() {
     if (wizard.step === 1) return !!wizard.selectionType
-    if (!isPackageFlow && wizard.step === 2) return !!wizard.selectedDate
+    if (!isPackageFlow && wizard.step === 2) return !!wizard.selectedInstructor
     if (isPackageFlow && wizard.step === 2) return !!wizard.selectedInstructor
-    if (!isPackageFlow && wizard.step === 3) return !!wizard.selectedInstructor
+    if (!isPackageFlow && wizard.step === 3) return !!wizard.selectedDate
     if (isPackageFlow && wizard.step === 3) return packageReady
     if (!isPackageFlow && wizard.step === 4) return wizard.selectedSlots.length > 0
     return false
@@ -404,14 +405,14 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   if (!authReady || !school) {
     return (
-      <div className="min-h-dvh bg-slate-50">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
-          <button type="button" onClick={() => router.push(`/${slug || ''}`)} className="font-condensed text-lg font-bold uppercase">
+      <div className="min-h-dvh bg-[#f4f5f7] pb-24">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/96 px-4 py-3 backdrop-blur">
+          <button type="button" onClick={() => router.push(`/${slug || ''}`)} className="text-[16px] font-semibold text-slate-900">
             {school?.name ?? 'vamosurfar'}
           </button>
         </header>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <div className="rounded border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+        <div className="mx-auto w-full max-w-md px-3 py-6 sm:max-w-2xl sm:px-5">
+          <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-6 text-[14px] text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
             Carregando sua area de agendamento...
           </div>
         </div>
@@ -420,38 +421,40 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-slate-950 px-4 text-white">
-        <button type="button" onClick={() => router.push(`/${slug}`)} className="font-condensed text-lg font-bold uppercase">{school?.name ?? 'vamosurfar'}</button>
-        <div className="ml-auto flex items-center gap-2 text-xs uppercase text-white/60">
+    <div className="min-h-dvh bg-[#f4f5f7] pb-36">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/96 px-3 py-3 backdrop-blur sm:px-5">
+        <div className="mx-auto flex w-full max-w-md items-center gap-3 sm:max-w-2xl">
+        <button type="button" onClick={() => router.push(`/${slug}`)} className="text-[16px] font-semibold text-slate-900">{school?.name ?? 'vamosurfar'}</button>
+        <div className="ml-auto flex items-center gap-1.5 overflow-x-auto text-[11px] text-slate-400">
           {steps.map((label, index) => {
             const n = index + 1
             const active = wizard.step === n
             const done = wizard.step > n
             return (
-              <div key={label} className="flex items-center gap-2">
-                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${done ? 'bg-emerald-500 text-white' : active ? 'text-white' : 'bg-white/10 text-white/40'}`} style={active ? { background: ctaColor } : undefined}>
+              <div key={label} className="flex items-center gap-1.5 whitespace-nowrap">
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${done ? 'bg-emerald-500 text-white' : active ? 'text-white' : 'bg-slate-100 text-slate-400'}`} style={active ? { background: ctaColor } : undefined}>
                   {done ? <Check size={12} /> : n}
                 </div>
-                <span className={active ? 'text-white' : 'hidden md:block'}>{label}</span>
+                <span className={active ? 'text-slate-700' : 'hidden sm:block'}>{label}</span>
               </div>
             )
           })}
         </div>
+        </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto w-full max-w-md px-3 py-4 pb-28 sm:max-w-2xl sm:px-5 sm:pb-32">
         <main className="space-y-6">
-          {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+          {error && <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">{error}</div>}
 
           {school.address && (
-            <div className="flex items-start gap-3 rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sky-900">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-                <MapPin size={16} />
+            <div className="flex items-start gap-3 rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-slate-800 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                <MapPin size={15} />
               </span>
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">Localizacao da escola</div>
-                <div className="mt-1 text-sm font-medium">{school.address}</div>
+                <div className="text-[12px] font-medium text-slate-500">Localizacao</div>
+                <div className="mt-1 text-[14px] font-medium">{school.address}</div>
               </div>
             </div>
           )}
@@ -459,15 +462,15 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
           {wizard.step === 1 && (
             <section className="space-y-4">
               <div>
-                <h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Escolha o produto</h1>
-                <p className="text-sm text-slate-500">A aula avulsa segue o fluxo simples. O pacote exige a montagem de todas as aulas antes do pagamento.</p>
+                <h1 className="text-[24px] font-semibold text-slate-900">Escolha o servico</h1>
+                <p className="mt-1 text-[14px] text-slate-500">Selecione o formato de reserva para continuar.</p>
               </div>
 
-              <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+              <div className="inline-flex rounded-[14px] border border-slate-200 bg-white p-1 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
                 <button
                   type="button"
                   onClick={() => setProductTab('single')}
-                  className={`rounded-lg px-4 py-2 text-sm font-bold uppercase transition-colors ${productTab === 'single' ? 'text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`rounded-[10px] px-4 py-2 text-[14px] font-medium transition-colors ${productTab === 'single' ? 'text-white' : 'text-slate-500 hover:text-slate-800'}`}
                   style={productTab === 'single' ? { background: primaryColor } : undefined}
                 >
                   Aulas
@@ -475,7 +478,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 <button
                   type="button"
                   onClick={() => setProductTab('package')}
-                  className={`rounded-lg px-4 py-2 text-sm font-bold uppercase transition-colors ${productTab === 'package' ? 'text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`rounded-[10px] px-4 py-2 text-[14px] font-medium transition-colors ${productTab === 'package' ? 'text-white' : 'text-slate-500 hover:text-slate-800'}`}
                   style={productTab === 'package' ? { background: ctaColor } : undefined}
                 >
                   Pacotes
@@ -483,61 +486,61 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
               </div>
 
               {productTab === 'single' ? (
-                <button type="button" onClick={chooseSingle} className="w-full rounded border-2 bg-white p-5 text-left" style={wizard.selectionType === 'single' ? { borderColor: ctaColor } : undefined}>
-                  <div className="flex items-start gap-4"><div className="rounded-xl p-3 text-white" style={{ background: primaryColor }}><Clock size={22} /></div><div><div className="font-condensed text-xl font-bold uppercase text-slate-900">Aula avulsa</div><p className="text-sm text-slate-500">Escolha dia, instrutor e horarios para uma unica aula.</p></div></div>
+                <button type="button" onClick={chooseSingle} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectionType === 'single' ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
+                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: primaryColor }}><Clock size={18} /></div><div><div className="text-[16px] font-semibold text-slate-900">Aula avulsa</div><p className="mt-1 text-[13px] text-slate-500">Escolha dia, instrutor e horario para uma unica aula.</p></div></div>
                 </button>
               ) : packages.length === 0 ? (
-                <div className="rounded border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
+                <div className="rounded-[18px] border border-dashed border-slate-200 bg-white p-6 text-[14px] text-slate-500">
                   Nenhum pacote disponivel no momento.
                 </div>
               ) : (
                 packages.map((pkg) => (
-                  <button key={pkg.id} type="button" onClick={() => choosePackage(pkg)} className="w-full rounded border-2 bg-white p-5 text-left" style={wizard.selectedPackage?.id === pkg.id ? { borderColor: ctaColor } : undefined}>
-                    <div className="flex items-start gap-4"><div className="rounded-xl p-3 text-white" style={{ background: ctaColor }}><Package size={22} /></div><div className="flex-1"><div className="flex items-center justify-between gap-4"><div className="font-condensed text-xl font-bold uppercase text-slate-900">{pkg.name}</div><div className="font-condensed text-2xl font-bold" style={{ color: primaryColor }}>{formatPrice(Number(pkg.price))}</div></div><p className="text-sm text-slate-500">{pkg.lesson_count} aulas planejadas agora.</p>{pkg.description && <p className="mt-2 text-sm text-slate-500">{pkg.description}</p>}</div></div>
+                  <button key={pkg.id} type="button" onClick={() => choosePackage(pkg)} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectedPackage?.id === pkg.id ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
+                    <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: ctaColor }}><Package size={18} /></div><div className="flex-1"><div className="flex items-start justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">{pkg.name}</div><div className="text-[16px] font-semibold" style={{ color: primaryColor }}>{formatPrice(Number(pkg.price))}</div></div><p className="mt-1 text-[13px] text-slate-500">{pkg.lesson_count} aulas planejadas agora.</p>{pkg.description && <p className="mt-2 text-[13px] text-slate-500">{pkg.description}</p>}</div></div>
                   </button>
                 ))
               )}
             </section>
           )}
 
-          {!isPackageFlow && wizard.step === 2 && (
+          {((!isPackageFlow && wizard.step === 2) || (isPackageFlow && wizard.step === 2)) && (
             <section className="space-y-4">
-              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Escolha o dia</h1><p className="text-sm text-slate-500">Selecione uma data com disponibilidade.</p></div>
-              <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={setSingleDate} ctaColor={ctaColor} />
-            </section>
-          )}
-
-          {((!isPackageFlow && wizard.step === 3) || (isPackageFlow && wizard.step === 2)) && (
-            <section className="space-y-4">
-              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Escolha o instrutor</h1><p className="text-sm text-slate-500">{isPackageFlow ? 'O instrutor sera o mesmo em todas as aulas do pacote.' : 'A disponibilidade considera o dia escolhido.'}</p></div>
-              {(isPackageFlow ? eligibleInstructors : singleAvailableInstructors).map((instructor) => (
-                <button key={instructor.id} type="button" onClick={() => selectInstructor(instructor)} className="w-full rounded border-2 bg-white p-5 text-left" style={wizard.selectedInstructor?.id === instructor.id ? { borderColor: ctaColor } : undefined}>
-                  <div className="flex items-start gap-4"><div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full text-sm font-bold text-white" style={{ background: instructor.color }}>{instructor.photo_url ? <img src={instructor.photo_url} alt={instructor.full_name} className="h-full w-full object-cover" /> : initials(instructor.full_name)}</div><div className="flex-1"><div className="flex items-center justify-between gap-4"><div className="font-condensed text-xl font-bold uppercase text-slate-900">{instructor.full_name}</div><div className="font-condensed text-2xl font-bold" style={{ color: primaryColor }}>{isPackageFlow && wizard.selectedPackage ? formatPrice(Number(wizard.selectedPackage.price)) : formatPrice(instructor.hourly_price)}</div></div>{instructor.specialty && <p className="text-xs font-bold uppercase" style={{ color: primaryColor }}>{instructor.specialty}</p>}{instructor.bio && <p className="mt-2 text-sm text-slate-500">{instructor.bio}</p>}
-                    {!isPackageFlow && wizard.selectedDate && (
-                      <div className="mt-3">
-                        <div className="text-[11px] font-bold uppercase text-slate-400">Horarios em {formatDate(wizard.selectedDate)}</div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {filterBookableSlots(wizard.selectedDate, getAvailabilityForDate(instructor, wizard.selectedDate), bookingRules).length > 0 ? (
-                            filterBookableSlots(wizard.selectedDate, getAvailabilityForDate(instructor, wizard.selectedDate), bookingRules).map((slot) => (
-                              <span key={slot} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                                {slot}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-sm text-slate-500">Sem horarios disponiveis nesse dia.</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha o profissional</h1><p className="mt-1 text-[14px] text-slate-500">{isPackageFlow ? 'O instrutor sera o mesmo em todas as aulas do pacote.' : 'A disponibilidade considera o dia escolhido.'}</p></div>
+              {eligibleInstructors.map((instructor) => (
+                <button key={instructor.id} type="button" onClick={() => selectInstructor(instructor)} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectedInstructor?.id === instructor.id ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        if (instructor.photo_url) {
+                          setPreviewImage({ src: instructor.photo_url, alt: instructor.full_name })
+                        }
+                      }}
+                      className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[12px] text-sm font-bold text-white"
+                      style={{ background: instructor.color }}
+                    >
+                      {instructor.photo_url ? <img src={instructor.photo_url} alt={instructor.full_name} className="h-full w-full object-cover" /> : initials(instructor.full_name)}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] font-medium text-slate-900">{instructor.full_name}</div>
+                    </div>
+                  </div>
                 </button>
               ))}
             </section>
           )}
 
+          {!isPackageFlow && wizard.step === 3 && (
+            <section className="space-y-4">
+              <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha o dia</h1><p className="mt-1 text-[14px] text-slate-500">Selecione uma data com disponibilidade.</p></div>
+              <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={setSingleDate} ctaColor={ctaColor} />
+            </section>
+          )}
+
           {isPackageFlow && wizard.step === 3 && wizard.selectedInstructor && activePackageLesson && (
             <section className="space-y-5">
-              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Monte as aulas do pacote</h1><p className="text-sm text-slate-500">Preencha todas as {wizard.packageLessons.length} aulas. Voce pode editar qualquer uma antes de confirmar.</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">Monte as aulas do pacote</h1><p className="mt-1 text-[14px] text-slate-500">Preencha todas as {wizard.packageLessons.length} aulas. Voce pode editar qualquer uma antes de confirmar.</p></div>
               <div className="grid gap-3 md:grid-cols-2">
                 {wizard.packageLessons.map((lesson, index) => {
                   const complete = !!lesson.date && lesson.slots.length > 0
@@ -550,26 +553,26 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                         setWizard((current) => ({ ...current, activePackageLessonIndex: index }))
                         setCalendarMonth(lesson.date ?? new Date())
                       }}
-                      className="rounded border-2 bg-white p-4 text-left"
-                      style={wizard.activePackageLessonIndex === index ? { borderColor: ctaColor } : undefined}
+                      className="rounded-[16px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
+                      style={wizard.activePackageLessonIndex === index ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}
                     >
-                      <div className="flex items-center justify-between gap-3"><div className="font-condensed text-lg font-bold uppercase text-slate-900">Aula {lesson.sequence}</div><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{complete ? 'Concluida' : 'Pendente'}</span></div>
-                      <div className="mt-3 text-sm text-slate-500">{lesson.date ? formatDate(lesson.date) : 'Data nao escolhida'}</div>
-                      <div className="mt-1 text-sm text-slate-500">{lesson.slots.length > 0 ? lesson.slots.join(', ') : 'Horarios nao escolhidos'}</div>
+                      <div className="flex items-center justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">Aula {lesson.sequence}</div><span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{complete ? 'Concluida' : 'Pendente'}</span></div>
+                      <div className="mt-3 text-[13px] text-slate-500">{lesson.date ? formatDate(lesson.date) : 'Data nao escolhida'}</div>
+                      <div className="mt-1 text-[13px] text-slate-500">{lesson.slots.length > 0 ? lesson.slots.join(', ') : 'Horarios nao escolhidos'}</div>
                     </button>
                   )
                 })}
               </div>
-              <div ref={packagePlannerRef} className="rounded border border-slate-200 bg-white p-5">
-                <div className="mb-4 flex items-center gap-3"><div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-600">Aula {activePackageLesson.sequence} de {wizard.packageLessons.length}</div><div className="text-sm text-slate-500">{completedPackageLessons}/{wizard.packageLessons.length} preenchidas</div></div>
+              <div ref={packagePlannerRef} className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                <div className="mb-4 flex items-center gap-3"><div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">Aula {activePackageLesson.sequence} de {wizard.packageLessons.length}</div><div className="text-[13px] text-slate-500">{completedPackageLessons}/{wizard.packageLessons.length} preenchidas</div></div>
                 {packageStepMessage && (
-                  <div className="mb-4 rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                  <div className="mb-4 rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-700">
                     {packageStepMessage}
                   </div>
                 )}
                 <div className="space-y-4">
                   <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={(date) => setPackageLessonDate(wizard.activePackageLessonIndex, date)} ctaColor={ctaColor} />
-                  <div className="text-sm text-slate-500">Escolha apenas 1 horario para cada aula. Ao selecionar, o sistema avanca para a proxima aula.</div>
+                  <div className="text-[13px] text-slate-500">Escolha apenas 1 horario para cada aula. Ao selecionar, o sistema avanca para a proxima aula.</div>
                   <SlotsGrid slots={slotOptions} selectedSlots={currentSlots} onToggle={toggleCurrentSlot} loading={slotsLoading} />
                 </div>
               </div>
@@ -578,15 +581,15 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {!isPackageFlow && wizard.step === 4 && wizard.selectedInstructor && (
             <section className="space-y-4">
-              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Escolha os horarios</h1><p className="text-sm text-slate-500">Selecione um ou mais slots para a aula.</p></div>
-              <div className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">{wizard.selectedInstructor.full_name} • {wizard.selectedDate ? formatDate(wizard.selectedDate) : ''}</div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha os horarios</h1><p className="mt-1 text-[14px] text-slate-500">Selecione um ou mais slots para a aula.</p></div>
+              <div className="rounded-[16px] border border-slate-200 bg-white p-4 text-[14px] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">{wizard.selectedInstructor.full_name} - {wizard.selectedDate ? formatDate(wizard.selectedDate) : ''}</div>
               <SlotsGrid slots={slotOptions} selectedSlots={currentSlots} onToggle={toggleCurrentSlot} loading={slotsLoading} />
             </section>
           )}
 
           {wizard.step === finalStep && wizard.selectedInstructor && (
             <section className="space-y-4">
-              <div><h1 className="font-condensed text-3xl font-bold uppercase text-slate-900">Confirmar agendamento</h1><p className="text-sm text-slate-500">Revise o agendamento e escolha se prefere pagar agora ou pagar na hora.</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">Confirmar agendamento</h1><p className="mt-1 text-[14px] text-slate-500">Revise o agendamento e escolha se prefere pagar agora ou pagar na hora.</p></div>
               {false && (
                 <div className="overflow-hidden rounded border border-slate-200 bg-white">
                 <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Produto</div><div className="font-semibold text-slate-900">{isPackageFlow ? wizard.selectedPackage?.name : 'Aula avulsa'}</div></div>
@@ -639,11 +642,32 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         </main>
       </div>
 
-      <div className="sticky bottom-0 border-t border-slate-200 bg-white px-4 py-3">
-        <div className="mx-auto flex max-w-6xl gap-3">
-          {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-11 w-full items-center justify-center gap-2 rounded font-bold uppercase text-white disabled:opacity-40" style={{ background: primaryColor }}>Proximo<ArrowRight size={15} /></button>}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/96 px-3 py-3 backdrop-blur sm:px-5">
+        <div className="mx-auto flex w-full max-w-md gap-3 sm:max-w-2xl">
+          {wizard.step > 1 && (
+            <button
+              type="button"
+              onClick={() => goToStep(wizard.step - 1)}
+              className="flex h-12 items-center justify-center rounded-[14px] border border-slate-200 bg-white px-5 text-[15px] font-medium text-slate-700"
+            >
+              Voltar
+            </button>
+          )}
+          {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[16px] font-medium text-white disabled:opacity-40" style={{ background: primaryColor }}>Proximo<ArrowRight size={15} /></button>}
         </div>
       </div>
+
+      {previewImage && (
+        <button
+          type="button"
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+        >
+          <div className="relative max-h-[90vh] w-full max-w-md overflow-hidden rounded-[20px] bg-white">
+            <img src={previewImage.src} alt={previewImage.alt} className="max-h-[90vh] w-full object-contain" />
+          </div>
+        </button>
+      )}
     </div>
   )
 }
@@ -666,17 +690,17 @@ function CalendarSelector({
   ctaColor: string
 }) {
   return (
-    <div className="space-y-3 rounded border border-slate-200 bg-white p-4">
+    <div className="space-y-3 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between">
-        <button type="button" onClick={onPrev} className="flex h-9 w-9 items-center justify-center rounded border border-slate-200"><ChevronLeft size={16} /></button>
-        <div className="font-condensed text-xl font-bold uppercase text-slate-900">{MONTHS_PT[month]} {year}</div>
-        <button type="button" onClick={onNext} className="flex h-9 w-9 items-center justify-center rounded border border-slate-200"><ChevronRight size={16} /></button>
+        <button type="button" onClick={onPrev} className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50"><ChevronLeft size={16} /></button>
+        <div className="text-[16px] font-semibold text-slate-900">{MONTHS_PT[month]} {year}</div>
+        <button type="button" onClick={onNext} className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50"><ChevronRight size={16} /></button>
       </div>
-      <div className="grid grid-cols-7 gap-1">{WEEKDAYS_PT.map((day) => <div key={day} className="py-1 text-center text-[10px] font-bold uppercase text-slate-400">{day}</div>)}</div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1">{WEEKDAYS_PT.map((day) => <div key={day} className="py-1 text-center text-[10px] font-medium text-slate-400">{day.slice(0, 3)}</div>)}</div>
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((cell, index) =>
           cell ? (
-            <button key={`${cell.day}-${index}`} type="button" disabled={!cell.available} onClick={() => onSelect(cell.date)} className={`aspect-square rounded text-sm ${cell.selected ? 'text-white' : cell.available ? 'bg-slate-50 text-slate-700 hover:bg-slate-100' : 'bg-slate-50 text-slate-300'}`} style={cell.selected ? { background: ctaColor } : undefined}>
+            <button key={`${cell.day}-${index}`} type="button" disabled={!cell.available} onClick={() => onSelect(cell.date)} className={`aspect-square rounded-[12px] text-[13px] ${cell.selected ? 'text-white' : cell.available ? 'bg-slate-50 text-slate-700 hover:bg-slate-100' : 'bg-slate-50 text-slate-300'}`} style={cell.selected ? { background: ctaColor } : undefined}>
               {cell.day}
             </button>
           ) : (
@@ -700,11 +724,11 @@ function SlotsGrid({
   loading: boolean
 }) {
   if (loading) {
-    return <div className="rounded border border-slate-200 bg-white p-6 text-center text-sm font-medium text-slate-500">Carregando horarios disponiveis...</div>
+    return <div className="rounded-[18px] border border-slate-200 bg-white p-6 text-center text-[14px] font-medium text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">Carregando horarios disponiveis...</div>
   }
 
   if (slots.length === 0) {
-    return <div className="rounded border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Sem horarios disponiveis.</div>
+    return <div className="rounded-[18px] border border-dashed border-slate-200 bg-white p-6 text-center text-[14px] text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">Sem horarios disponiveis.</div>
   }
 
   return (
@@ -712,7 +736,7 @@ function SlotsGrid({
       {slots.map(({ time, taken }) => {
         const selected = selectedSlots.includes(time)
         return (
-          <button key={time} type="button" disabled={taken} onClick={() => !taken && onToggle(time)} className={`rounded border-2 px-2 py-3 text-sm font-bold ${taken ? 'border-slate-200 bg-slate-50 text-slate-300' : selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
+          <button key={time} type="button" disabled={taken} onClick={() => !taken && onToggle(time)} className={`rounded-[14px] border px-2 py-3 text-[14px] font-medium shadow-[0_4px_10px_rgba(15,23,42,0.03)] ${taken ? 'border-slate-200 bg-slate-50 text-slate-300' : selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
             {time}
           </button>
         )

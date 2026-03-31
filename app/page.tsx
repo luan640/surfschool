@@ -228,7 +228,7 @@ export default function HomePage() {
                 <h3 className="mt-4 font-condensed text-5xl font-bold uppercase tracking-[0.05em] sm:text-6xl">99,90/mês</h3>
                 <div className="mx-auto mt-4 max-w-[520px] text-left">
                   <p className="text-sm leading-relaxed text-white/72 sm:text-base">
-                    Um plano para centralizar agenda, pagamentos, trips e operacao da sua escola.
+                    Um plano para centralizar agenda, pagamentos, trips e operação da sua escola.
                   </p>
                   <ul className="mt-4 space-y-2 text-sm leading-relaxed text-white/82 sm:text-base">
                     <li>- Cadastro de instrutores ilimitado</li>
@@ -236,9 +236,9 @@ export default function HomePage() {
                     <li>- Pagamento direto na plataforma</li>
                     <li>- Gerenciamento de trips</li>
                     <li>- Agenda online com reservas e pacotes</li>
-                    <li>- Pagina publica da escola com link proprio</li>
-                    <li>- Historico de aulas, alunos e inscricoes</li>
-                    <li>- Dashboard com indicadores da operacao</li>
+                    <li>- Página pública da escola com link próprio</li>
+                    <li>- Histórico de aulas, alunos e inscrições</li>
+                    <li>- Dashboard com indicadores da operação</li>
                     <li>- Controle de disponibilidade por instrutor</li>
                     <li>- Acompanhamento de pagamentos e status das vendas</li>
                   </ul>
