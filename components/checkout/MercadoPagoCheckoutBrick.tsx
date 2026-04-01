@@ -50,6 +50,14 @@ interface ProcessPaymentResponse {
   ticketUrl: string | null
 }
 
+interface AppliedCoupon {
+  id: string
+  code: string
+  name: string
+  discountAmount: number
+  finalAmount: number
+}
+
 export function MercadoPagoCheckoutBrick(props: Props) {
   const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site' | null>(props.payOnSiteOnly ? 'pay_on_site' : null)
   const [submitting, setSubmitting] = useState(false)
@@ -57,10 +65,20 @@ export function MercadoPagoCheckoutBrick(props: Props) {
   const [lastStatusCheckAt, setLastStatusCheckAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ProcessPaymentResponse | null>(null)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
   useEffect(() => {
     setPaymentMode(props.payOnSiteOnly ? 'pay_on_site' : null)
   }, [props.instructorId, props.onlineEnabled, props.packageId, props.payOnSiteOnly, props.schoolId, props.selectedDate, props.selectionType])
+
+  useEffect(() => {
+    setCouponCode('')
+    setCouponError(null)
+    setAppliedCoupon(null)
+  }, [props.amount, props.packageId, props.schoolId, props.selectionType, props.selectedDate, props.instructorId])
 
   useEffect(() => {
     props.onNavigationLockChange?.(result?.status === 'pay_on_site')
@@ -119,21 +137,59 @@ export function MercadoPagoCheckoutBrick(props: Props) {
     return () => window.clearInterval(interval)
   }, [props, result])
 
+  const payableAmount = appliedCoupon?.finalAmount ?? props.amount
+
   const initialization = useMemo(() => ({
-    amount: props.amount,
+    amount: payableAmount,
     payer: props.payerEmail ? { email: props.payerEmail } : undefined,
     items: {
-      totalItemsAmount: props.amount,
+      totalItemsAmount: payableAmount,
       itemsList: [
         {
           name: props.title,
           description: props.description,
           units: 1,
-          value: props.amount,
+          value: payableAmount,
         },
       ],
     },
-  }), [props.amount, props.description, props.payerEmail, props.title])
+  }), [payableAmount, props.description, props.payerEmail, props.title])
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) {
+      setCouponError('Informe um cupom.')
+      return
+    }
+
+    setCouponLoading(true)
+    setCouponError(null)
+
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: props.schoolId,
+          selectionType: props.selectionType,
+          packageId: props.packageId ?? null,
+          amount: props.amount,
+          code: couponCode,
+        }),
+      })
+
+      const payload = await response.json()
+      if (!response.ok) {
+        setAppliedCoupon(null)
+        setCouponError(payload.error || 'Nao foi possivel validar o cupom.')
+        return
+      }
+
+      setAppliedCoupon(payload as AppliedCoupon)
+      setCouponCode((payload.code as string) ?? couponCode.trim().toUpperCase())
+    } finally {
+      setCouponLoading(false)
+    }
+  }
 
   if (result?.status === 'approved' || result?.status === 'pay_on_site') {
     const payOnSite = result.status === 'pay_on_site'
@@ -164,7 +220,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                 <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Resumo</div>
                 <div className="space-y-3">
                   <SuccessRow label="Produto" value={props.title} />
-                  <SuccessRow label={payOnSite ? 'Valor combinado' : 'Valor pago'} value={formatPrice(props.amount)} />
+                  <SuccessRow label={payOnSite ? 'Valor combinado' : 'Valor pago'} value={formatPrice(payableAmount)} />
                   <SuccessRow label="Instrutor" value={props.description} />
                 </div>
               </div>
@@ -200,7 +256,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
       {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
       {result && (
         <PaymentFeedback
-          amount={props.amount}
+          amount={payableAmount}
           isPolling={pollingStatus}
           lastStatusCheckAt={lastStatusCheckAt}
           result={result}
@@ -208,6 +264,48 @@ export function MercadoPagoCheckoutBrick(props: Props) {
       )}
       {!result && (
         <div className="relative rounded border border-slate-200 bg-white p-4">
+          {!props.payOnSiteOnly && (
+            <div className="mb-5 rounded border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-end gap-3">
+                <label className="min-w-0 flex-1">
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Cupom de desconto</div>
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                    placeholder="Digite seu cupom"
+                    className="h-11 w-full rounded border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--primary)]"
+                  />
+                </label>
+                <Button type="button" onClick={applyCoupon} disabled={couponLoading || submitting}>
+                  {couponLoading ? 'Aplicando...' : 'Aplicar'}
+                </Button>
+                {appliedCoupon && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setAppliedCoupon(null)
+                      setCouponError(null)
+                      setCouponCode('')
+                    }}
+                    disabled={couponLoading || submitting}
+                  >
+                    Remover
+                  </Button>
+                )}
+              </div>
+              {couponError && <div className="mt-2 text-sm text-rose-600">{couponError}</div>}
+              {appliedCoupon && (
+                <div className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
+                  <div className="font-semibold">{appliedCoupon.code} aplicado</div>
+                  <div className="mt-1">Desconto: {formatPrice(appliedCoupon.discountAmount)}</div>
+                  <div>Total com desconto: {formatPrice(appliedCoupon.finalAmount)}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           {!props.payOnSiteOnly && (
           <div className="mb-5 grid grid-cols-2 gap-3">
             <button
@@ -274,6 +372,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                         schoolId: props.schoolId,
                         selectionType: props.selectionType,
                         isTrialLesson: props.isTrialLesson ?? false,
+                        couponCode: appliedCoupon?.code ?? null,
                         paymentMode: 'pay_now',
                         instructorId: props.instructorId,
                         packageId: props.packageId ?? null,
@@ -340,6 +439,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                           schoolId: props.schoolId,
                           selectionType: props.selectionType,
                           isTrialLesson: props.isTrialLesson ?? false,
+                          couponCode: appliedCoupon?.code ?? null,
                           paymentMode: 'pay_on_site',
                           instructorId: props.instructorId,
                           packageId: props.packageId ?? null,

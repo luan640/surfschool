@@ -3,6 +3,8 @@ import type { PaymentResponse } from 'mercadopago/dist/clients/payment/commonTyp
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { filterBookableSlots, getDefaultBookingRules } from '@/lib/booking-rules'
+import { createCouponRedemption, validateCheckoutCoupon } from '@/lib/coupons/checkout'
+import type { ValidatedCheckoutCoupon } from '@/lib/coupons/checkout'
 import {
   buildMercadoPagoPaymentBody,
   CheckoutBrickPayload,
@@ -23,6 +25,7 @@ interface ProcessPaymentRequestBody {
   schoolId: string
   selectionType: 'single' | 'package'
   isTrialLesson?: boolean
+  couponCode?: string | null
   instructorId: string
   paymentMode?: 'pay_now' | 'pay_on_site'
   packageId?: string | null
@@ -95,6 +98,7 @@ export async function POST(request: Request) {
     let bookingIds: string[] = []
     let studentPackageId: string | null = null
     let packageName: string | null = null
+    let couponApplication: ValidatedCheckoutCoupon | null = null
 
     if (body.selectionType === 'single') {
       if (isTrialLesson) {
@@ -149,7 +153,26 @@ export async function POST(request: Request) {
         )
       }
 
-      amount = isTrialLesson ? 0 : Number(instructor.hourly_price) * normalizedSelectedSlots.length
+      const grossAmount = isTrialLesson ? 0 : Number(instructor.hourly_price) * normalizedSelectedSlots.length
+
+      if (body.couponCode && !isTrialLesson) {
+        const couponResult = await validateCheckoutCoupon({
+          schoolId: school.id,
+          studentId: student.id as string,
+          selectionType: 'single',
+          packageId: null,
+          amount: grossAmount,
+          code: body.couponCode,
+        })
+
+        if (!couponResult.success) {
+          return NextResponse.json({ error: couponResult.error }, { status: 409 })
+        }
+
+        couponApplication = couponResult.data
+      }
+
+      amount = couponApplication?.finalAmount ?? grossAmount
       let { data: booking, error: bookingError } = await admin.rpc('create_booking_safe', {
         p_school_id: school.id,
         p_student_id: student.id,
@@ -196,6 +219,18 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: trialBookingError.message }, { status: 500 })
         }
       }
+
+      if (couponApplication) {
+        const normalizedUnitPrice = Number((amount / normalizedSelectedSlots.length).toFixed(2))
+        const { error: bookingPriceError } = await admin
+          .from('bookings')
+          .update({ unit_price: normalizedUnitPrice })
+          .in('id', bookingIds)
+
+        if (bookingPriceError) {
+          return NextResponse.json({ error: bookingPriceError.message }, { status: 500 })
+        }
+      }
     } else {
       if (!body.packageId || !body.lessons || body.lessons.length === 0) {
         return NextResponse.json({ error: 'Pacote e aulas planejadas sao obrigatorios.' }, { status: 400 })
@@ -230,8 +265,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Pacote invalido.' }, { status: 400 })
       }
 
-      amount = Number(pkg.price)
+      const grossAmount = Number(pkg.price)
       packageName = pkg.name
+
+      if (body.couponCode) {
+        const couponResult = await validateCheckoutCoupon({
+          schoolId: school.id,
+          studentId: student.id as string,
+          selectionType: 'package',
+          packageId: pkg.id,
+          amount: grossAmount,
+          code: body.couponCode,
+        })
+
+        if (!couponResult.success) {
+          return NextResponse.json({ error: couponResult.error }, { status: 409 })
+        }
+
+        couponApplication = couponResult.data
+      }
+
+      amount = couponApplication?.finalAmount ?? grossAmount
 
       const { data: packagePlanId, error: packagePlanError } = await admin.rpc('create_package_booking_plan_safe', {
         p_school_id: school.id,
@@ -252,6 +306,17 @@ export async function POST(request: Request) {
 
       studentPackageId = packagePlanId as string
       bookingIds = await getBookingIdsForStudentPackage(studentPackageId)
+    }
+
+    if (couponApplication) {
+      await createCouponRedemption({
+        couponId: couponApplication.id,
+        schoolId: school.id,
+        studentId: student.id as string,
+        bookingId: bookingIds[0] ?? null,
+        appliedCode: couponApplication.code,
+        discountAmount: couponApplication.discountAmount,
+      })
     }
 
     if (paymentMode === 'pay_on_site') {
