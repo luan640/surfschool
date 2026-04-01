@@ -42,7 +42,7 @@ export default async function OverviewPage() {
     <div className="dashboard-page">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
-          Visao Geral
+          Visão Geral
         </h1>
         <p className="mt-1 text-sm text-slate-400">
           {new Date().toLocaleDateString('pt-BR', {

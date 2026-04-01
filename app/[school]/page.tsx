@@ -4,13 +4,20 @@ import { getPublicLessonPackagesBySchoolSlug } from '@/actions/packages'
 import { createClient } from '@/lib/supabase/server'
 import { SchoolBookingHub } from './school-booking-hub'
 
-export default async function SchoolLandingPage({ params }: { params: Promise<{ school: string }> }) {
+export default async function SchoolLandingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ school: string }>
+  searchParams?: Promise<{ tab?: string }>
+}) {
   const { school: slug } = await params
+  const query = searchParams ? await searchParams : undefined
   const supabase = await createClient()
 
   const { data: school } = await supabase
     .from('schools')
-    .select('slug, name, tagline, address, whatsapp, logo_url')
+    .select('slug, name, tagline, address, phone, logo_url')
     .eq('slug', slug)
     .eq('active', true)
     .single()
@@ -27,6 +34,12 @@ export default async function SchoolLandingPage({ params }: { params: Promise<{ 
       school={school}
       instructors={instructors}
       packages={packages}
+      initialTab={resolveInitialTab(query?.tab)}
     />
   )
+}
+
+function resolveInitialTab(tab: string | undefined): 'details' | 'services' | 'pros' {
+  if (tab === 'services' || tab === 'pros') return tab
+  return 'details'
 }

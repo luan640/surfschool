@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -13,7 +13,7 @@ type SchoolPublicData = {
   name: string
   tagline: string | null
   address: string | null
-  whatsapp: string | null
+  phone: string | null
   logo_url: string | null
 }
 
@@ -21,7 +21,7 @@ type TabKey = 'details' | 'services' | 'pros'
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'details', label: 'Detalhes' },
-  { key: 'services', label: 'Servicos' },
+  { key: 'services', label: 'Serviços' },
   { key: 'pros', label: 'Profissionais' },
 ]
 
@@ -29,13 +29,15 @@ export function SchoolBookingHub({
   school,
   instructors,
   packages,
+  initialTab = 'details',
 }: {
   school: SchoolPublicData
   instructors: Instructor[]
   packages: LessonPackage[]
+  initialTab?: TabKey
 }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<TabKey>('details')
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
   const [serviceQuery, setServiceQuery] = useState('')
   const [proQuery, setProQuery] = useState('')
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
@@ -102,6 +104,12 @@ export function SchoolBookingHub({
     })
   }, [instructors])
 
+  useEffect(() => {
+    if (activeTab !== initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [activeTab, initialTab])
+
   return (
     <div className="min-h-dvh bg-[#f4f5f7] pb-28 text-slate-900">
       <div className="mx-auto w-full max-w-md px-3 py-3 sm:max-w-2xl sm:px-5">
@@ -167,7 +175,7 @@ export function SchoolBookingHub({
                   className="flex min-h-[180px] items-end bg-[radial-gradient(circle_at_top,#1f3f63,transparent_55%),linear-gradient(135deg,#06080d,#121826)] px-4 py-4"
                 >
                   <div className="max-w-[220px]">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/78">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)]">
                       <ShieldCheck size={13} />
                       Reserva online
                     </div>
@@ -182,12 +190,12 @@ export function SchoolBookingHub({
               <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
                 <h2 className="text-[17px] font-semibold text-slate-900">Contato</h2>
                 <div className="mt-3 space-y-3 text-[14px] text-slate-600">
-                  {school.whatsapp && (
+                  {school.phone && (
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 rounded-full bg-slate-100 p-2 text-slate-500">
                         <UserRound size={14} />
                       </div>
-                      <div>{school.whatsapp}</div>
+                      <div>{school.phone}</div>
                     </div>
                   )}
                   {school.address && (
@@ -198,8 +206,8 @@ export function SchoolBookingHub({
                       <div>{school.address}</div>
                     </div>
                   )}
-                  {!school.whatsapp && !school.address && (
-                    <p className="text-[14px] text-slate-500">As informacoes de contato ainda nao foram publicadas.</p>
+                  {!school.phone && !school.address && (
+                    <p className="text-[14px] text-slate-500">As informações de contato ainda não foram publicadas.</p>
                   )}
                 </div>
               </div>

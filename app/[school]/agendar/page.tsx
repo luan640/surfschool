@@ -454,7 +454,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 <MapPin size={15} />
               </span>
               <div>
-                <div className="text-[12px] font-medium text-slate-500">Localizacao</div>
+                <div className="text-[12px] font-medium text-slate-500">Localização</div>
                 <div className="mt-1 text-[14px] font-medium">{school.address}</div>
               </div>
             </div>

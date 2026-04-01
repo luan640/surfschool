@@ -47,8 +47,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Painel',
     items: [
-      { href: '/dashboard/overview', label: 'Visao Geral', icon: LayoutDashboard },
-      { href: '/dashboard/reports', label: 'Relatorios', icon: BarChart3 },
+      { href: '/dashboard/overview', label: 'Visão Geral', icon: LayoutDashboard },
+      { href: '/dashboard/reports', label: 'Relatórios', icon: BarChart3 },
     ],
   },
   {
@@ -72,7 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/dashboard/settings/payment-methods', label: 'Meio de pagamento', icon: CreditCard },
       { href: '/dashboard/sales-history', label: 'Histórico de vendas', icon: ReceiptText },
-      { href: '/dashboard/commission-payments', label: 'Pagamento de comissão', icon: CircleDollarSign },
+      { href: '/dashboard/commission-payments', label: 'Pagamentos', icon: CircleDollarSign },
     ],
   },
   {

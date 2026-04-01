@@ -214,7 +214,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
               <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opção 1</div>
               <div className="mt-1 font-semibold text-slate-900">Pague agora</div>
               <div className="mt-1 text-sm text-slate-500">
-                {props.onlineEnabled ? 'Pix ou cartao pelo checkout.' : 'Disponivel apenas quando a escola conectar o Mercado Pago.'}
+                {props.onlineEnabled ? 'Pix ou cartao pelo checkout.' : 'Indisponível'}
               </div>
             </button>
             <button

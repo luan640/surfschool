@@ -31,7 +31,7 @@ export function CancelSubscriptionButton() {
       <div className="space-y-2">
         {error && <p className="text-xs text-rose-600">{error}</p>}
         <p className="text-xs text-slate-600">
-          Tem certeza? Voce perdera o acesso ao final do periodo pago (30 dias de graca).
+          Tem certeza? Voce perderá o acesso ao final do período pago (30 dias de graca).
         </p>
         <div className="flex gap-2">
           <button
