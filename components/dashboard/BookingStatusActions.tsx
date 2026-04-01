@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { updateBookingStatus } from '@/actions/bookings'
+import { confirmBookingPayment, updateBookingStatus } from '@/actions/bookings'
 import { useToast } from '@/components/ui/toaster'
 import type { Booking, BookingStatus, Instructor } from '@/lib/types'
-import { Check, CalendarClock, X, RotateCcw } from 'lucide-react'
+import { Check, CalendarClock, CircleDollarSign, X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RescheduleBookingForm } from '@/components/dashboard/RescheduleBookingForm'
 
@@ -25,6 +25,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   const [completeOpen, setCompleteOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [paymentOpen, setPaymentOpen] = useState(false)
   const { success, error: showError } = useToast()
 
   async function change(next: BookingStatus) {
@@ -45,11 +46,48 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
     setLoading(false)
   }
 
+  async function handleConfirmPayment() {
+    setLoading(true)
+    const result = await confirmBookingPayment(bookingId)
+    if (!result.success) {
+      showError('Nao foi possivel confirmar o pagamento.', result.error)
+      setLoading(false)
+      return
+    }
+    success('Pagamento confirmado com sucesso.')
+    setLoading(false)
+  }
+
   if (status === 'cancelled') return null
+
+  const canConfirmPayment = Boolean(
+    booking
+    && !booking.payment_transaction_id
+    && booking.payment_status === 'pending',
+  )
+  const canConfirmBooking = Boolean(
+    booking
+    && booking.payment_status === 'paid'
+    && status !== 'confirmed'
+    && status !== 'completed',
+  )
 
   return (
     <>
       <div className="flex items-center gap-1">
+        {canConfirmPayment && (
+          <Button
+            type="button"
+            size="sm"
+            variant="success"
+            onClick={() => setPaymentOpen(true)}
+            disabled={loading}
+            className="h-8 gap-1.5 px-3 text-[11px]"
+          >
+            <CircleDollarSign size={13} />
+            Confirmar pagamento
+          </Button>
+        )}
         {status !== 'completed' && booking && instructors.length > 0 && (
           <button
             onClick={() => setRescheduleOpen(true)}
@@ -70,7 +108,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
           <Check size={13} />
         </button>
         )}
-        {status !== 'confirmed' && status !== 'completed' && (
+        {canConfirmBooking && (
         <button
           onClick={() => setConfirmOpen(true)}
           disabled={loading}
@@ -114,6 +152,67 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 onCancel={() => setRescheduleOpen(false)}
                 onSuccess={() => setRescheduleOpen(false)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="w-full max-w-md rounded border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
+                  Confirmar pagamento
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Esta acao vai marcar o agendamento presencial como pago.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setPaymentOpen(false)} aria-label="Fechar modal de pagamento">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="space-y-4 px-6 py-5">
+              {booking ? (
+                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  <p>
+                    <span className="font-semibold text-slate-800">Aluno:</span>{' '}
+                    {booking.student?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
+                    {booking.instructor?.full_name ?? 'Nao informado'}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Horario:</span> {booking.time_slots.join(', ')}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Deseja confirmar o pagamento deste agendamento agora?
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setPaymentOpen(false)} disabled={loading}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="success"
+                  onClick={async () => {
+                    await handleConfirmPayment()
+                    setPaymentOpen(false)
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? 'Confirmando...' : 'Confirmar pagamento'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

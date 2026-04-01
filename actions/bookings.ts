@@ -120,7 +120,6 @@ export async function getBookings(filters?: {
       student:student_profiles(full_name, phone)
     `)
     .eq('school_id', school.id)
-    .eq('payment_status', 'paid')
     .order('lesson_date', { ascending: false })
 
   if (filters?.status)       query = query.eq('status', filters.status)
@@ -168,6 +167,42 @@ export async function updateBookingStatus(
   const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
   if (error) return { success: false, error: error.message }
   revalidatePath('/dashboard/bookings')
+  return { success: true, data: undefined }
+}
+
+export async function confirmBookingPayment(id: string): Promise<ActionResult> {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const { data: booking, error: bookingError } = await supabase
+    .from('bookings')
+    .select('id, school_id, payment_status, payment_transaction_id, payment_method')
+    .eq('id', id)
+    .eq('school_id', school.id)
+    .maybeSingle()
+
+  if (bookingError) return { success: false, error: bookingError.message }
+  if (!booking) return { success: false, error: 'Agendamento invalido para esta escola.' }
+  if (booking.payment_transaction_id) return { success: false, error: 'Este pagamento foi criado online e nao pode ser confirmado manualmente.' }
+  if (booking.payment_status === 'paid') return { success: true, data: undefined }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({
+      payment_status: 'paid',
+      payment_method: booking.payment_method ?? 'cash',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/dashboard/bookings')
+  revalidatePath('/dashboard/bookings/today')
+  revalidatePath('/dashboard/overview')
+  revalidatePath('/dashboard/reports')
+  revalidatePath('/dashboard/sales-history')
   return { success: true, data: undefined }
 }
 
