@@ -105,10 +105,8 @@ export function SchoolBookingHub({
   }, [instructors])
 
   useEffect(() => {
-    if (activeTab !== initialTab) {
-      setActiveTab(initialTab)
-    }
-  }, [activeTab, initialTab])
+    setActiveTab(initialTab)
+  }, [initialTab])
 
   return (
     <div className="min-h-dvh bg-[#f4f5f7] pb-28 text-slate-900">

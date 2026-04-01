@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { emptyFinancialBreakdown, getPaymentFinancialBreakdown } from '@/lib/payments/financials'
 import { ensurePublicBucket } from '@/lib/supabase/storage'
 import { getMySchool } from './instructors'
+import { slugify } from '@/lib/utils'
 import type {
   ActionResult,
   BookingMetric,
@@ -520,11 +521,13 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
   const supabase = await createClient()
   const school = await getMySchool()
   if (!school) return { success: false, error: 'Nao autorizado' }
+  const schoolName = String(formData.get('name') ?? '').trim()
   const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
   const whatsappResult = validatePhoneField(formData.get('whatsapp') as string | null, 'WhatsApp')
 
   if (phoneResult.error) return { success: false, error: phoneResult.error }
   if (whatsappResult.error) return { success: false, error: whatsappResult.error }
+  if (!schoolName) return { success: false, error: 'Informe o nome da escola.' }
 
   let logoUrl = school.logo_url
   const logoFile = formData.get('logo_file')
@@ -587,10 +590,25 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
     logoUrl = publicLogo.publicUrl
   }
 
+  let nextSlug = school.slug
+  const slugBase = slugify(schoolName) || 'escola'
+
+  if (slugBase !== school.slug) {
+    const { data: conflict } = await supabase
+      .from('schools')
+      .select('id')
+      .eq('slug', slugBase)
+      .neq('id', school.id)
+      .maybeSingle()
+
+    nextSlug = conflict ? `${slugBase}-${school.id.slice(0, 8)}` : slugBase
+  }
+
   const { error } = await supabase
     .from('schools')
     .update({
-      name: formData.get('name') as string,
+      name: schoolName,
+      slug: nextSlug,
       tagline: (formData.get('tagline') as string) || null,
       address: (formData.get('address') as string) || null,
       phone: phoneResult.value,
@@ -604,6 +622,12 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
   if (error) return { success: false, error: error.message }
 
   revalidatePath('/dashboard/settings/account-data')
+  revalidatePath(`/${school.slug}`)
+  revalidatePath(`/${nextSlug}`)
+  revalidatePath(`/${school.slug}/agendar`)
+  revalidatePath(`/${nextSlug}/agendar`)
+  revalidatePath(`/${school.slug}/minhas-aulas`)
+  revalidatePath(`/${nextSlug}/minhas-aulas`)
   return { success: true, data: undefined }
 }
 
