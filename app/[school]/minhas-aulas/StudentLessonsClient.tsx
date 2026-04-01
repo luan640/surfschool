@@ -54,14 +54,14 @@ export function StudentLessonsClient({
   const upcoming = useMemo(() => (
     bookings.filter((booking) => {
       const lessonDate = new Date(`${booking.lesson_date}T00:00:00`)
-      return lessonDate >= today && booking.status !== 'cancelled'
+      return lessonDate >= today && booking.status !== 'cancelled' && booking.status !== 'completed'
     })
   ), [bookings, today])
 
   const history = useMemo(() => (
     bookings.filter((booking) => {
       const lessonDate = new Date(`${booking.lesson_date}T00:00:00`)
-      return lessonDate < today || booking.status === 'cancelled'
+      return lessonDate < today || booking.status === 'cancelled' || booking.status === 'completed'
     })
   ), [bookings, today])
 
@@ -91,7 +91,7 @@ export function StudentLessonsClient({
     <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold text-slate-900">Proximas aulas</h1>
+          <h1 className="text-[22px] font-semibold text-slate-900">Próximas aulas</h1>
           <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
             Visualize suas reservas confirmadas e acompanhe o que vem pela frente.
           </p>
@@ -197,8 +197,8 @@ export function StudentLessonsClient({
 
           <div className="mt-4 flex items-center gap-5 overflow-x-auto border-b border-slate-100 pb-1">
             {[
-              { label: 'Proximas aulas', key: 'upcoming' as const },
-              { label: 'Historico', key: 'history' as const },
+              { label: 'Próximas aulas', key: 'upcoming' as const },
+              { label: 'Histórico', key: 'history' as const },
               { label: 'Perfil', key: 'profile' as const },
             ].map((tab) => (
               <button
