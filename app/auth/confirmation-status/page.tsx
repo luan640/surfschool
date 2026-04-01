@@ -31,13 +31,13 @@ export default async function ConfirmationStatusPage({ searchParams }: Props) {
             {isSuccess ? 'E-mail confirmado.' : 'Link expirado ou invalido.'}
             <br />
             <span className="text-[#00b4d8]">
-              {isSuccess ? 'Sua conta ja esta ativa.' : 'Reenvie a confirmacao.'}
+              {isSuccess ? 'Sua conta já esta ativa.' : 'Reenvie a confirmação.'}
             </span>
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-white/70">
             {isSuccess
-              ? 'Agora voce pode entrar na plataforma e continuar a configuracao da sua escola.'
-              : 'Se o link venceu ou ja foi usado, envie um novo e-mail de confirmacao e tente novamente.'}
+              ? 'Agora voce pode entrar na plataforma e continuar a configuração da sua escola.'
+              : 'Se o link venceu ou já foi usado, envie um novo e-mail de confirmacao e tente novamente.'}
           </p>
         </div>
       </div>

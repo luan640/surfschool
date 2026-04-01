@@ -28,6 +28,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [packages, setPackages] = useState<LessonPackage[]>([])
   const [studentEmail, setStudentEmail] = useState<string | null>(null)
+  const [trialLessonEligible, setTrialLessonEligible] = useState(false)
+  const [trialLessonChecked, setTrialLessonChecked] = useState(false)
   const [mercadoPagoReady, setMercadoPagoReady] = useState(false)
   const [authReady, setAuthReady] = useState(false)
   const [takenSlots, setTakenSlots] = useState<string[]>([])
@@ -108,7 +110,60 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     }
   }, [router, slug])
 
+  useEffect(() => {
+    if (!authReady || !school?.id) return
+    if (!schoolRules?.trial_lesson_enabled) {
+      setTrialLessonEligible(false)
+      setTrialLessonChecked(true)
+      return
+    }
+
+    const supabase = createClient()
+    let active = true
+
+    void supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!active) return
+
+      if (!user) {
+        setTrialLessonEligible(false)
+        setTrialLessonChecked(true)
+        return
+      }
+
+      const { data: studentProfile, error: studentProfileError } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('school_id', school.id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!active) return
+
+      if (studentProfileError || !studentProfile) {
+        setTrialLessonEligible(false)
+        setTrialLessonChecked(true)
+        return
+      }
+
+      const { count, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('school_id', school.id)
+        .eq('student_id', studentProfile.id)
+
+      if (!active) return
+
+      setTrialLessonEligible(!bookingsError && (count ?? 0) === 0)
+      setTrialLessonChecked(true)
+    })
+
+    return () => {
+      active = false
+    }
+  }, [authReady, school?.id, schoolRules?.trial_lesson_enabled])
+
   const isPackageFlow = wizard.selectionType === 'package' && !!wizard.selectedPackage
+  const isTrialFlow = wizard.selectionType === 'trial'
   const activePackageLesson = wizard.packageLessons[wizard.activePackageLessonIndex] ?? null
 
   useEffect(() => {
@@ -123,6 +178,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   const steps = isPackageFlow ? PACKAGE_STEPS : SINGLE_STEPS
   const finalStep = steps.length as 4 | 5
+  const showStickyFooter = wizard.step < finalStep || (wizard.step > 1 && !navigationLocked)
   const primaryColor = school?.primary_color ?? '#0077b6'
   const ctaColor = school?.cta_color ?? '#f77f00'
   const bookingRules = useMemo(
@@ -192,6 +248,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const packageReady = isPackageFlow && wizard.packageLessons.length > 0 && completedPackageLessons === wizard.packageLessons.length
   const totalAmount = isPackageFlow && wizard.selectedPackage
     ? Number(wizard.selectedPackage.price)
+    : isTrialFlow
+      ? 0
     : wizard.selectedInstructor && wizard.selectedSlots.length > 0
       ? wizard.selectedInstructor.hourly_price * wizard.selectedSlots.length
       : 0
@@ -209,6 +267,22 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     setWizard((current) => ({
       ...current,
       selectionType: 'single',
+      selectedPackage: null,
+      selectedDate: null,
+      selectedInstructor: null,
+      selectedSlots: [],
+      packageLessons: [],
+      activePackageLessonIndex: 0,
+      step: 1,
+    }))
+  }
+
+  function chooseTrialLesson() {
+    resetForProduct()
+    setProductTab('single')
+    setWizard((current) => ({
+      ...current,
+      selectionType: 'trial',
       selectedPackage: null,
       selectedDate: null,
       selectedInstructor: null,
@@ -444,7 +518,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-md px-3 py-4 pb-28 sm:max-w-2xl sm:px-5 sm:pb-32">
+      <div className={`mx-auto w-full max-w-md px-3 py-4 ${showStickyFooter ? 'pb-28 sm:pb-32' : 'pb-8 sm:pb-10'} sm:max-w-2xl sm:px-5`}>
         <main className="space-y-6">
           {error && <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">{error}</div>}
 
@@ -485,6 +559,12 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   Pacotes
                 </button>
               </div>
+
+              {productTab === 'single' && schoolRules?.trial_lesson_enabled && trialLessonChecked && trialLessonEligible && (
+                <button type="button" onClick={chooseTrialLesson} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectionType === 'trial' ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
+                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: ctaColor }}><Check size={18} /></div><div className="flex-1"><div className="flex items-start justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">Aula experimental</div><div className="text-[16px] font-semibold" style={{ color: ctaColor }}>{formatPrice(0)}</div></div><p className="mt-1 text-[13px] text-slate-500">Disponivel apenas para a primeira reserva do aluno nesta escola.</p></div></div>
+                </button>
+              )}
 
               {productTab === 'single' ? (
                 <button type="button" onClick={chooseSingle} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectionType === 'single' ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
@@ -603,7 +683,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {wizard.step === finalStep && wizard.selectedInstructor && (
             <section className="space-y-4">
-              <div><h1 className="text-[24px] font-semibold text-slate-900">Confirmar agendamento</h1><p className="mt-1 text-[14px] text-slate-500">Revise o agendamento e escolha se prefere pagar agora ou pagar na hora.</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">Confirmar agendamento</h1><p className="mt-1 text-[14px] text-slate-500">{isTrialFlow ? 'Revise a aula experimental e confirme a reserva gratuita.' : 'Revise o agendamento e escolha se prefere pagar agora ou pagar na hora.'}</p></div>
               {false && (
                 <div className="overflow-hidden rounded border border-slate-200 bg-white">
                 <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Produto</div><div className="font-semibold text-slate-900">{isPackageFlow ? wizard.selectedPackage?.name : 'Aula avulsa'}</div></div>
@@ -633,8 +713,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 schoolId={school!.id}
                 selectionType={isPackageFlow ? 'package' : 'single'}
                 amount={totalAmount}
-                title={isPackageFlow ? wizard.selectedPackage?.name ?? 'Pacote de aulas' : 'Aula avulsa'}
-                onlineEnabled={mercadoPagoReady}
+                title={isPackageFlow ? wizard.selectedPackage?.name ?? 'Pacote de aulas' : isTrialFlow ? 'Aula experimental' : 'Aula avulsa'}
+                onlineEnabled={isTrialFlow ? false : mercadoPagoReady}
                 description={isPackageFlow
                   ? `${wizard.packageLessons.length} aulas com ${wizard.selectedInstructor.full_name}`
                   : `${formatDate(wizard.selectedDate!)} • ${wizard.selectedSlots.join(', ')}`}
@@ -647,6 +727,10 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   timeSlots: lesson.slots,
                 })) : undefined}
                 payerEmail={studentEmail}
+                payOnSiteOnly={isTrialFlow}
+                payOnSiteLabel={isTrialFlow ? 'Confirmar aula experimental' : undefined}
+                payOnSiteHint={isTrialFlow ? 'Esta aula é uma cortesia da escola.' : undefined}
+                isTrialLesson={isTrialFlow}
                 onApproved={() => { setError(null) }}
                 onPending={() => { setError(null) }}
                 onFailure={(message) => { setError(message) }}
@@ -657,6 +741,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         </main>
       </div>
 
+      {showStickyFooter && (
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/96 px-3 py-3 backdrop-blur sm:px-5">
         <div className="mx-auto flex w-full max-w-md gap-3 sm:max-w-2xl">
           {wizard.step > 1 && !navigationLocked && (
@@ -671,6 +756,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
           {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[16px] font-medium text-white disabled:opacity-40" style={{ background: primaryColor }}>Proximo<ArrowRight size={15} /></button>}
         </div>
       </div>
+      )}
 
       {previewImage && (
         <button

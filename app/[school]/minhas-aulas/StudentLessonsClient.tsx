@@ -239,30 +239,27 @@ export function StudentLessonsClient({
 
 function LessonCard({ booking }: { booking: Booking }) {
   return (
-    <article className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+    <article className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[16px] font-semibold text-slate-900">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-semibold text-slate-900">
             {booking.instructor?.full_name ?? 'Instrutor'}
           </div>
-          <div className="mt-1 text-[13px] text-slate-500">
-            {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
+            <Clock size={12} />
+            <span className="truncate">
+              {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {booking.time_slots.join(', ')}
+            </span>
           </div>
         </div>
-        <div className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-          {STATUS_LABEL[booking.status] ?? booking.status}
-        </div>
-      </div>
 
-      <div className="mt-3 flex items-center gap-2 text-[13px] text-slate-500">
-        <Clock size={14} />
-        {booking.time_slots.join(', ')}
-      </div>
-
-      <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-200 pt-3">
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Total</div>
-          <div className="font-condensed text-2xl font-bold text-slate-900">{formatPrice(booking.total_amount)}</div>
+        <div className="shrink-0 text-right">
+          <div className="text-[14px] font-semibold text-slate-900">
+            {formatPrice(booking.total_amount)}
+          </div>
+          <div className="mt-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+            {STATUS_LABEL[booking.status] ?? booking.status}
+          </div>
         </div>
       </div>
     </article>

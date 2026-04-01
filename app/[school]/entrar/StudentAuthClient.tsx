@@ -128,7 +128,7 @@ export function StudentAuthClient({
           {isCompleteMode && (
             <div className="mb-5 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex gap-3">
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-              <p>Sua conta jÃ¡ existe, mas falta concluir seu cadastro nesta escola.</p>
+              <p>Vi que você ja usou nossa plataforma para agendar aula de surf. Mas para essa escola falta concluir seu cadastro.</p>
             </div>
           )}
 

@@ -29,6 +29,10 @@ interface Props {
   packageId?: string | null
   lessons?: LessonPlanInput[]
   payerEmail?: string | null
+  payOnSiteOnly?: boolean
+  payOnSiteLabel?: string
+  payOnSiteHint?: string
+  isTrialLesson?: boolean
   onApproved: (message: string) => void
   onPending: (message: string) => void
   onFailure: (message: string) => void
@@ -47,7 +51,7 @@ interface ProcessPaymentResponse {
 }
 
 export function MercadoPagoCheckoutBrick(props: Props) {
-  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site' | null>(null)
+  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site' | null>(props.payOnSiteOnly ? 'pay_on_site' : null)
   const [submitting, setSubmitting] = useState(false)
   const [pollingStatus, setPollingStatus] = useState(false)
   const [lastStatusCheckAt, setLastStatusCheckAt] = useState<number | null>(null)
@@ -55,8 +59,8 @@ export function MercadoPagoCheckoutBrick(props: Props) {
   const [result, setResult] = useState<ProcessPaymentResponse | null>(null)
 
   useEffect(() => {
-    setPaymentMode(null)
-  }, [props.onlineEnabled, props.schoolId, props.selectionType, props.selectedDate, props.packageId, props.instructorId])
+    setPaymentMode(props.payOnSiteOnly ? 'pay_on_site' : null)
+  }, [props.instructorId, props.onlineEnabled, props.packageId, props.payOnSiteOnly, props.schoolId, props.selectedDate, props.selectionType])
 
   useEffect(() => {
     props.onNavigationLockChange?.(result?.status === 'pay_on_site')
@@ -204,6 +208,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
       )}
       {!result && (
         <div className="relative rounded border border-slate-200 bg-white p-4">
+          {!props.payOnSiteOnly && (
           <div className="mb-5 grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -227,6 +232,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
               <div className="mt-1 text-sm text-slate-500">Confirma o agendamento e deixa o pagamento pendente.</div>
             </button>
           </div>
+          )}
 
           {paymentMode === 'pay_now' ? (
             <>
@@ -267,6 +273,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                       body: JSON.stringify({
                         schoolId: props.schoolId,
                         selectionType: props.selectionType,
+                        isTrialLesson: props.isTrialLesson ?? false,
                         paymentMode: 'pay_now',
                         instructorId: props.instructorId,
                         packageId: props.packageId ?? null,
@@ -308,9 +315,16 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             </>
           ) : paymentMode === 'pay_on_site' ? (
             <div className="space-y-4">
-              <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
-                Seu agendamento será confirmado agora, e o pagamento ficará pendente para ser feito na hora.
-              </div>
+              {props.payOnSiteHint && (
+                <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
+                  {props.payOnSiteHint}
+                </div>
+              )}
+              {!props.isTrialLesson && (
+                <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
+                  Seu agendamento será confirmado agora, e o pagamento ficará pendente para ser feito na hora.
+                </div>
+              )}
               <div className="flex justify-end">
                 <Button
                   type="button"
@@ -325,6 +339,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                         body: JSON.stringify({
                           schoolId: props.schoolId,
                           selectionType: props.selectionType,
+                          isTrialLesson: props.isTrialLesson ?? false,
                           paymentMode: 'pay_on_site',
                           instructorId: props.instructorId,
                           packageId: props.packageId ?? null,
@@ -352,7 +367,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                   }}
                   disabled={submitting}
                 >
-                  {submitting ? 'Confirmando...' : 'Confirmar e pagar na hora'}
+                  {submitting ? 'Confirmando...' : (props.payOnSiteLabel ?? 'Confirmar e pagar na hora')}
                 </Button>
               </div>
             </div>

@@ -201,6 +201,7 @@ export interface SchoolRules {
   reschedule_notice_hours: number
   minimum_booking_notice_hours: number
   booking_window_days: number
+  trial_lesson_enabled: boolean
   max_active_bookings_per_student: number | null
   created_at: string
   updated_at: string
@@ -244,7 +245,7 @@ export interface SalesHistoryEntry {
 
 export interface BookingWizardState {
   schoolId: string
-  selectionType: 'single' | 'package' | null
+  selectionType: 'single' | 'trial' | 'package' | null
   selectedPackage: LessonPackage | null
   selectedDate: Date | null
   selectedInstructor: Instructor | null

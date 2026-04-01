@@ -22,6 +22,7 @@ import {
 interface ProcessPaymentRequestBody {
   schoolId: string
   selectionType: 'single' | 'package'
+  isTrialLesson?: boolean
   instructorId: string
   paymentMode?: 'pay_now' | 'pay_on_site'
   packageId?: string | null
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as ProcessPaymentRequestBody
 
     const paymentMode = body.paymentMode === 'pay_on_site' ? 'pay_on_site' : 'pay_now'
+    const isTrialLesson = body.selectionType === 'single' && body.isTrialLesson === true
 
     if (!body.schoolId || !body.selectionType || !body.instructorId) {
       return NextResponse.json({ error: 'Payload de pagamento invalido.' }, { status: 400 })
@@ -95,6 +97,30 @@ export async function POST(request: Request) {
     let packageName: string | null = null
 
     if (body.selectionType === 'single') {
+      if (isTrialLesson) {
+        if (!rules.trialLessonEnabled) {
+          return NextResponse.json({ error: 'A aula experimental nao esta ativa para esta escola.' }, { status: 409 })
+        }
+
+        if (paymentMode !== 'pay_on_site') {
+          return NextResponse.json({ error: 'A aula experimental so pode ser confirmada como pagar no local.' }, { status: 409 })
+        }
+
+        const { count: existingBookingsCount, error: existingBookingsError } = await admin
+          .from('bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', school.id)
+          .eq('student_id', student.id)
+
+        if (existingBookingsError) {
+          return NextResponse.json({ error: existingBookingsError.message }, { status: 500 })
+        }
+
+        if ((existingBookingsCount ?? 0) > 0) {
+          return NextResponse.json({ error: 'A aula experimental so pode ser usada na primeira reserva do aluno.' }, { status: 409 })
+        }
+      }
+
       if (!body.selectedDate || !body.selectedSlots || body.selectedSlots.length === 0) {
         return NextResponse.json({ error: 'Data e horarios sao obrigatorios.' }, { status: 400 })
       }
@@ -109,14 +135,14 @@ export async function POST(request: Request) {
         )
       }
 
-      amount = Number(instructor.hourly_price) * normalizedSelectedSlots.length
+      amount = isTrialLesson ? 0 : Number(instructor.hourly_price) * normalizedSelectedSlots.length
       let { data: booking, error: bookingError } = await admin.rpc('create_booking_safe', {
         p_school_id: school.id,
         p_student_id: student.id,
         p_instructor_id: instructor.id,
         p_lesson_date: body.selectedDate,
         p_time_slots: normalizedSelectedSlots,
-        p_unit_price: instructor.hourly_price,
+        p_unit_price: isTrialLesson ? 0 : instructor.hourly_price,
         p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
         p_billing_mode: 'hourly',
         p_package_id: null,
@@ -129,7 +155,7 @@ export async function POST(request: Request) {
           p_instructor_id: instructor.id,
           p_lesson_date: body.selectedDate,
           p_time_slots: normalizedSelectedSlots,
-          p_unit_price: instructor.hourly_price,
+          p_unit_price: isTrialLesson ? 0 : instructor.hourly_price,
           p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
         })
 
@@ -145,6 +171,17 @@ export async function POST(request: Request) {
       }
 
       bookingIds = [(booking as { id: string }).id]
+
+      if (isTrialLesson) {
+        const { error: trialBookingError } = await admin
+          .from('bookings')
+          .update({ notes: 'Aula experimental' })
+          .in('id', bookingIds)
+
+        if (trialBookingError) {
+          return NextResponse.json({ error: trialBookingError.message }, { status: 500 })
+        }
+      }
     } else {
       if (!body.packageId || !body.lessons || body.lessons.length === 0) {
         return NextResponse.json({ error: 'Pacote e aulas planejadas sao obrigatorios.' }, { status: 400 })
@@ -208,8 +245,8 @@ export async function POST(request: Request) {
         .from('bookings')
         .update({
           status: 'confirmed',
-          payment_status: 'pending',
-          payment_method: null,
+          payment_status: isTrialLesson ? 'paid' : 'pending',
+          payment_method: isTrialLesson ? 'cash' : null,
         })
         .in('id', bookingIds)
 
@@ -332,12 +369,13 @@ async function getBookingRulesForSchool(schoolId: string) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('school_rules')
-    .select('minimum_booking_notice_hours, booking_window_days')
+    .select('minimum_booking_notice_hours, booking_window_days, trial_lesson_enabled')
     .eq('school_id', schoolId)
     .maybeSingle()
 
   return {
     minimumBookingNoticeHours: data?.minimum_booking_notice_hours ?? getDefaultBookingRules().minimumBookingNoticeHours,
     bookingWindowDays: data?.booking_window_days ?? getDefaultBookingRules().bookingWindowDays,
+    trialLessonEnabled: data?.trial_lesson_enabled ?? false,
   }
 }

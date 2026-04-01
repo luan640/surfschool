@@ -19,10 +19,10 @@ export default function AuthConfirmedPage() {
           <h1 className="mb-3 font-condensed text-4xl font-bold uppercase leading-tight text-white">
             E-mail confirmado.
             <br />
-            <span className="text-[#00b4d8]">Sua conta ja esta ativa.</span>
+            <span className="text-[#00b4d8]">Sua conta já está ativa.</span>
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-white/70">
-            Agora voce pode entrar na plataforma e continuar a configuracao da sua escola.
+            Agora você pode entrar na plataforma e continuar a configuração da sua escola.
           </p>
         </div>
       </div>

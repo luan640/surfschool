@@ -181,6 +181,24 @@ export function RulesForm({ rules, status, action }: Props) {
         <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
           <div>
             <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+              Aula experimental
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Libere uma aula experimental gratuita para alunos que ainda nao fizeram nenhuma reserva nesta escola.
+            </p>
+          </div>
+
+          <ToggleField
+            name="trial_lesson_enabled"
+            title="Ativar aula experimental"
+            description="Quando ligado, o aluno pode ver a opcao Aula experimental com valor R$ 0,00 na primeira reserva."
+            defaultChecked={rules.trial_lesson_enabled}
+          />
+        </section>
+
+        <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
+          <div>
+            <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
               Limites operacionais
             </h2>
             <p className="mt-1 text-sm text-slate-500">
