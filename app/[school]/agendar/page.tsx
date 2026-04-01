@@ -132,14 +132,28 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
       const { data: studentProfile, error: studentProfileError } = await supabase
         .from('student_profiles')
-        .select('id')
+        .select('id, cpf')
         .eq('school_id', school.id)
         .eq('user_id', user.id)
         .maybeSingle()
 
       if (!active) return
 
-      if (studentProfileError || !studentProfile) {
+      if (studentProfileError || !studentProfile || !studentProfile.cpf) {
+        setTrialLessonEligible(false)
+        setTrialLessonChecked(true)
+        return
+      }
+
+      const { data: matchingProfiles, error: matchingProfilesError } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('school_id', school.id)
+        .eq('cpf', studentProfile.cpf)
+
+      if (!active) return
+
+      if (matchingProfilesError || !matchingProfiles || matchingProfiles.length === 0) {
         setTrialLessonEligible(false)
         setTrialLessonChecked(true)
         return
@@ -149,7 +163,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         .from('bookings')
         .select('id', { count: 'exact', head: true })
         .eq('school_id', school.id)
-        .eq('student_id', studentProfile.id)
+        .in('student_id', matchingProfiles.map((profile) => profile.id))
 
       if (!active) return
 
