@@ -170,14 +170,14 @@ export async function updateBookingStatus(
   return { success: true, data: undefined }
 }
 
-export async function confirmBookingPayment(id: string): Promise<ActionResult> {
+export async function confirmBookingPayment(id: string, amount?: number): Promise<ActionResult> {
   const supabase = await createClient()
   const school = await getMySchool()
   if (!school) return { success: false, error: 'Nao autorizado' }
 
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, school_id, payment_status, payment_transaction_id, payment_method')
+    .select('id, school_id, payment_status, payment_transaction_id, payment_method, billing_mode, total_hours')
     .eq('id', id)
     .eq('school_id', school.id)
     .maybeSingle()
@@ -186,12 +186,25 @@ export async function confirmBookingPayment(id: string): Promise<ActionResult> {
   if (!booking) return { success: false, error: 'Agendamento invalido para esta escola.' }
   if (booking.payment_transaction_id) return { success: false, error: 'Este pagamento foi criado online e nao pode ser confirmado manualmente.' }
   if (booking.payment_status === 'paid') return { success: true, data: undefined }
+  if (!Number.isFinite(amount) || Number(amount) <= 0) {
+    return { success: false, error: 'Informe o valor acordado para confirmar o pagamento presencial.' }
+  }
+
+  const normalizedAmount = Number(amount)
+  const normalizedUnitPrice = Number(
+    (
+      booking.billing_mode === 'package'
+        ? normalizedAmount
+        : normalizedAmount / Math.max(Number(booking.total_hours) || 0, 1)
+    ).toFixed(2),
+  )
 
   const { error } = await supabase
     .from('bookings')
     .update({
       payment_status: 'paid',
       payment_method: booking.payment_method ?? 'cash',
+      unit_price: normalizedUnitPrice,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

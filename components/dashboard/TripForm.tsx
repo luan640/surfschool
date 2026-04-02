@@ -120,20 +120,20 @@ export function TripForm({ trip }: Props) {
 
       <div className="space-y-4 rounded border border-slate-200 bg-white p-6">
         <div>
-          <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Periodo e vagas</h2>
+          <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Período e vagas</h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Inicio das inscricoes *</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Início das inscrições *</label>
             <Input name="starts_at" type="datetime-local" required defaultValue={trip ? formatDateTimeInput(trip.starts_at) : ''} icon={<CalendarDays size={14} />} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Fim das inscricoes *</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Fim das inscrições *</label>
             <Input name="ends_at" type="datetime-local" required defaultValue={trip ? formatDateTimeInput(trip.ends_at) : ''} icon={<CalendarDays size={14} />} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Saida *</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Saída *</label>
             <Input name="departure_at" type="datetime-local" required defaultValue={trip ? formatDateTimeInput(trip.departure_at ?? trip.starts_at) : ''} icon={<CalendarDays size={14} />} />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -163,7 +163,7 @@ export function TripForm({ trip }: Props) {
           <span className="space-y-1">
             <span className="block font-bold text-slate-900">Aceitar capacidade excedente?</span>
             <span className="block text-slate-500">
-              Quando ligado, a trip continua aceitando inscricoes mesmo depois de atingir a capacidade informada.
+              Quando ligado, a trip continua aceitando inscrições mesmo depois de atingir a capacidade informada.
             </span>
           </span>
         </label>
@@ -176,9 +176,9 @@ export function TripForm({ trip }: Props) {
             className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
           />
           <span className="space-y-1">
-            <span className="block font-bold text-slate-900">Aceitar inscricao depois da data limite?</span>
+            <span className="block font-bold text-slate-900">Aceitar inscrição depois da data limite?</span>
             <span className="block text-slate-500">
-              Quando ligado, a inscricao continua liberada mesmo depois da data final informada para a trip.
+              Quando ligado, a inscrição continua liberada mesmo depois da data final informada para a trip.
             </span>
           </span>
         </label>

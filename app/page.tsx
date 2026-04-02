@@ -224,10 +224,19 @@ export default async function HomePage({
               sizes="100vw"
             />
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,23,37,0.82)_0%,rgba(5,23,37,0.42)_45%,rgba(5,23,37,0.28)_100%)]" />
-            <div className="relative z-10 flex min-h-[520px] items-end py-6 sm:py-8 lg:py-12">
-              <p className="max-w-[720px] text-xl font-medium leading-relaxed text-white sm:text-2xl lg:text-3xl">
-                {'Organize viagens da escola com a galera e obtenha uma página p\u00fablica, com: vagas, datas, pagamento e acompanhamento das inscri\u00e7\u00f5es no mesmo painel.'}
-              </p>
+            <div className="relative z-10 min-h-[520px] py-6 sm:py-8 lg:py-12">
+              <div className="absolute left-0 top-0 max-w-[720px] text-left">
+                <h2 className="mt-3 font-condensed text-4xl font-bold uppercase leading-[0.88] tracking-[0.04em] text-white sm:text-5xl">
+                  Gerencie suas
+                  <br />
+                  TRIPS
+                </h2>
+              </div>
+              <div className="absolute bottom-6 left-0 max-w-[720px] sm:bottom-8 lg:bottom-12">
+                <p className="text-xl font-medium leading-relaxed text-white sm:text-2xl lg:text-3xl">
+                  Organize viagens da escola com a galera e obtenha uma pagina publica, com: vagas, datas, pagamento e acompanhamento das inscricoes no mesmo painel.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -312,3 +321,4 @@ export default async function HomePage({
     </div>
   )
 }
+

@@ -7,6 +7,7 @@ import type { Booking, BookingStatus, Instructor } from '@/lib/types'
 import { Check, CalendarClock, CircleDollarSign, X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RescheduleBookingForm } from '@/components/dashboard/RescheduleBookingForm'
+import { Input } from '@/components/ui/input'
 
 interface Props {
   bookingId: string
@@ -19,6 +20,10 @@ function formatBookingDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('pt-BR')
 }
 
+function parseCurrencyInput(value: string) {
+  return Number(value.replace(/\./g, '').replace(',', '.'))
+}
+
 export function BookingStatusActions({ bookingId, status, booking, instructors = [] }: Props) {
   const [loading, setLoading] = useState(false)
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
@@ -26,6 +31,9 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const [agreedAmount, setAgreedAmount] = useState(() =>
+    booking ? Number(booking.total_amount).toFixed(2).replace('.', ',') : '',
+  )
   const { success, error: showError } = useToast()
 
   async function change(next: BookingStatus) {
@@ -47,15 +55,22 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   }
 
   async function handleConfirmPayment() {
+    const normalizedAmount = parseCurrencyInput(agreedAmount)
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+      showError('Nao foi possivel confirmar o pagamento.', 'Informe o valor acordado para o pagamento presencial.')
+      return false
+    }
+
     setLoading(true)
-    const result = await confirmBookingPayment(bookingId)
+    const result = await confirmBookingPayment(bookingId, normalizedAmount)
     if (!result.success) {
       showError('Nao foi possivel confirmar o pagamento.', result.error)
       setLoading(false)
-      return
+      return false
     }
     success('Pagamento confirmado com sucesso.')
     setLoading(false)
+    return true
   }
 
   if (status === 'cancelled') return null
@@ -76,17 +91,16 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
     <>
       <div className="flex items-center gap-1">
         {canConfirmPayment && (
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="success"
             onClick={() => setPaymentOpen(true)}
             disabled={loading}
-            className="h-8 gap-1.5 px-3 text-[11px]"
+            title="Confirmar pagamento"
+            aria-label="Confirmar pagamento"
+            className="rounded p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50"
           >
             <CircleDollarSign size={13} />
-            Confirmar pagamento
-          </Button>
+          </button>
         )}
         {status !== 'completed' && booking && instructors.length > 0 && (
           <button
@@ -198,6 +212,23 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 </p>
               )}
 
+              {booking && !booking.payment_transaction_id && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Valor acordado
+                  </label>
+                  <Input
+                    value={agreedAmount}
+                    onChange={(event) => setAgreedAmount(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                  />
+                  <p className="text-xs text-slate-500">
+                    O valor presencial pode ser ajustado aqui antes de confirmar o pagamento.
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-end gap-3">
                 <Button variant="ghost" onClick={() => setPaymentOpen(false)} disabled={loading}>
                   Cancelar
@@ -205,8 +236,8 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 <Button
                   variant="success"
                   onClick={async () => {
-                    await handleConfirmPayment()
-                    setPaymentOpen(false)
+                    const confirmed = await handleConfirmPayment()
+                    if (confirmed) setPaymentOpen(false)
                   }}
                   disabled={loading}
                 >
