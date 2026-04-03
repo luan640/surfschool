@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Calendar, Clock, ArrowLeft, ArrowRight, History, Mail, Phone, UserRound } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Calendar, Clock, ArrowLeft, ArrowRight, History, Loader2, Mail, Phone, UserRound } from 'lucide-react'
 import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import type { Booking, StudentProfile } from '@/lib/types'
 import { formatPrice, initials } from '@/lib/utils'
@@ -30,8 +30,10 @@ export function StudentLessonsClient({
   initialTab: StudentTabKey
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<StudentTabKey>(initialTab)
   const [loadingTab, setLoadingTab] = useState<StudentTabKey | null>(null)
+  const [navigatingBack, setNavigatingBack] = useState(false)
   const timeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -163,13 +165,19 @@ export function StudentLessonsClient({
     <div className="min-h-dvh bg-[#f4f5f7] pb-28 text-slate-900">
       <div className="mx-auto w-full max-w-md px-3 py-3 sm:max-w-2xl sm:px-5">
         <div className="mb-2 flex items-center justify-between px-1">
-          <Link
-            href={`/${school.slug}`}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_4px_12px_rgba(15,23,42,0.04)]"
+          <button
+            type="button"
+            onClick={() => {
+              if (navigatingBack) return
+              setNavigatingBack(true)
+              router.push(`/${school.slug}`)
+            }}
+            disabled={navigatingBack}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_4px_12px_rgba(15,23,42,0.04)] disabled:opacity-60"
             aria-label="Voltar"
           >
-            <ArrowLeft size={16} />
-          </Link>
+            {navigatingBack ? <Loader2 size={16} className="animate-spin" /> : <ArrowLeft size={16} />}
+          </button>
         </div>
 
         <header className="rounded-[20px] border border-slate-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">

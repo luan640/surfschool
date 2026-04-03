@@ -101,7 +101,7 @@ export function SubscriptionUpgradeBrick({ payerEmail, publicKey }: Props) {
       <div className="relative rounded border border-slate-200 bg-white p-4">
         <div className="mb-4">
           <p className="text-sm text-slate-500">
-            Insira os dados do cartao de credito para ativar a assinatura mensal de{' '}
+            Insira os dados do cartão de crédito para ativar a assinatura mensal de{' '}
             <span className="font-semibold text-slate-800">R$ 99,90/mes</span>.
           </p>
         </div>

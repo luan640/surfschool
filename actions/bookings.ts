@@ -164,7 +164,29 @@ export async function updateBookingStatus(
   status: BookingStatus,
 ): Promise<ActionResult> {
   const supabase = await createClient()
-  const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  if (status === 'completed') {
+    const { data: booking } = await supabase
+      .from('bookings')
+      .select('payment_status')
+      .eq('id', id)
+      .eq('school_id', school.id)
+      .maybeSingle()
+
+    if (!booking) return { success: false, error: 'Agendamento nao encontrado.' }
+    if (booking.payment_status !== 'paid') {
+      return { success: false, error: 'Confirme o pagamento antes de concluir a aula.' }
+    }
+  }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status })
+    .eq('id', id)
+    .eq('school_id', school.id)
+
   if (error) return { success: false, error: error.message }
   revalidatePath('/dashboard/bookings')
   return { success: true, data: undefined }
@@ -177,7 +199,7 @@ export async function confirmBookingPayment(id: string, amount?: number): Promis
 
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, school_id, payment_status, payment_transaction_id, payment_method, billing_mode, total_hours')
+    .select('id, school_id, payment_status, payment_transaction_id, payment_method, billing_mode, time_slots')
     .eq('id', id)
     .eq('school_id', school.id)
     .maybeSingle()
@@ -195,7 +217,7 @@ export async function confirmBookingPayment(id: string, amount?: number): Promis
     (
       booking.billing_mode === 'package'
         ? normalizedAmount
-        : normalizedAmount / Math.max(Number(booking.total_hours) || 0, 1)
+        : normalizedAmount / Math.max(booking.time_slots?.length ?? 0, 1)
     ).toFixed(2),
   )
 
@@ -266,7 +288,6 @@ export async function rescheduleBooking(formData: FormData): Promise<ActionResul
     instructor_id: instructorId,
     lesson_date: lessonDate,
     time_slots: selectedSlots,
-    total_hours: selectedSlots.length,
     updated_at: new Date().toISOString(),
   }
 
@@ -349,7 +370,6 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
     .from('bookings')
     .update({
       status: 'confirmed',
-      payment_status: 'paid',
       payment_method: paymentMethod,
     })
     .eq('id', bookingResult.data.id)

@@ -134,7 +134,7 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded border border-slate-200 bg-white p-5">
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Ultimas Aulas Concluidas
+            Últimas Aulas Concluíndas
           </h2>
           {latestCompleted.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-400">

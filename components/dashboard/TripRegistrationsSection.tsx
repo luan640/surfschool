@@ -228,9 +228,9 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
                     defaultValue={editingRegistration?.payment_method ?? 'pix'}
                     className="h-11 rounded-sm border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-[var(--primary)] focus:outline-none"
                   >
-                    <option value="pix">Pix presencial</option>
-                    <option value="credit_card">Credito na maquininha</option>
-                    <option value="debit_card">Debito na maquininha</option>
+                    <option value="pix">Pix</option>
+                    <option value="credit_card">Cartão de crédito</option>
+                    <option value="debit_card">Cartão de débito</option>
                     <option value="cash">Dinheiro</option>
                   </select>
                 </div>
@@ -288,9 +288,9 @@ function formatPaymentMethodLabel(paymentMethod: TripRegistration['payment_metho
     case 'pix':
       return 'Pix'
     case 'credit_card':
-      return 'Cartao de credito'
+      return 'Cartão de crédito'
     case 'debit_card':
-      return 'Cartao de debito'
+      return 'Cartão de débito'
     case 'cash':
       return 'Dinheiro'
     default:

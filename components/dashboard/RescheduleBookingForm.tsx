@@ -21,6 +21,7 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
   const [lessonDate, setLessonDate] = useState(booking.lesson_date)
   const [selectedSlots, setSelectedSlots] = useState<string[]>(booking.time_slots)
   const [takenSlots, setTakenSlots] = useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -38,10 +39,15 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
   useEffect(() => {
     if (!selectedInstructor || !lessonDate) {
       setTakenSlots([])
+      setLoadingSlots(false)
       return
     }
 
-    getTakenSlotsForBooking(selectedInstructor.id, lessonDate, booking.id).then(setTakenSlots)
+    setLoadingSlots(true)
+    getTakenSlotsForBooking(selectedInstructor.id, lessonDate, booking.id).then((slots) => {
+      setTakenSlots(slots)
+      setLoadingSlots(false)
+    })
   }, [booking.id, lessonDate, selectedInstructor])
 
   useEffect(() => {
@@ -136,7 +142,13 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
           <p className="mt-1 text-sm text-slate-500">Selecione um ou mais slots livres para o novo agendamento.</p>
         </div>
 
-        {lessonDate && availableSlots.length === 0 ? (
+        {loadingSlots ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+            {availableSlots.map((slot) => (
+              <div key={slot} className="animate-pulse rounded border-2 border-slate-200 bg-slate-100 px-2 py-3" />
+            ))}
+          </div>
+        ) : lessonDate && availableSlots.length === 0 ? (
           <div className="rounded border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
             O instrutor nao possui horarios disponiveis nesse dia.
           </div>

@@ -86,6 +86,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
     && status !== 'confirmed'
     && status !== 'completed',
   )
+  const paymentConfirmed = Boolean(booking && booking.payment_status === 'paid')
 
   return (
     <>
@@ -115,9 +116,9 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
         {status !== 'completed' && (
         <button
           onClick={() => setCompleteOpen(true)}
-          disabled={loading}
-          title="Marcar como concluída"
-          className="p-1.5 rounded hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors disabled:opacity-50"
+          disabled={loading || !paymentConfirmed}
+          title={paymentConfirmed ? 'Marcar como concluída' : 'Confirme o pagamento antes de concluir a aula'}
+          className="p-1.5 rounded hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         >
           <Check size={13} />
         </button>
@@ -180,7 +181,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                   Confirmar pagamento
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Esta acao vai marcar o agendamento presencial como pago.
+                  Esta ação vai marcar o agendamento presencial como pago.
                 </p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setPaymentOpen(false)} aria-label="Fechar modal de pagamento">

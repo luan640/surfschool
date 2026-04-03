@@ -5,9 +5,9 @@ export function formatTripPaymentMethodLabel(paymentMethod: PaymentMethod | null
     case 'pix':
       return 'Pix'
     case 'credit_card':
-      return 'Cartao de credito'
+      return 'Cartão de crédito'
     case 'debit_card':
-      return 'Cartao de debito'
+      return 'Cartão de debito'
     case 'cash':
       return 'Dinheiro'
     default:

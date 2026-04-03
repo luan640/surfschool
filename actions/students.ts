@@ -59,6 +59,7 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
   const password = (formData.get('password') as string | null) ?? ''
   const fullName = ((formData.get('full_name') as string | null) ?? '').trim()
   const birthDate = ((formData.get('birth_date') as string | null) ?? '').trim()
+  const trialLessonEligible = formData.get('trial_lesson_eligible') === 'true'
   const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
   const cpfResult = validateCpfField(formData.get('cpf') as string | null, 'CPF')
 
@@ -134,6 +135,7 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
       phone: phoneResult.value,
       cpf: cpfResult.value,
       birth_date: birthDate,
+      trial_lesson_eligible: trialLessonEligible,
     })
 
   if (profileError) {

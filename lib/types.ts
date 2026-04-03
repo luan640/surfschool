@@ -144,6 +144,7 @@ export interface StudentProfile {
   phone: string | null
   cpf: string | null
   birth_date: string | null
+  trial_lesson_eligible: boolean
   created_at: string
 }
 
@@ -166,7 +167,6 @@ export interface Booking {
   billing_mode: 'hourly' | 'package'
   lesson_date: string
   time_slots: string[]
-  total_hours: number
   unit_price: number
   total_amount: number
   status: BookingStatus

@@ -25,8 +25,8 @@ const STATUS_VARIANT: Record<string, 'neutral' | 'default' | 'success' | 'danger
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cash: 'Dinheiro',
   pix: 'Pix',
-  credit_card: 'Cartao de credito',
-  debit_card: 'Cartao de debito',
+  credit_card: 'Cartão de crédito',
+  debit_card: 'Cartão de débito',
 }
 
 interface Props {

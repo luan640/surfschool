@@ -250,13 +250,13 @@ function formatTripPaymentMethodLabel(paymentMethod: 'pix' | 'credit_card' | 'de
     case 'pix':
       return 'Pix'
     case 'credit_card':
-      return 'Cartao de credito'
+      return 'Cartão de crédito'
     case 'debit_card':
-      return 'Cartao de debito'
+      return 'Cartão de débito'
     case 'cash':
       return 'Dinheiro'
     default:
-      return 'Nao informado'
+      return 'Não informado'
   }
 }
 

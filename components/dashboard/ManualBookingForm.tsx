@@ -32,6 +32,7 @@ export function ManualBookingForm({ students, instructors, bookingRules, onSucce
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'pix' | 'credit_card' | 'debit_card'>('cash')
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
   const [takenSlots, setTakenSlots] = useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -64,10 +65,15 @@ export function ManualBookingForm({ students, instructors, bookingRules, onSucce
   useEffect(() => {
     if (!selectedInstructor || !lessonDate) {
       setTakenSlots([])
+      setLoadingSlots(false)
       return
     }
 
-    getTakenSlots(selectedInstructor.id, lessonDate).then(setTakenSlots)
+    setLoadingSlots(true)
+    getTakenSlots(selectedInstructor.id, lessonDate).then((slots) => {
+      setTakenSlots(slots)
+      setLoadingSlots(false)
+    })
   }, [lessonDate, selectedInstructor])
 
   useEffect(() => {
@@ -224,9 +230,9 @@ export function ManualBookingForm({ students, instructors, bookingRules, onSucce
               className="h-11 rounded-sm border border-slate-200 px-3 text-sm text-slate-800 bg-white focus:outline-none focus:border-[var(--primary)]"
             >
               <option value="cash">Dinheiro</option>
-              <option value="pix">Pix presencial</option>
-              <option value="credit_card">Cartao de credito</option>
-              <option value="debit_card">Cartao de debito</option>
+              <option value="pix">Pix</option>
+              <option value="credit_card">Cartão de crédito</option>
+              <option value="debit_card">Cartão de débito</option>
             </select>
           </div>
         </div>
@@ -238,7 +244,13 @@ export function ManualBookingForm({ students, instructors, bookingRules, onSucce
           <p className="mt-1 text-sm text-slate-500">Selecione um ou mais slots livres para a aula manual.</p>
         </div>
 
-        {lessonDate && availableSlots.length === 0 ? (
+        {loadingSlots ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+            {availableSlots.map((slot) => (
+              <div key={slot} className="animate-pulse rounded border-2 border-slate-200 bg-slate-100 px-2 py-3" />
+            ))}
+          </div>
+        ) : lessonDate && availableSlots.length === 0 ? (
           <div className="rounded border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
             {hasOnlyExpiredSlots
               ? 'Os horarios deste dia ja passaram ou nao respeitam a antecedencia minima configurada.'

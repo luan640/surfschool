@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Mail, Phone, Plus, Users, X } from 'lucide-react'
+import { Mail, Phone, Plus, Search, Users, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { StudentForm } from '@/components/dashboard/StudentForm'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import { formatCpf } from '@/lib/cpf'
@@ -13,15 +14,43 @@ interface Props {
   students: DashboardStudentRow[]
 }
 
+type QuickFilter = 'trial_eligible' | 'has_upcoming'
+
 export function StudentsPageClient({ students }: Props) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [query, setQuery] = useState('')
+  const [activeFilters, setActiveFilters] = useState<Set<QuickFilter>>(new Set())
   const pageSize = 10
+
+  function toggleFilter(filter: QuickFilter) {
+    setActiveFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(filter)) next.delete(filter)
+      else next.add(filter)
+      return next
+    })
+    setCurrentPage(1)
+  }
+
+  const filteredStudents = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    return students.filter((student) => {
+      if (normalizedQuery) {
+        const haystack = `${student.full_name} ${student.email ?? ''} ${student.phone ?? ''}`.toLowerCase()
+        if (!haystack.includes(normalizedQuery)) return false
+      }
+      if (activeFilters.has('trial_eligible') && !student.trial_lesson_eligible) return false
+      if (activeFilters.has('has_upcoming') && student.upcoming_bookings === 0) return false
+      return true
+    })
+  }, [students, query, activeFilters])
 
   const paginatedStudents = useMemo(() => {
     const start = (currentPage - 1) * pageSize
-    return students.slice(start, start + pageSize)
-  }, [currentPage, students])
+    return filteredStudents.slice(start, start + pageSize)
+  }, [currentPage, filteredStudents])
 
   return (
     <>
@@ -32,12 +61,59 @@ export function StudentsPageClient({ students }: Props) {
               Alunos
             </h1>
             <p className="mt-1 text-sm text-slate-400">
-              {students.length} aluno{students.length !== 1 ? 's' : ''} cadastrado{students.length !== 1 ? 's' : ''}
+              {filteredStudents.length !== students.length
+                ? `${filteredStudents.length} de ${students.length} aluno${students.length !== 1 ? 's' : ''}`
+                : `${students.length} aluno${students.length !== 1 ? 's' : ''} cadastrado${students.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <Button size="sm" onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto">
             <Plus size={15} /> Novo aluno
           </Button>
+        </div>
+
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <Input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1) }}
+              placeholder="Buscar por nome, e-mail ou telefone..."
+              icon={<Search size={14} />}
+              className="h-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleFilter('trial_eligible')}
+              className={`inline-flex h-10 items-center gap-2 rounded border px-3 text-xs font-semibold transition-colors ${
+                activeFilters.has('trial_eligible')
+                  ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              Apto aula experimental
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleFilter('has_upcoming')}
+              className={`inline-flex h-10 items-center gap-2 rounded border px-3 text-xs font-semibold transition-colors ${
+                activeFilters.has('has_upcoming')
+                  ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              Com aulas futuras
+            </button>
+            {(query || activeFilters.size > 0) && (
+              <button
+                type="button"
+                onClick={() => { setQuery(''); setActiveFilters(new Set()); setCurrentPage(1) }}
+                className="inline-flex h-10 items-center gap-1.5 rounded border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-500 hover:border-slate-300"
+              >
+                <X size={13} /> Limpar
+              </button>
+            )}
+          </div>
         </div>
 
         {students.length === 0 ? (
@@ -52,6 +128,10 @@ export function StudentsPageClient({ students }: Props) {
             <Button size="sm" onClick={() => setCreateModalOpen(true)}>
               <Plus size={15} /> Cadastrar primeiro aluno
             </Button>
+          </div>
+        ) : filteredStudents.length === 0 ? (
+          <div className="rounded border border-slate-200 bg-white py-12 text-center text-sm text-slate-400">
+            Nenhum aluno encontrado com os filtros aplicados.
           </div>
         ) : (
           <div className="overflow-hidden rounded border border-slate-200 bg-white">
@@ -182,7 +262,7 @@ export function StudentsPageClient({ students }: Props) {
             <PaginationControls
               currentPage={currentPage}
               pageSize={pageSize}
-              totalItems={students.length}
+              totalItems={filteredStudents.length}
               onPageChange={setCurrentPage}
               itemLabel="alunos"
             />

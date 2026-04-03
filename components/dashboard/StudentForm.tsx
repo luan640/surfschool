@@ -20,6 +20,7 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [cpf, setCpf] = useState('')
+  const [trialEligible, setTrialEligible] = useState(true)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -89,6 +90,24 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Senha inicial *</label>
             <Input name="password" type="password" required placeholder="Minimo de 6 caracteres" icon={<Lock size={14} />} />
           </div>
+        </div>
+
+        <div className="sm:col-span-2">
+          <input type="hidden" name="trial_lesson_eligible" value={String(trialEligible)} />
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={trialEligible}
+              onChange={(e) => setTrialEligible(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[var(--primary)]"
+            />
+            <span className="text-sm text-slate-700">
+              Aluno apto a realizar aula experimental
+              <span className="mt-0.5 block text-xs text-slate-400">
+                Desmarque se o aluno ja usou a aula experimental anteriormente.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
