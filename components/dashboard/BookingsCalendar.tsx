@@ -71,9 +71,9 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="overflow-hidden rounded border border-slate-200 bg-white">
-        <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:max-h-[780px]">
+      <div className="flex flex-col overflow-hidden rounded border border-slate-200 bg-white">
+        <div className="shrink-0 flex flex-col gap-4 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => moveMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded border border-slate-200 text-slate-600">
               <ChevronLeft size={16} />
@@ -104,12 +104,13 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+        <div className="shrink-0 grid grid-cols-7 border-b border-slate-200 bg-slate-50">
           {WEEKDAYS_PT.map((day) => (
             <div key={day} className="px-3 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">{day}</div>
           ))}
         </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="grid grid-cols-7">
           {monthCells.map((date, index) => {
             if (!date) {
@@ -151,10 +152,11 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
             )
           })}
         </div>
+        </div>
       </div>
 
-      <aside className="rounded border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
+      <aside className="flex flex-col rounded border border-slate-200 bg-white">
+        <div className="shrink-0 border-b border-slate-200 px-5 py-4">
           <div className="font-condensed text-2xl font-bold uppercase text-slate-900">
             {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
           </div>
@@ -163,37 +165,39 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
           </div>
         </div>
 
-        {selectedDayBookings.length === 0 ? (
-          <div className="px-5 py-8 text-sm text-slate-500">Nenhuma aula agendada para o filtro atual.</div>
-        ) : (
-          <div className="space-y-3 px-5 py-4">
-            {selectedDayBookings.map((booking) => (
-              <div key={booking.id} className="rounded border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <div className="font-condensed text-lg font-bold uppercase text-slate-900">{booking.time_slots.join(', ')}</div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${STATUS_STYLES[booking.status] ?? 'border-slate-200 bg-slate-100 text-slate-700'}`}>
-                    {STATUS_LABEL[booking.status] ?? booking.status}
-                  </span>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {selectedDayBookings.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-slate-500">Nenhuma aula agendada para o filtro atual.</div>
+          ) : (
+            <div className="space-y-3 px-5 py-4">
+              {selectedDayBookings.map((booking) => (
+                <div key={booking.id} className="rounded border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="font-condensed text-lg font-bold uppercase text-slate-900">{booking.time_slots.join(', ')}</div>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${STATUS_STYLES[booking.status] ?? 'border-slate-200 bg-slate-100 text-slate-700'}`}>
+                      {STATUS_LABEL[booking.status] ?? booking.status}
+                    </span>
+                  </div>
+                  <div className="space-y-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <User2 size={14} />
+                      <span>{booking.student?.full_name ?? 'Aluno'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CalendarDays size={14} />
+                      <span>{booking.instructor?.full_name ?? 'Instrutor'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock3 size={14} />
+                      <span>{booking.instructor?.specialty ?? 'Aula de surf'}</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-right font-condensed text-2xl font-bold text-slate-900">{formatPrice(booking.total_amount)}</div>
                 </div>
-                <div className="space-y-2 text-sm text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <User2 size={14} />
-                    <span>{booking.student?.full_name ?? 'Aluno'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CalendarDays size={14} />
-                    <span>{booking.instructor?.full_name ?? 'Instrutor'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock3 size={14} />
-                    <span>{booking.instructor?.specialty ?? 'Aula de surf'}</span>
-                  </div>
-                </div>
-                <div className="mt-3 text-right font-condensed text-2xl font-bold text-slate-900">{formatPrice(booking.total_amount)}</div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </aside>
     </div>
   )
