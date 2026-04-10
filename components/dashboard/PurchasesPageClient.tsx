@@ -83,7 +83,7 @@ export function PurchasesPageClient({ purchases, total, page, totalPages, filter
   const totalAmount = purchases.reduce((s, p) => s + p.amount, 0)
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page overflow-x-hidden">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
           Compras
@@ -187,90 +187,94 @@ export function PurchasesPageClient({ purchases, total, page, totalPages, filter
           </div>
         ) : (
           <>
-            {/* Desktop */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full divide-y divide-slate-200">
+            <div className="overflow-hidden">
+              <table className="min-w-full table-fixed divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    <th className="px-4 py-3">Tipo</th>
-                    <th className="px-4 py-3">Descrição</th>
-                    <th className="px-4 py-3">Cliente</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Data compra</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Data aula</th>
-                    <th className="px-4 py-3 text-right">Valor</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Origem</th>
-                    <th className="px-4 py-3">Pagamento</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Cód. MP</th>
-                    <th className="px-4 py-3">Cupom</th>
+                    <th className="hidden px-2 py-3 whitespace-nowrap xl:table-cell">ID</th>
+                    <th className="px-2 py-3 sm:px-3 lg:px-4">Tipo</th>
+                    <th className="px-2 py-3 sm:px-3 lg:px-4">Descrição</th>
+                    <th className="px-2 py-3 sm:px-3 lg:px-4">Cliente</th>
+                    <th className="px-2 py-3 whitespace-nowrap sm:px-3 lg:px-4">Data compra</th>
+                    <th className="hidden px-2 py-3 whitespace-nowrap lg:table-cell lg:px-4">Data aula</th>
+                    <th className="px-2 py-3 text-right whitespace-nowrap sm:px-3 lg:px-4">Valor</th>
+                    <th className="px-2 py-3 sm:px-3 lg:px-4">Status</th>
+                    <th className="hidden px-2 py-3 md:table-cell md:px-3 lg:px-4">Origem</th>
+                    <th className="hidden px-2 py-3 lg:table-cell lg:px-4">Pagamento</th>
+                    <th className="hidden px-2 py-3 whitespace-nowrap xl:table-cell">Cód. MP</th>
+                    <th className="hidden px-2 py-3 2xl:table-cell">Cupom</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {purchases.map((p) => (
-                    <tr key={`${p.kind}:${p.id}`} className="align-middle hover:bg-slate-50/60">
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${KIND_CLASS[p.kind]}`}>
+                    <tr key={`${p.kind}:${p.id}`} className="align-top hover:bg-slate-50/60">
+                      <td className="hidden px-2 py-3 xl:table-cell">
+                        <span className="block break-all font-mono text-xs text-slate-500">{p.id}</span>
+                      </td>
+                      <td className="px-2 py-3 sm:px-3 lg:px-4">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide sm:px-2.5 sm:text-xs ${KIND_CLASS[p.kind]}`}>
                           {KIND_LABEL[p.kind]}
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 max-w-[180px]">
-                        <div className="truncate text-sm font-medium text-slate-800">{p.title}</div>
+                      <td className="px-2 py-3 sm:px-3 lg:px-4">
+                        <div className="text-sm font-medium leading-snug text-slate-800 break-words">{p.title}</div>
                         {p.instructor_name && (
                           <div className="text-xs text-slate-400">{p.instructor_name}</div>
                         )}
+                        <div className="mt-1 break-all font-mono text-[10px] text-slate-400 xl:hidden">{p.id}</div>
                       </td>
 
-                      <td className="px-4 py-3 max-w-[160px]">
-                        <div className="truncate text-sm font-medium text-slate-800">{p.customer_name}</div>
+                      <td className="px-2 py-3 sm:px-3 lg:px-4">
+                        <div className="text-sm font-medium leading-snug text-slate-800 break-words">{p.customer_name}</div>
                         {p.customer_phone && <div className="text-xs text-slate-400">{p.customer_phone}</div>}
                       </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                      <td className="px-2 py-3 whitespace-nowrap text-sm text-slate-600 sm:px-3 lg:px-4">
                         {new Date(p.created_at).toLocaleDateString('pt-BR')}
                       </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                      <td className="hidden px-2 py-3 whitespace-nowrap text-sm text-slate-600 lg:table-cell lg:px-4">
                         {p.lesson_date
                           ? new Date(`${p.lesson_date}T00:00:00`).toLocaleDateString('pt-BR')
                           : <span className="text-slate-300">—</span>}
                       </td>
 
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <span className="font-condensed text-lg font-bold text-[var(--primary)]">
+                      <td className="px-2 py-3 text-right whitespace-nowrap sm:px-3 lg:px-4">
+                        <span className="font-condensed text-base font-bold text-[var(--primary)] sm:text-lg">
                           {formatPrice(p.amount)}
                         </span>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3 sm:px-3 lg:px-4">
                         {p.payment_status === 'refunded' ? (
-                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:px-2.5 sm:text-xs">
                             Reembolsado
                           </span>
                         ) : (
-                          <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 sm:px-2.5 sm:text-xs">
                             Pago
                           </span>
                         )}
                       </td>
 
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${p.origin === 'online' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
+                      <td className="hidden px-2 py-3 md:table-cell md:px-3 lg:px-4">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:text-xs ${p.origin === 'online' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
                           {p.origin === 'online' ? 'Online' : 'Presencial'}
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 text-sm text-slate-600">
+                      <td className="hidden px-2 py-3 text-sm text-slate-600 lg:table-cell lg:px-4">
                         {p.payment_method ?? <span className="text-slate-300">—</span>}
                       </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="hidden px-2 py-3 whitespace-nowrap xl:table-cell">
                         {p.mercadopago_payment_id
                           ? <span className="font-mono text-xs text-slate-500">{p.mercadopago_payment_id}</span>
                           : <span className="text-slate-300">—</span>}
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="hidden px-2 py-3 2xl:table-cell">
                         {p.coupon_codes.length > 0
                           ? (
                             <div className="flex flex-wrap gap-1">
@@ -287,86 +291,6 @@ export function PurchasesPageClient({ purchases, total, page, totalPages, filter
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            {/* Mobile */}
-            <div className="space-y-3 p-4 md:hidden">
-              {purchases.map((p) => (
-                <article key={`${p.kind}:${p.id}`} className="rounded border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${KIND_CLASS[p.kind]}`}>
-                          {KIND_LABEL[p.kind]}
-                        </span>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${p.origin === 'online' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {p.origin === 'online' ? 'Online' : 'Presencial'}
-                        </span>
-                        {p.payment_status === 'refunded' ? (
-                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-slate-500">
-                            Reembolsado
-                          </span>
-                        ) : (
-                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-emerald-700">
-                            Pago
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1.5 font-semibold text-slate-800">{p.title}</div>
-                      {p.instructor_name && <div className="text-xs text-slate-400">{p.instructor_name}</div>}
-                    </div>
-                    <span className="font-condensed text-xl font-bold text-[var(--primary)] shrink-0">
-                      {formatPrice(p.amount)}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-600">
-                    <div>
-                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Cliente</div>
-                      <div className="font-medium text-slate-800">{p.customer_name}</div>
-                      {p.customer_phone && <div className="text-xs text-slate-400">{p.customer_phone}</div>}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Pagamento</div>
-                      <div>{p.payment_method ?? '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Data compra</div>
-                      <div>{new Date(p.created_at).toLocaleDateString('pt-BR')}</div>
-                    </div>
-                    {p.lesson_date && (
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Data aula</div>
-                        <div>{new Date(`${p.lesson_date}T00:00:00`).toLocaleDateString('pt-BR')}</div>
-                      </div>
-                    )}
-                    {p.mercadopago_payment_id && (
-                      <div className="col-span-2">
-                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Cód. Mercado Pago</div>
-                        <div className="font-mono text-xs text-slate-600">{p.mercadopago_payment_id}</div>
-                      </div>
-                    )}
-                    {p.coupon_codes.length > 0 && (
-                      <div className="col-span-2">
-                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Cupom</div>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {p.coupon_codes.map((c) => (
-                            <span key={c} className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-                              {c}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {p.refund_reason && (
-                      <div className="col-span-2">
-                        <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Motivo reembolso</div>
-                        <div className="text-slate-500">{p.refund_reason}</div>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              ))}
             </div>
 
             {/* Paginação */}

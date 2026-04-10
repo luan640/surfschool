@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MercadoPagoConfig, PaymentRefund } from 'mercadopago'
 import { markPaymentTransactionRefunded } from '@/lib/payments/payment-store'
 import { getMySchool } from '@/actions/instructors'
+import { getValidMercadoPagoAccessTokenForSchool } from '@/lib/payments/mercadopago'
 import { formatPaymentMethod } from '@/lib/utils'
 import type { ActionResult } from '@/lib/types'
 import type { PurchaseKind } from '@/actions/purchases'
@@ -218,6 +219,24 @@ export async function getRecentRefunds(): Promise<RefundEntry[]> {
       .limit(200),
   ])
 
+  const packageIds = (packagesRes.data ?? []).map((row: any) => row.id as string)
+  const packageRefundMap = new Map<string, { mercadopago_payment_id: number | null; refund_reason: string | null }>()
+  if (packageIds.length > 0) {
+    const { data } = await supabase
+      .from('payment_transactions')
+      .select('student_package_id, mercadopago_payment_id, refund_reason')
+      .in('student_package_id', packageIds)
+      .eq('status', 'refunded')
+
+    ;(data ?? []).forEach((tx: any) => {
+      if (!tx.student_package_id) return
+      packageRefundMap.set(tx.student_package_id, {
+        mercadopago_payment_id: tx.mercadopago_payment_id ?? null,
+        refund_reason: tx.refund_reason ?? null,
+      })
+    })
+  }
+
   const bookings: RefundEntry[] = (bookingsRes.data ?? []).map((row: any) => {
     const student = single<{ full_name: string | null }>(row.student)
     return {
@@ -237,15 +256,16 @@ export async function getRecentRefunds(): Promise<RefundEntry[]> {
   const packages: RefundEntry[] = (packagesRes.data ?? []).map((row: any) => {
     const student = single<{ full_name: string | null }>(row.student)
     const pkg = single<{ name: string }>(row.package)
+    const refundMeta = packageRefundMap.get(row.id)
     return {
       id: row.id,
       kind: 'package' as const,
       title: pkg?.name ? `Pacote: ${pkg.name}` : 'Pacote de aulas',
       customer_name: student?.full_name ?? 'Aluno',
       amount: Number(row.total_amount),
-      origin: 'presencial' as const,
+      origin: refundMeta?.mercadopago_payment_id ? 'online' as const : 'presencial' as const,
       payment_method: formatPaymentMethod(row.payment_method),
-      refund_reason: null,
+      refund_reason: refundMeta?.refund_reason ?? null,
       updated_at: row.updated_at,
       created_at: row.created_at,
     }
@@ -277,17 +297,18 @@ export async function getRecentRefunds(): Promise<RefundEntry[]> {
 export async function processOnlineRefund(
   id: string,
   kind: PurchaseKind,
-  mpAccessToken: string,
   refundReason: string,
 ): Promise<ActionResult<{ refunded: true }>> {
   if (!id || !kind)             return { success: false, error: 'Compra inválida.' }
-  if (!mpAccessToken?.trim())   return { success: false, error: 'Informe a chave de acesso do Mercado Pago.' }
   if (!refundReason?.trim())    return { success: false, error: 'Informe o motivo do reembolso.' }
 
   const school = await getMySchool()
   if (!school) return { success: false, error: 'Não autorizado.' }
 
-  const mp = new MercadoPagoConfig({ accessToken: mpAccessToken.trim() })
+  const accessToken = await getValidMercadoPagoAccessTokenForSchool(school.id)
+  if (!accessToken) return { success: false, error: 'A escola ainda nao conectou o Mercado Pago para processar reembolsos.' }
+
+  const mp = new MercadoPagoConfig({ accessToken })
   const refundClient = new PaymentRefund(mp)
   const admin = createAdminClient()
 

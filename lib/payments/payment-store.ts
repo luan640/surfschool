@@ -262,6 +262,7 @@ export async function markPaymentTransactionRefunded(input: {
       .from('bookings')
       .update({
         payment_status: 'refunded',
+        refund_reason: input.refundReason,
       })
       .in('id', bookingIds)
 

@@ -23,6 +23,13 @@ const KIND_CLASS: Record<PurchaseKind, string> = {
   trip: 'bg-emerald-100 text-emerald-700',
 }
 
+function formatRefundDateTime(value: string) {
+  return new Date(value).toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
 interface Props {
   refundable: RefundablePurchase[]
   refunded: RefundEntry[]
@@ -91,7 +98,6 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
   const [mpOpen, setMpOpen] = useState(false)
   const [mpSearch, setMpSearch] = useState('')
   const [mpSelected, setMpSelected] = useState<RefundablePurchase | null>(null)
-  const [mpToken, setMpToken] = useState('')
   const [mpReason, setMpReason] = useState('')
   const [mpLoading, setMpLoading] = useState(false)
 
@@ -112,17 +118,15 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
     setMpOpen(false)
     setMpSearch('')
     setMpSelected(null)
-    setMpToken('')
     setMpReason('')
   }
 
   async function handleMpRefund() {
     if (!mpSelected) { showError('Selecione uma compra.'); return }
-    if (!mpToken.trim()) { showError('Informe a chave de acesso do Mercado Pago.'); return }
     if (!mpReason.trim()) { showError('Informe o motivo do reembolso.'); return }
     setMpLoading(true)
     try {
-      const result = await processOnlineRefund(mpSelected.id, mpSelected.kind, mpToken.trim(), mpReason.trim())
+      const result = await processOnlineRefund(mpSelected.id, mpSelected.kind, mpReason.trim())
       if (!result.success) { showError(result.error); return }
       showSuccess('Reembolso processado com sucesso no Mercado Pago.')
       closeMpModal()
@@ -217,6 +221,7 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3 whitespace-nowrap">ID</th>
                     <th className="px-4 py-3">Tipo</th>
                     <th className="px-4 py-3">Descrição</th>
                     <th className="px-4 py-3">Cliente</th>
@@ -229,6 +234,9 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
                 <tbody className="divide-y divide-slate-100">
                   {refunded.map((r) => (
                     <tr key={`${r.kind}:${r.id}`} className="align-middle hover:bg-slate-50/60">
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="font-mono text-xs text-slate-500">{r.id}</span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${KIND_CLASS[r.kind]}`}>
                           {KIND_LABEL[r.kind]}
@@ -239,7 +247,7 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-800">{r.customer_name}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                        {new Date(r.updated_at).toLocaleDateString('pt-BR')}
+                        {formatRefundDateTime(r.updated_at)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">
                         <span className="font-condensed text-base font-bold text-slate-500">
@@ -284,9 +292,13 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-600">
+                    <div className="col-span-2">
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-400">ID</div>
+                      <div className="font-mono text-xs text-slate-600">{r.id}</div>
+                    </div>
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Data</div>
-                      <div>{new Date(r.updated_at).toLocaleDateString('pt-BR')}</div>
+                      <div>{formatRefundDateTime(r.updated_at)}</div>
                     </div>
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Pagamento</div>
@@ -316,7 +328,7 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
                   Reembolso via Mercado Pago
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Selecione a compra e informe sua chave de acesso MP.
+                  Selecione a compra para processar o reembolso com a conta conectada da escola.
                 </p>
               </div>
               <Button variant="ghost" size="icon" onClick={closeMpModal} aria-label="Fechar" disabled={mpLoading}>
@@ -341,20 +353,6 @@ export function RefundsPageClient({ refundable, refunded }: Props) {
                   selected={mpSelected}
                   onSelect={setMpSelected}
                   emptyMessage="Nenhuma compra online com pagamento MP encontrada."
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Chave de acesso Mercado Pago *
-                </label>
-                <input
-                  type="password"
-                  value={mpToken}
-                  onChange={(e) => setMpToken(e.target.value)}
-                  disabled={mpLoading}
-                  placeholder="APP_USR-…"
-                  className="h-10 w-full rounded border border-slate-200 bg-white px-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/10 disabled:opacity-50"
                 />
               </div>
 

@@ -68,6 +68,10 @@ export async function getPurchases(filters: PurchaseFilters = {}): Promise<{
     wantsTrips    ? buildTripsQuery(supabase, school.id, from, to)    : Promise.resolve({ data: [] as any[] }),
   ])
 
+  if (bookingsRes.error) throw new Error(`Falha ao carregar compras de aulas: ${bookingsRes.error.message}`)
+  if (packagesRes.error) throw new Error(`Falha ao carregar compras de pacotes: ${packagesRes.error.message}`)
+  if (tripsRes.error) throw new Error(`Falha ao carregar compras de trips: ${tripsRes.error.message}`)
+
   // MP IDs via payment_transactions para bookings
   const onlineBookingTxIds = (bookingsRes.data ?? [])
     .filter((r: any) => r.payment_transaction_id)
