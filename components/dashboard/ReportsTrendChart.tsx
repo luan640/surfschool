@@ -41,7 +41,7 @@ export function ReportsRevenueTrendChart({ data }: Props) {
               return [formatPrice(Number(value)), 'Taxas']
             }
 
-            return [formatPrice(Number(value)), name === 'gross_revenue' ? 'Bruto' : 'Liquido']
+            return [formatPrice(Number(value)), name === 'gross_revenue' ? 'Bruto' : 'Líquido']
           }}
           labelFormatter={(_, payload) => payload?.[0]?.payload?.date ? new Date(`${payload[0].payload.date}T00:00:00`).toLocaleDateString('pt-BR') : ''}
         />

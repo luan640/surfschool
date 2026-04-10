@@ -76,7 +76,7 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
             </p>
           </div>
           <Button type="button" size="sm" onClick={openCreateModal}>
-            Registrar inscricao manual
+            Registrar inscrição manual
           </Button>
         </div>
 
@@ -175,7 +175,7 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
             <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
               <div>
                 <h2 className="font-condensed text-xl font-bold uppercase text-slate-900">
-                  {editingRegistration ? 'Editar inscricao manual' : 'Registrar inscricao manual'}
+                  {editingRegistration ? 'Editar inscrição manual' : 'Registrar inscrição manual'}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {editingRegistration
@@ -190,7 +190,7 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
                   setCreateModalOpen(false)
                   setEditingRegistration(null)
                 }}
-                aria-label="Fechar modal de inscricao manual"
+                aria-label="Fechar modal de inscrição manual"
               >
                 <X size={18} />
               </Button>

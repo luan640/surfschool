@@ -81,7 +81,7 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
             </button>
             <div>
               <div className="font-condensed text-2xl font-bold uppercase text-slate-900">{MONTHS_PT[currentMonth.getMonth()]} {currentMonth.getFullYear()}</div>
-              <div className="text-sm text-slate-500">Calendario de aulas agendadas e finalizadas.</div>
+              <div className="text-sm text-slate-500">Calendário de aulas agendadas e finalizadas.</div>
             </div>
             <button type="button" onClick={() => moveMonth(1)} className="flex h-10 w-10 items-center justify-center rounded border border-slate-200 text-slate-600">
               <ChevronRight size={16} />

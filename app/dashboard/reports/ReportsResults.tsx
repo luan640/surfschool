@@ -46,7 +46,7 @@ export async function ReportsResults({
 
       <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="rounded border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Faturamento bruto x liquido por dia</h2>
+          <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Faturamento bruto x líquido por dia</h2>
           <ReportsRevenueTrendChart data={report.trend} />
         </div>
         <div className="rounded border border-slate-200 bg-white p-5">

@@ -412,19 +412,23 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     const source = isPackageFlow && wizard.selectedInstructor ? [wizard.selectedInstructor] : eligibleInstructors
     source.forEach((instructor) => instructor.availability?.forEach((item) => allowedWeekdays.add(Number(item.weekday))))
 
-    const cells: Array<null | { day: number; date: Date; available: boolean; selected: boolean; past: boolean }> = []
+    const cells: Array<null | { day: number; date: Date; available: boolean; selected: boolean; past: boolean; inTrip: boolean }> = []
     for (let index = 0; index < firstDay; index += 1) cells.push(null)
     for (let day = 1; day <= daysInMonth; day += 1) {
       const date = new Date(year, month, day)
       date.setHours(0, 0, 0, 0)
       const dateKey = getDateKeyFromDate(date)
       const past = dateKey < todayKey
+      const inTrip = !!(tripSettings?.trip_start_date && tripSettings?.trip_end_date &&
+        dateKey >= tripSettings.trip_start_date && dateKey <= tripSettings.trip_end_date)
+      const blockedByTrip = inTrip && tripSettings?.booking_mode === 'trip_only'
       cells.push({
         day,
         date,
-        available: allowedWeekdays.has(date.getDay()) && !past && isDateWithinBookingWindow(date, bookingRules.bookingWindowDays),
+        available: allowedWeekdays.has(date.getDay()) && !past && isDateWithinBookingWindow(date, bookingRules.bookingWindowDays) && !blockedByTrip,
         selected: currentDate?.getTime() === date.getTime(),
         past,
+        inTrip,
       })
     }
 
@@ -442,6 +446,10 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const selectedDateInTrip = isDateInTripPeriod(wizard.selectedDate)
   const tripOnlyMode = tripSettings?.booking_mode === 'trip_only'
   const showTripWarning = selectedDateInTrip && tripOnlyMode
+  const showTripNote = selectedDateInTrip && !tripOnlyMode
+  const todayKey = getSchoolNowDateKey()
+  const schoolCurrentlyInTrip = !!(tripSettings?.trip_start_date && tripSettings?.trip_end_date &&
+    todayKey >= tripSettings.trip_start_date && todayKey <= tripSettings.trip_end_date)
 
   function canAdvance() {
     if (wizard.step === 1) return !!wizard.selectionType
@@ -552,6 +560,19 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
       <div className={`mx-auto w-full max-w-md px-3 py-4 ${showStickyFooter ? 'pb-28 sm:pb-32' : 'pb-8 sm:pb-10'} sm:max-w-2xl sm:px-5`}>
         <main className="space-y-6">
           {error && <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">{error}</div>}
+
+          {schoolCurrentlyInTrip && (
+            <div className="rounded-[14px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="font-semibold">🏄 A escola está em trip!</div>
+              <p className="mt-0.5 text-[13px]">
+                {tripSettings?.location_note
+                  ? tripSettings.location_note
+                  : tripOnlyMode
+                    ? 'Agendamentos normais estão suspensos durante este período. Confira as trips disponíveis!'
+                    : 'Durante este período a escola está em trip. Agendamentos normais continuam disponíveis.'}
+              </p>
+            </div>
+          )}
 
           {school.address && (
             <div className="flex items-start gap-3 rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-slate-800 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
@@ -667,6 +688,16 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                     {tripSettings?.location_note
                       ? tripSettings.location_note
                       : 'Neste período os agendamentos normais não estão disponíveis. Confira as trips abertas!'}
+                  </p>
+                </div>
+              )}
+              {showTripNote && (
+                <div className="rounded-[14px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                  <div className="font-semibold">🏄 A escola estará em trip nesta data</div>
+                  <p className="mt-1 text-[13px]">
+                    {tripSettings?.location_note
+                      ? tripSettings.location_note
+                      : 'O agendamento normal continua disponível, mas você também pode conferir as trips abertas!'}
                   </p>
                 </div>
               )}
@@ -827,7 +858,7 @@ function CalendarSelector({
 }: {
   year: number
   month: number
-  cells: Array<null | { day: number; date: Date; available: boolean; selected: boolean; past: boolean }>
+  cells: Array<null | { day: number; date: Date; available: boolean; selected: boolean; past: boolean; inTrip?: boolean }>
   onPrev: () => void
   onNext: () => void
   onSelect: (date: Date) => void
@@ -846,14 +877,31 @@ function CalendarSelector({
       <div className="grid grid-cols-7 gap-1.5">
         {cells.map((cell, index) =>
           cell ? (
-            <button key={`${cell.day}-${index}`} type="button" disabled={!cell.available} onClick={() => onSelect(cell.date)} className={`aspect-square rounded-[12px] text-[13px] ${cell.selected ? 'text-white' : cell.available ? 'bg-slate-50 text-slate-700 hover:bg-slate-100' : 'bg-slate-50 text-slate-300'}`} style={cell.selected ? { background: ctaColor } : undefined}>
+            <button
+              key={`${cell.day}-${index}`}
+              type="button"
+              disabled={!cell.available}
+              onClick={() => onSelect(cell.date)}
+              title={cell.inTrip ? '🏄 Trip' : undefined}
+              className={`relative aspect-square rounded-[12px] text-[13px] ${cell.selected ? 'text-white' : cell.available ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300'} ${!cell.selected && cell.inTrip && cell.available ? 'bg-amber-50' : !cell.selected ? 'bg-slate-50' : ''}`}
+              style={cell.selected ? { background: ctaColor } : undefined}
+            >
               {cell.day}
+              {cell.inTrip && !cell.selected && (
+                <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-amber-400" />
+              )}
             </button>
           ) : (
             <div key={`empty-${index}`} />
           )
         )}
       </div>
+      {cells.some((c) => c?.inTrip) && (
+        <div className="flex items-center gap-1.5 pt-1 text-[11px] text-amber-600">
+          <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
+          Dias em trip
+        </div>
+      )}
     </div>
   )
 }

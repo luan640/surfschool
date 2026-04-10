@@ -79,7 +79,7 @@ export function AccountDataForm({ school, status, action, bookingUrl }: Props) {
         <div className="space-y-4 rounded border border-slate-200 bg-white p-6">
           <div>
             <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Escola</h2>
-            <p className="mt-1 text-sm text-slate-500">Informacoes exibidas para os alunos no site de agendamento.</p>
+            <p className="mt-1 text-sm text-slate-500">Informaçoes exibidas para os alunos no site de agendamento.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

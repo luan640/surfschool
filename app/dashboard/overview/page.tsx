@@ -56,7 +56,7 @@ export default async function OverviewPage() {
 
       <div className="mb-8 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard
-          label="Faturamento bruto no mes"
+          label="Faturamento bruto no mês"
           value={formatPrice(kpis.grossRevenueThisMonth)}
           current={kpis.grossRevenueThisMonth}
           previous={kpis.grossRevenueLastMonth}
@@ -77,7 +77,7 @@ export default async function OverviewPage() {
           icon={<DollarSign size={18} />}
         />
         <KpiCard
-          label="Aulas pagas no mes"
+          label="Aulas pagas no mês"
           value={String(kpis.bookingsThisMonth)}
           current={kpis.bookingsThisMonth}
           previous={kpis.bookingsLastMonth}
@@ -89,7 +89,7 @@ export default async function OverviewPage() {
           icon={<Users size={18} />}
         />
         <KpiCard
-          label="Aulas pagas concluidas"
+          label="Aulas pagas concluídas"
           value={String(kpis.upcomingLessons)}
           icon={<Clock size={18} />}
         />
@@ -103,7 +103,7 @@ export default async function OverviewPage() {
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded border border-slate-200 bg-white p-5 lg:col-span-2">
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Faturamento Mensal Bruto x Liquido
+            Faturamento Mensal Bruto x Líquido
           </h2>
           <Suspense fallback={<div className="h-52 animate-pulse rounded bg-slate-100" />}>
             <RevenueChart data={revenue} />
@@ -122,7 +122,7 @@ export default async function OverviewPage() {
       <div className="mb-6 rounded border border-slate-200 bg-white p-5">
         <div className="mb-4">
           <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Calendario de Aulas Pagas
+            Calendário de Aulas Pagas
           </h2>
           <p className="mt-1 text-sm text-slate-400">
             Visualize as aulas pagas da escola, sejam agendadas ou concluidas, filtrando por instrutor.
@@ -134,7 +134,7 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded border border-slate-200 bg-white p-5">
           <h2 className="mb-4 font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-            Últimas Aulas Concluíndas
+            Últimas Aulas Concluídas
           </h2>
           {latestCompleted.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-400">

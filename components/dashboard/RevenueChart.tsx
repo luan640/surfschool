@@ -21,7 +21,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
     <div className="bg-white border border-slate-200 rounded shadow-lg px-4 py-3 text-sm">
       <p className="font-semibold text-slate-600 mb-1">{label}</p>
       <p className="font-bold text-slate-800">Bruto: R$ {gross.toFixed(2).replace('.', ',')}</p>
-      <p className="font-semibold text-emerald-700">Liquido: R$ {net.toFixed(2).replace('.', ',')}</p>
+      <p className="font-semibold text-emerald-700">Líquido: R$ {net.toFixed(2).replace('.', ',')}</p>
       <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">Taxas: R$ {fee.toFixed(2).replace('.', ',')}</p>
     </div>
   )

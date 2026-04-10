@@ -72,7 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Financeiro',
     items: [
       { href: '/dashboard/settings/payment-methods', label: 'Meio de pagamento', icon: CreditCard },
-      { href: '/dashboard/purchases', label: 'Compras', icon: ShoppingBag },
+      { href: '/dashboard/purchases', label: 'Minhas vendas', icon: ShoppingBag },
       { href: '/dashboard/refunds', label: 'Reembolsos', icon: RefreshCcw },
       { href: '/dashboard/commission-payments', label: 'Pagamentos', icon: CircleDollarSign },
     ],

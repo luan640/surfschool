@@ -177,7 +177,7 @@ export function InstructorForm({
   const profileSection = (
     <div className="bg-white border border-slate-200 rounded p-6 space-y-4">
       <h2 className="font-condensed text-base font-bold uppercase text-slate-600 tracking-wide">
-        Informacoes
+        Informaçoes
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

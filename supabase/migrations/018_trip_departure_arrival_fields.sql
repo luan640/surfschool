@@ -10,3 +10,4 @@ set
   arrival_at = coalesce(arrival_at, ends_at)
 where departure_at is null
    or arrival_at is null;
+2

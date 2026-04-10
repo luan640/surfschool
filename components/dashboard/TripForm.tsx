@@ -84,13 +84,13 @@ export function TripForm({ trip }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4 rounded border border-slate-200 bg-white p-6">
         <div>
-          <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Informacoes da trip</h2>
-          <p className="mt-1 text-sm text-slate-500">Defina o conteudo, o periodo e o valor da experiencia.</p>
+          <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Informaçoes da trip</h2>
+          <p className="mt-1 text-sm text-slate-500">Defina o conteúdo, o período e o valor da experiência.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Titulo *</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Título *</label>
             <Input name="title" required defaultValue={trip?.title ?? ''} placeholder="Trip para Fernando de Noronha" icon={<Tag size={14} />} />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -102,7 +102,7 @@ export function TripForm({ trip }: Props) {
             <Input name="summary" defaultValue={trip?.summary ?? ''} placeholder="Imersao de 4 dias com surf, video analise e grupo reduzido." />
           </div>
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Descricao</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Descrição</label>
             <textarea
               name="description"
               rows={6}
