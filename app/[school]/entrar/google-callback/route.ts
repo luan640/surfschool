@@ -34,7 +34,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .maybeSingle()
 
   if (!profile) {
-    return NextResponse.redirect(new URL(`/${slug}/entrar?mode=complete&next=${dest}`, request.url))
+    // Auto-replicate profile from another school if it exists
+    const { data: existingProfile } = await supabase
+      .from('student_profiles')
+      .select('full_name, email, phone, cpf, birth_date')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingProfile) {
+      await supabase.from('student_profiles').insert({
+        user_id: user.id,
+        school_id: school.id,
+        full_name: existingProfile.full_name,
+        email: existingProfile.email,
+        phone: existingProfile.phone,
+        cpf: existingProfile.cpf,
+        birth_date: existingProfile.birth_date,
+      })
+    } else {
+      return NextResponse.redirect(new URL(`/${slug}/entrar?mode=complete&next=${dest}`, request.url))
+    }
   }
 
   const destination = dest === 'minhas-aulas' ? `/${slug}/minhas-aulas` : `/${slug}/agendar`
