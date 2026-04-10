@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Filter, ReceiptText, RefreshCcw, Search, TicketPercent, X } from 'lucide-react'
+import { CalendarDays, Filter, RefreshCcw, Search, TicketPercent, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { refundSale } from '@/actions/sales-history'
 import { Button } from '@/components/ui/button'
@@ -15,13 +15,14 @@ interface Props {
   sales: SalesHistoryEntry[]
 }
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 25
 
 export function SalesHistoryPageClient({ sales }: Props) {
   const router = useRouter()
   const { success, error: showError } = useToast()
   const [currentPage, setCurrentPage] = useState(1)
   const [filterType, setFilterType] = useState('')
+  const [filterOrigin, setFilterOrigin] = useState<'online' | 'presencial' | ''>('')
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
   const [filterQuery, setFilterQuery] = useState('')
@@ -32,6 +33,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
       if (filterType && sale.kind !== filterType) return false
+      if (filterOrigin && sale.origin !== filterOrigin) return false
 
       const saleDate = sale.created_at.slice(0, 10)
       if (filterFrom && saleDate < filterFrom) return false
@@ -55,7 +57,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
 
       return true
     })
-  }, [sales, filterFrom, filterQuery, filterTo, filterType])
+  }, [sales, filterFrom, filterOrigin, filterQuery, filterTo, filterType])
 
   const paginatedSales = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE
@@ -64,10 +66,11 @@ export function SalesHistoryPageClient({ sales }: Props) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [filterFrom, filterQuery, filterTo, filterType])
+  }, [filterFrom, filterOrigin, filterQuery, filterTo, filterType])
 
   function clearFilters() {
     setFilterType('')
+    setFilterOrigin('')
     setFilterFrom('')
     setFilterTo('')
     setFilterQuery('')
@@ -91,7 +94,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
 
       const result = await refundSale(formData)
       if (!result.success) {
-        showError('Nao foi possivel reembolsar a venda.', result.error)
+        showError('Não foi possível reembolsar a venda.', result.error)
         return
       }
 
@@ -101,7 +104,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
       router.refresh()
     } catch (error) {
       showError(
-        'Nao foi possivel reembolsar a venda.',
+        'Não foi possível reembolsar a venda.',
         error instanceof Error ? error.message : 'Erro inesperado ao processar o reembolso.',
       )
     } finally {
@@ -113,7 +116,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
     <div className="dashboard-page">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
-          Historico de vendas
+          Histórico de vendas
         </h1>
         <p className="mt-1 text-sm text-slate-400">
           Consulte as vendas da plataforma, filtre os registros e execute reembolsos no Mercado Pago.
@@ -135,18 +138,31 @@ export function SalesHistoryPageClient({ sales }: Props) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Tipo</label>
             <select
               value={filterType}
               onChange={(event) => setFilterType(event.target.value)}
-              className="h-11 rounded-sm border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-[var(--primary)] focus:outline-none"
+              className="h-10 rounded border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--primary)] focus:outline-none"
             >
               <option value="">Todos</option>
               <option value="single_lesson">Aula avulsa</option>
               <option value="package">Pacote</option>
               <option value="trip">Trip</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Origem</label>
+            <select
+              value={filterOrigin}
+              onChange={(event) => setFilterOrigin(event.target.value as 'online' | 'presencial' | '')}
+              className="h-10 rounded border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-[var(--primary)] focus:outline-none"
+            >
+              <option value="">Todas</option>
+              <option value="online">Online</option>
+              <option value="presencial">Presencial</option>
             </select>
           </div>
 
@@ -165,7 +181,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
             <Input
               value={filterQuery}
               onChange={(event) => setFilterQuery(event.target.value)}
-              placeholder="Cliente, referencia ou pagamento"
+              placeholder="Cliente ou referência"
               icon={<Search size={14} />}
             />
           </div>
@@ -197,92 +213,83 @@ export function SalesHistoryPageClient({ sales }: Props) {
             <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
-                  <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                    <th className="px-5 py-3">Venda</th>
-                    <th className="px-5 py-3">Cliente</th>
-                    <th className="px-5 py-3">Data</th>
-                    <th className="px-5 py-3">Valor</th>
-                    <th className="px-5 py-3">Meio</th>
-                    <th className="px-5 py-3">Cupom</th>
-                    <th className="px-5 py-3">Pagamento</th>
-                    <th className="px-5 py-3">Mercado Pago</th>
-                    <th className="px-5 py-3 text-right">Acoes</th>
+                  <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3">Venda</th>
+                    <th className="px-4 py-3">Cliente</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Data</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">Valor</th>
+                    <th className="px-4 py-3">Origem</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Meio de pagto.</th>
+                    <th className="px-4 py-3">Cupom</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Acoes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginatedSales.map((sale) => (
-                    <tr key={`${sale.kind}:${sale.id}`} className="align-top">
-                      <td className="px-5 py-4">
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-full bg-[var(--primary)]/10 p-2 text-[var(--primary)]">
-                            <ReceiptText size={15} />
+                    <tr key={`${sale.kind}:${sale.id}`} className="align-middle hover:bg-slate-50/60">
+                      <td className="px-4 py-3 max-w-[180px]">
+                        <div className="font-medium text-slate-800 truncate">{sale.title}</div>
+                        {sale.external_reference && (
+                          <div className="mt-0.5 max-w-[160px] truncate text-xs text-slate-400" title={sale.external_reference}>
+                            {sale.external_reference}
                           </div>
-                          <div>
-                            <div className="font-semibold text-slate-800">{sale.title}</div>
-                            <div className="mt-1 text-xs text-slate-400">
-                              {sale.external_reference ?? '--'}
-                            </div>
-                          </div>
-                        </div>
+                        )}
+                        {sale.mercadopago_payment_id && (
+                          <div className="mt-0.5 text-xs text-slate-400">MP: {sale.mercadopago_payment_id}</div>
+                        )}
                       </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-700">
-                        <div className="font-medium text-slate-800">{sale.customer_name}</div>
-                        {sale.customer_email && <div className="text-xs text-slate-400">{sale.customer_email}</div>}
+                      <td className="px-4 py-3 max-w-[160px]">
+                        <div className="truncate text-sm font-medium text-slate-800">{sale.customer_name}</div>
                         {sale.customer_phone && <div className="text-xs text-slate-400">{sale.customer_phone}</div>}
                       </td>
 
-                      <td className="px-5 py-4 text-sm whitespace-nowrap text-slate-600">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
                         <div>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</div>
                         <div className="text-xs text-slate-400">
                           {new Date(sale.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <div className="font-condensed text-2xl font-bold text-[var(--primary)]">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <span className="font-condensed text-lg font-bold text-[var(--primary)]">
                           {formatPrice(Number(sale.amount))}
-                        </div>
+                        </span>
                       </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-600 whitespace-nowrap">
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${sale.origin === 'online' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {sale.origin === 'online' ? 'Online' : 'Presencial'}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
                         {sale.payment_method_label}
                       </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-600">
+                      <td className="px-4 py-3">
                         {sale.coupon_usage.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1">
                             {sale.coupon_usage.map((coupon) => (
-                              <span
-                                key={coupon}
-                                className="inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700"
-                              >
+                              <span key={coupon} className="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">
                                 {coupon}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          '--'
+                          <span className="text-xs text-slate-300">—</span>
                         )}
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <span className={statusPillClass(sale.payment_status)}>
                           {statusLabel(sale.payment_status)}
                         </span>
-                        <div className="mt-2 text-xs text-slate-400">
-                          {sale.sale_status}
-                        </div>
+                        <div className="mt-1 text-xs text-slate-400">{sale.sale_status}</div>
                       </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-600">
-                        <div>ID: {sale.mercadopago_payment_id ?? '--'}</div>
-                        <div className="text-xs text-slate-400">
-                          {sale.mercadopago_status_detail ?? sale.mercadopago_status ?? '--'}
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         {sale.can_refund ? (
                           <Button
                             type="button"
@@ -298,9 +305,7 @@ export function SalesHistoryPageClient({ sales }: Props) {
                             {refundingId === sale.id ? 'Reembolsando...' : 'Reembolsar'}
                           </Button>
                         ) : (
-                          <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                            --
-                          </span>
+                          <span className="text-xs text-slate-300">—</span>
                         )}
                       </td>
                     </tr>
@@ -317,7 +322,12 @@ export function SalesHistoryPageClient({ sales }: Props) {
                       <div className="font-semibold text-slate-800">{sale.title}</div>
                       <div className="mt-1 text-xs text-slate-400">{sale.external_reference ?? '--'}</div>
                     </div>
-                    <span className={statusPillClass(sale.payment_status)}>{statusLabel(sale.payment_status)}</span>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className={statusPillClass(sale.payment_status)}>{statusLabel(sale.payment_status)}</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${sale.origin === 'online' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {sale.origin === 'online' ? 'Online' : 'Presencial'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="mt-3 grid gap-3 text-sm text-slate-600">

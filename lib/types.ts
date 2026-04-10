@@ -222,6 +222,7 @@ export interface InstructorCommissionPayment {
 export interface SalesHistoryEntry {
   id: string
   kind: 'single_lesson' | 'package' | 'trip'
+  origin: 'online' | 'presencial'
   title: string
   customer_name: string
   customer_email: string | null

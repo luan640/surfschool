@@ -11,10 +11,10 @@ import { MercadoPagoCheckoutBrick } from '@/components/checkout/MercadoPagoCheck
 import { filterBookableSlots, getDateKeyFromDate, getDefaultBookingRules, getSchoolNowDateKey, isDateWithinBookingWindow } from '@/lib/booking-rules'
 import { createClient } from '@/lib/supabase/client'
 import type { BookingWizardState, Instructor, LessonPackage, SchoolRules } from '@/lib/types'
-import { formatDate, formatPrice, initials, MONTHS_PT, WEEKDAYS_PT } from '@/lib/utils'
+import { formatDate, formatPrice, initials } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
-const SINGLE_STEPS = ['Produto', 'Instrutor', 'Data', 'Horarios', 'Confirmar'] as const
-const PACKAGE_STEPS = ['Produto', 'Instrutor', 'Aulas', 'Confirmar'] as const
+// Steps are built dynamically from translations in the component
 
 interface Props {
   params: Promise<{ school: string }>
@@ -22,6 +22,7 @@ interface Props {
 
 export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [slug, setSlug] = useState('')
   const [school, setSchool] = useState<{ id: string; name: string; address: string | null; primary_color: string; cta_color: string } | null>(null)
   const [schoolRules, setSchoolRules] = useState<SchoolRules | null>(null)
@@ -175,6 +176,9 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
       active = false
     }
   }, [authReady, school?.id, schoolRules?.trial_lesson_enabled])
+
+  const SINGLE_STEPS = [t.wizard_step_product, t.wizard_step_instructor, t.wizard_step_date, t.wizard_step_slots, t.wizard_step_confirm] as const
+  const PACKAGE_STEPS = [t.wizard_step_product, t.wizard_step_instructor, t.wizard_step_lessons, t.wizard_step_confirm] as const
 
   const isPackageFlow = wizard.selectionType === 'package' && !!wizard.selectedPackage
   const isTrialFlow = wizard.selectionType === 'trial'
@@ -343,7 +347,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   function selectInstructor(instructor: Instructor) {
     setError(null)
-    setPackageStepMessage(isPackageFlow ? 'Agora escolha a data da aula 1.' : null)
+    setPackageStepMessage(isPackageFlow ? t.wizard_choose_lesson_date(1) : null)
     setWizard((current) => ({
       ...current,
       selectedInstructor: instructor,
@@ -372,9 +376,9 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         if (nextIncompleteIndex >= 0) {
           const nextDate = nextLessons[nextIncompleteIndex]?.date
           setCalendarMonth(nextDate ?? currentDate ?? new Date())
-          setPackageStepMessage(`Sucesso! Agora escolha a data da aula ${nextLessons[nextIncompleteIndex].sequence}.`)
+          setPackageStepMessage(t.wizard_lesson_success_next(nextLessons[nextIncompleteIndex].sequence))
         } else {
-          setPackageStepMessage('Sucesso! Todas as aulas do pacote foram preenchidas.')
+          setPackageStepMessage(t.wizard_lesson_success_all)
         }
 
         return {
@@ -467,8 +471,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   const singleCalendarUrl = !isPackageFlow && wizard.selectedDate && wizard.selectedSlots.length > 0 && school && wizard.selectedInstructor
     ? buildGoogleCalendarUrl({
-        title: `Aula na ${school.name}`,
-        description: `Instrutor: ${wizard.selectedInstructor.full_name}\nHorarios: ${wizard.selectedSlots.join(', ')}`,
+        title: t.wizard_gcal_lesson_at(school.name),
+        description: `${t.wizard_gcal_instructor(wizard.selectedInstructor.full_name)}\n${t.wizard_gcal_slots(wizard.selectedSlots.join(', '))}`,
         date: wizard.selectedDate,
         slots: wizard.selectedSlots,
       })
@@ -481,10 +485,10 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         .filter((lesson) => lesson.date && lesson.slots.length > 0)
         .map((lesson) => ({
           sequence: lesson.sequence,
-          label: `Aula ${lesson.sequence}`,
+          label: t.wizard_lesson_seq(lesson.sequence),
           url: buildGoogleCalendarUrl({
-            title: `${wizard.selectedPackage?.name ?? 'Pacote de aulas'} - ${school.name}`,
-            description: `Instrutor: ${selectedInstructorName}\nHorarios: ${lesson.slots.join(', ')}`,
+            title: `${wizard.selectedPackage?.name ?? t.wizard_packages_fallback} - ${school.name}`,
+            description: `${t.wizard_gcal_instructor(selectedInstructorName)}\n${t.wizard_gcal_slots(lesson.slots.join(', '))}`,
             date: lesson.date!,
             slots: lesson.slots,
           }),
@@ -502,7 +506,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         </header>
         <div className="mx-auto w-full max-w-md px-3 py-6 sm:max-w-2xl sm:px-5">
           <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-6 text-[14px] text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-            Carregando sua area de agendamento...
+            {t.wizard_loading}
           </div>
         </div>
       </div>
@@ -542,7 +546,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 <MapPin size={15} />
               </span>
               <div>
-                <div className="text-[12px] font-medium text-slate-500">Localização</div>
+                <div className="text-[12px] font-medium text-slate-500">{t.wizard_location}</div>
                 <div className="mt-1 text-[14px] font-medium">{school.address}</div>
               </div>
             </div>
@@ -551,8 +555,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
           {wizard.step === 1 && (
             <section className="space-y-4">
               <div>
-                <h1 className="text-[24px] font-semibold text-slate-900">Escolha o serviço</h1>
-                <p className="mt-1 text-[14px] text-slate-500">Selecione o formato de reserva para continuar.</p>
+                <h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_choose_service}</h1>
+                <p className="mt-1 text-[14px] text-slate-500">{t.wizard_choose_service_sub}</p>
               </div>
 
               <div className="inline-flex rounded-[14px] border border-slate-200 bg-white p-1 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
@@ -562,7 +566,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   className={`rounded-[10px] px-4 py-2 text-[14px] font-medium transition-colors ${productTab === 'single' ? 'text-white' : 'text-slate-500 hover:text-slate-800'}`}
                   style={productTab === 'single' ? { background: primaryColor } : undefined}
                 >
-                  Aulas
+                  {t.wizard_tab_lessons}
                 </button>
                 <button
                   type="button"
@@ -570,28 +574,28 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                   className={`rounded-[10px] px-4 py-2 text-[14px] font-medium transition-colors ${productTab === 'package' ? 'text-white' : 'text-slate-500 hover:text-slate-800'}`}
                   style={productTab === 'package' ? { background: ctaColor } : undefined}
                 >
-                  Pacotes
+                  {t.wizard_tab_packages}
                 </button>
               </div>
 
               {productTab === 'single' && schoolRules?.trial_lesson_enabled && trialLessonChecked && trialLessonEligible && (
                 <button type="button" onClick={chooseTrialLesson} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectionType === 'trial' ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
-                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: ctaColor }}><Check size={18} /></div><div className="flex-1"><div className="flex items-start justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">Aula experimental</div><div className="text-[16px] font-semibold" style={{ color: ctaColor }}>{formatPrice(0)}</div></div><p className="mt-1 text-[13px] text-slate-500">Disponivel apenas para a primeira reserva do aluno nesta escola.</p></div></div>
+                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: ctaColor }}><Check size={18} /></div><div className="flex-1"><div className="flex items-start justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">{t.wizard_trial_name}</div><div className="text-[16px] font-semibold" style={{ color: ctaColor }}>{formatPrice(0)}</div></div><p className="mt-1 text-[13px] text-slate-500">{t.wizard_trial_desc}</p></div></div>
                 </button>
               )}
 
               {productTab === 'single' ? (
                 <button type="button" onClick={chooseSingle} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectionType === 'single' ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
-                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: primaryColor }}><Clock size={18} /></div><div><div className="text-[16px] font-semibold text-slate-900">Aula avulsa</div><p className="mt-1 text-[13px] text-slate-500">Escolha dia, instrutor e horário para uma única aula.</p></div></div>
+                  <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: primaryColor }}><Clock size={18} /></div><div><div className="text-[16px] font-semibold text-slate-900">{t.wizard_single_name}</div><p className="mt-1 text-[13px] text-slate-500">{t.wizard_single_desc}</p></div></div>
                 </button>
               ) : packages.length === 0 ? (
                 <div className="rounded-[18px] border border-dashed border-slate-200 bg-white p-6 text-[14px] text-slate-500">
-                  Nenhum pacote disponivel no momento.
+                  {t.wizard_no_packages}
                 </div>
               ) : (
                 packages.map((pkg) => (
                   <button key={pkg.id} type="button" onClick={() => choosePackage(pkg)} className="w-full rounded-[18px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]" style={wizard.selectedPackage?.id === pkg.id ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}>
-                    <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: ctaColor }}><Package size={18} /></div><div className="flex-1"><div className="flex items-start justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">{pkg.name}</div><div className="text-[16px] font-semibold" style={{ color: primaryColor }}>{formatPrice(Number(pkg.price))}</div></div><p className="mt-1 text-[13px] text-slate-500">{pkg.lesson_count} aulas planejadas agora.</p>{pkg.description && <p className="mt-2 text-[13px] text-slate-500">{pkg.description}</p>}</div></div>
+                    <div className="flex items-start gap-3"><div className="rounded-[14px] p-3 text-white" style={{ background: ctaColor }}><Package size={18} /></div><div className="flex-1"><div className="flex items-start justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">{pkg.name}</div><div className="text-[16px] font-semibold" style={{ color: primaryColor }}>{formatPrice(Number(pkg.price))}</div></div><p className="mt-1 text-[13px] text-slate-500">{t.wizard_package_lessons_count(pkg.lesson_count)}</p>{pkg.description && <p className="mt-2 text-[13px] text-slate-500">{pkg.description}</p>}</div></div>
                   </button>
                 ))
               )}
@@ -600,7 +604,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {((!isPackageFlow && wizard.step === 2) || (isPackageFlow && wizard.step === 2)) && (
             <section className="space-y-4">
-              <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha o profissional</h1><p className="mt-1 text-[14px] text-slate-500">{isPackageFlow ? 'O instrutor sera o mesmo em todas as aulas do pacote.' : 'A disponibilidade considera o dia escolhido.'}</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_choose_pro}</h1><p className="mt-1 text-[14px] text-slate-500">{isPackageFlow ? t.wizard_choose_pro_sub_package : t.wizard_choose_pro_sub_single}</p></div>
               {eligibleInstructors.map((instructor) => (
                 <div
                   key={instructor.id}
@@ -641,14 +645,14 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {!isPackageFlow && wizard.step === 3 && (
             <section className="space-y-4">
-              <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha o dia</h1><p className="mt-1 text-[14px] text-slate-500">Selecione uma data com disponibilidade.</p></div>
-              <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={setSingleDate} ctaColor={ctaColor} />
+              <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_choose_date}</h1><p className="mt-1 text-[14px] text-slate-500">{t.wizard_choose_date_sub}</p></div>
+              <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={setSingleDate} ctaColor={ctaColor} months={t.months} weekdays={t.weekdays} />
             </section>
           )}
 
           {isPackageFlow && wizard.step === 3 && wizard.selectedInstructor && activePackageLesson && (
             <section className="space-y-5">
-              <div><h1 className="text-[24px] font-semibold text-slate-900">Monte as aulas do pacote</h1><p className="mt-1 text-[14px] text-slate-500">Preencha todas as {wizard.packageLessons.length} aulas. Voce pode editar qualquer uma antes de confirmar.</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_build_package}</h1><p className="mt-1 text-[14px] text-slate-500">{t.wizard_build_package_sub(wizard.packageLessons.length)}</p></div>
               <div className="grid gap-3 md:grid-cols-2">
                 {wizard.packageLessons.map((lesson, index) => {
                   const complete = !!lesson.date && lesson.slots.length > 0
@@ -657,30 +661,30 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                       key={lesson.sequence}
                       type="button"
                       onClick={() => {
-                        setPackageStepMessage(`Agora escolha a data da aula ${lesson.sequence}.`)
+                        setPackageStepMessage(`{t.wizard_choose_lesson_date(lesson.sequence)}`)
                         setWizard((current) => ({ ...current, activePackageLessonIndex: index }))
                         setCalendarMonth(lesson.date ?? new Date())
                       }}
                       className="rounded-[16px] border bg-white p-4 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
                       style={wizard.activePackageLessonIndex === index ? { borderColor: ctaColor, boxShadow: `0 0 0 1px ${ctaColor} inset` } : undefined}
                     >
-                      <div className="flex items-center justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">Aula {lesson.sequence}</div><span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{complete ? 'Concluida' : 'Pendente'}</span></div>
-                      <div className="mt-3 text-[13px] text-slate-500">{lesson.date ? formatDate(lesson.date) : 'Data nao escolhida'}</div>
-                      <div className="mt-1 text-[13px] text-slate-500">{lesson.slots.length > 0 ? lesson.slots.join(', ') : 'Horarios nao escolhidos'}</div>
+                      <div className="flex items-center justify-between gap-3"><div className="text-[16px] font-semibold text-slate-900">{t.wizard_lesson_label(lesson.sequence)}</div><span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{complete ? t.wizard_lesson_done : t.wizard_lesson_pending}</span></div>
+                      <div className="mt-3 text-[13px] text-slate-500">{lesson.date ? formatDate(lesson.date) : t.wizard_no_date}</div>
+                      <div className="mt-1 text-[13px] text-slate-500">{lesson.slots.length > 0 ? lesson.slots.join(', ') : t.wizard_no_slots}</div>
                     </button>
                   )
                 })}
               </div>
               <div ref={packagePlannerRef} className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-                <div className="mb-4 flex items-center gap-3"><div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">Aula {activePackageLesson.sequence} de {wizard.packageLessons.length}</div><div className="text-[13px] text-slate-500">{completedPackageLessons}/{wizard.packageLessons.length} preenchidas</div></div>
+                <div className="mb-4 flex items-center gap-3"><div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">{t.wizard_lesson_of(activePackageLesson.sequence, wizard.packageLessons.length)}</div><div className="text-[13px] text-slate-500">{t.wizard_lessons_filled(completedPackageLessons, wizard.packageLessons.length)}</div></div>
                 {packageStepMessage && (
                   <div className="mb-4 rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-700">
                     {packageStepMessage}
                   </div>
                 )}
                 <div className="space-y-4">
-                  <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={(date) => setPackageLessonDate(wizard.activePackageLessonIndex, date)} ctaColor={ctaColor} />
-                  <div className="text-[13px] text-slate-500">Escolha apenas 1 horario para cada aula. Ao selecionar, o sistema avanca para a proxima aula.</div>
+                  <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={(date) => setPackageLessonDate(wizard.activePackageLessonIndex, date)} ctaColor={ctaColor} months={t.months} weekdays={t.weekdays} />
+                  <div className="text-[13px] text-slate-500">{t.wizard_slot_hint}</div>
                   <SlotsGrid slots={slotOptions} selectedSlots={currentSlots} onToggle={toggleCurrentSlot} loading={slotsLoading} />
                 </div>
               </div>
@@ -689,7 +693,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {!isPackageFlow && wizard.step === 4 && wizard.selectedInstructor && (
             <section className="space-y-4">
-              <div><h1 className="text-[24px] font-semibold text-slate-900">Escolha os horarios</h1><p className="mt-1 text-[14px] text-slate-500">Selecione um ou mais slots para a aula.</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_choose_slots}</h1><p className="mt-1 text-[14px] text-slate-500">{t.wizard_choose_slots_sub}</p></div>
               <div className="rounded-[16px] border border-slate-200 bg-white p-4 text-[14px] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">{wizard.selectedInstructor.full_name} - {wizard.selectedDate ? formatDate(wizard.selectedDate) : ''}</div>
               <SlotsGrid slots={slotOptions} selectedSlots={currentSlots} onToggle={toggleCurrentSlot} loading={slotsLoading} />
             </section>
@@ -697,7 +701,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
           {wizard.step === finalStep && wizard.selectedInstructor && (
             <section className="space-y-4">
-              <div><h1 className="text-[24px] font-semibold text-slate-900">Confirmar agendamento</h1><p className="mt-1 text-[14px] text-slate-500">{isTrialFlow ? 'Revise a aula experimental e confirme a reserva gratuita.' : 'Revise o agendamento e escolha se prefere pagar agora ou pagar na hora.'}</p></div>
+              <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_confirm_title}</h1><p className="mt-1 text-[14px] text-slate-500">{isTrialFlow ? t.wizard_confirm_sub_trial : t.wizard_confirm_sub_default}</p></div>
               {false && (
                 <div className="overflow-hidden rounded border border-slate-200 bg-white">
                 <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Produto</div><div className="font-semibold text-slate-900">{isPackageFlow ? wizard.selectedPackage?.name : 'Aula avulsa'}</div></div>
@@ -727,7 +731,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 schoolId={school!.id}
                 selectionType={isPackageFlow ? 'package' : 'single'}
                 amount={totalAmount}
-                title={isPackageFlow ? wizard.selectedPackage?.name ?? 'Pacote de aulas' : isTrialFlow ? 'Aula experimental' : 'Aula avulsa'}
+                title={isPackageFlow ? wizard.selectedPackage?.name ?? t.wizard_packages_fallback : isTrialFlow ? t.wizard_trial_title : t.wizard_single_title}
                 onlineEnabled={isTrialFlow ? false : mercadoPagoReady}
                 description={isPackageFlow
                   ? `${wizard.packageLessons.length} aulas com ${wizard.selectedInstructor.full_name}`
@@ -742,8 +746,8 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 })) : undefined}
                 payerEmail={studentEmail}
                 payOnSiteOnly={isTrialFlow}
-                payOnSiteLabel={isTrialFlow ? 'Confirmar aula experimental' : undefined}
-                payOnSiteHint={isTrialFlow ? 'Esta aula é uma cortesia da escola.' : undefined}
+                payOnSiteLabel={isTrialFlow ? t.wizard_pay_trial_label : undefined}
+                payOnSiteHint={isTrialFlow ? t.wizard_pay_trial_hint : undefined}
                 isTrialLesson={isTrialFlow}
                 onApproved={() => { setError(null) }}
                 onPending={() => { setError(null) }}
@@ -764,10 +768,10 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
               onClick={() => goToStep(wizard.step - 1)}
               className="flex h-12 items-center justify-center rounded-[14px] border border-slate-200 bg-white px-5 text-[15px] font-medium text-slate-700"
             >
-              Voltar
+              {t.wizard_back}
             </button>
           )}
-          {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[16px] font-medium text-white disabled:opacity-40" style={{ background: primaryColor }}>Proximo<ArrowRight size={15} /></button>}
+          {wizard.step < finalStep && <button type="button" disabled={!canAdvance()} onClick={() => goToStep(wizard.step + 1)} className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[16px] font-medium text-white disabled:opacity-40" style={{ background: primaryColor }}>{t.wizard_next}<ArrowRight size={15} /></button>}
         </div>
       </div>
       )}
@@ -795,6 +799,8 @@ function CalendarSelector({
   onNext,
   onSelect,
   ctaColor,
+  months,
+  weekdays,
 }: {
   year: number
   month: number
@@ -803,15 +809,17 @@ function CalendarSelector({
   onNext: () => void
   onSelect: (date: Date) => void
   ctaColor: string
+  months: readonly string[]
+  weekdays: readonly string[]
 }) {
   return (
     <div className="space-y-3 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between">
         <button type="button" onClick={onPrev} className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50"><ChevronLeft size={16} /></button>
-        <div className="text-[16px] font-semibold text-slate-900">{MONTHS_PT[month]} {year}</div>
+        <div className="text-[16px] font-semibold text-slate-900">{months[month]} {year}</div>
         <button type="button" onClick={onNext} className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50"><ChevronRight size={16} /></button>
       </div>
-      <div className="grid grid-cols-7 gap-1">{WEEKDAYS_PT.map((day) => <div key={day} className="py-1 text-center text-[10px] font-medium text-slate-400">{day.slice(0, 3)}</div>)}</div>
+      <div className="grid grid-cols-7 gap-1">{weekdays.map((day) => <div key={day} className="py-1 text-center text-[10px] font-medium text-slate-400">{day}</div>)}</div>
       <div className="grid grid-cols-7 gap-1.5">
         {cells.map((cell, index) =>
           cell ? (
@@ -838,12 +846,13 @@ function SlotsGrid({
   onToggle: (time: string) => void
   loading: boolean
 }) {
+  const { t } = useLanguage()
   if (loading) {
-    return <div className="rounded-[18px] border border-slate-200 bg-white p-6 text-center text-[14px] font-medium text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">Carregando horarios disponiveis...</div>
+    return <div className="rounded-[18px] border border-slate-200 bg-white p-6 text-center text-[14px] font-medium text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">{t.wizard_slots_loading}</div>
   }
 
   if (slots.length === 0) {
-    return <div className="rounded-[18px] border border-dashed border-slate-200 bg-white p-6 text-center text-[14px] text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">Sem horarios disponiveis.</div>
+    return <div className="rounded-[18px] border border-dashed border-slate-200 bg-white p-6 text-center text-[14px] text-slate-500 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">{t.wizard_slots_empty}</div>
   }
 
   return (

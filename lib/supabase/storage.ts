@@ -5,7 +5,7 @@ export async function ensurePublicBucket(bucketName: string) {
   const { data: buckets, error: listError } = await admin.storage.listBuckets()
 
   if (listError) {
-    throw new Error(`Nao foi possivel listar os buckets do storage: ${listError.message}`)
+    throw new Error(`Não foi possível listar os buckets do storage: ${listError.message}`)
   }
 
   const exists = (buckets ?? []).some((bucket) => bucket.name === bucketName || bucket.id === bucketName)
@@ -17,6 +17,6 @@ export async function ensurePublicBucket(bucketName: string) {
   })
 
   if (createError && !createError.message.toLowerCase().includes('already exists')) {
-    throw new Error(`Nao foi possivel criar o bucket ${bucketName}: ${createError.message}`)
+    throw new Error(`Não foi possível criar o bucket ${bucketName}: ${createError.message}`)
   }
 }

@@ -27,7 +27,7 @@ export function OwnerRegisterForm({ mode }: { mode: RegisterMode }) {
 
     if (result && !result.success) {
       setError(result.error)
-      showError(isCompleteMode ? 'Nao foi possivel concluir o cadastro da escola.' : 'Nao foi possivel criar a conta.', result.error)
+      showError(isCompleteMode ? 'Não foi possível concluir o cadastro da escola.' : 'Não foi possível criar a conta.', result.error)
       setLoading(false)
       return
     }

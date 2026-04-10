@@ -34,13 +34,14 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   const [agreedAmount, setAgreedAmount] = useState(() =>
     booking ? Number(booking.total_amount).toFixed(2).replace('.', ',') : '',
   )
+  const [paymentMethod, setPaymentMethod] = useState('cash')
   const { success, error: showError } = useToast()
 
   async function change(next: BookingStatus) {
     setLoading(true)
     const result = await updateBookingStatus(bookingId, next)
     if (!result.success) {
-      showError('Nao foi possivel atualizar o agendamento.', result.error)
+      showError('Não foi possível atualizar o agendamento.', result.error)
       setLoading(false)
       return
     }
@@ -57,14 +58,14 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   async function handleConfirmPayment() {
     const normalizedAmount = parseCurrencyInput(agreedAmount)
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
-      showError('Nao foi possivel confirmar o pagamento.', 'Informe o valor acordado para o pagamento presencial.')
+      showError('Não foi possível confirmar o pagamento.', 'Informe o valor acordado para o pagamento presencial.')
       return false
     }
 
     setLoading(true)
-    const result = await confirmBookingPayment(bookingId, normalizedAmount)
+    const result = await confirmBookingPayment(bookingId, normalizedAmount, paymentMethod)
     if (!result.success) {
-      showError('Nao foi possivel confirmar o pagamento.', result.error)
+      showError('Não foi possível confirmar o pagamento.', result.error)
       setLoading(false)
       return false
     }
@@ -194,11 +195,11 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                   <p>
                     <span className="font-semibold text-slate-800">Aluno:</span>{' '}
-                    {booking.student?.full_name ?? 'Nao informado'}
+                    {booking.student?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
-                    {booking.instructor?.full_name ?? 'Nao informado'}
+                    {booking.instructor?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
@@ -214,19 +215,48 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
               )}
 
               {booking && !booking.payment_transaction_id && (
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Valor acordado
-                  </label>
-                  <Input
-                    value={agreedAmount}
-                    onChange={(event) => setAgreedAmount(event.target.value)}
-                    inputMode="decimal"
-                    placeholder="0,00"
-                  />
-                  <p className="text-xs text-slate-500">
-                    O valor presencial pode ser ajustado aqui antes de confirmar o pagamento.
-                  </p>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Valor acordado
+                    </label>
+                    <Input
+                      value={agreedAmount}
+                      onChange={(event) => setAgreedAmount(event.target.value)}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                    />
+                    <p className="text-xs text-slate-500">
+                      O valor presencial pode ser ajustado aqui antes de confirmar o pagamento.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Método de pagamento
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'cash',   label: 'Dinheiro' },
+                        { value: 'pix',    label: 'Pix' },
+                        { value: 'debit_card',  label: 'Cartão de débito' },
+                        { value: 'credit_card', label: 'Cartão de crédito' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setPaymentMethod(opt.value)}
+                          className={`rounded border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                            paymentMethod === opt.value
+                              ? 'border-slate-800 bg-slate-800 text-white'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -272,11 +302,11 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                   <p>
                     <span className="font-semibold text-slate-800">Aluno:</span>{' '}
-                    {booking.student?.full_name ?? 'Nao informado'}
+                    {booking.student?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
-                    {booking.instructor?.full_name ?? 'Nao informado'}
+                    {booking.instructor?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
@@ -332,11 +362,11 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                   <p>
                     <span className="font-semibold text-slate-800">Aluno:</span>{' '}
-                    {booking.student?.full_name ?? 'Nao informado'}
+                    {booking.student?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
-                    {booking.instructor?.full_name ?? 'Nao informado'}
+                    {booking.instructor?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}
@@ -393,11 +423,11 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                   <p>
                     <span className="font-semibold text-slate-800">Aluno:</span>{' '}
-                    {booking.student?.full_name ?? 'Nao informado'}
+                    {booking.student?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Instrutor:</span>{' '}
-                    {booking.instructor?.full_name ?? 'Nao informado'}
+                    {booking.instructor?.full_name ?? 'Não informado'}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}

@@ -51,6 +51,7 @@ export function BookingsPageClient({ bookings, students, instructors, bookingRul
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
   const [originFilter, setOriginFilter] = useState<'online' | 'presencial' | ''>('')
   const [paymentFilter, setPaymentFilter] = useState<'paid' | 'pending' | ''>('')
+  const [lessonDateFilter, setLessonDateFilter] = useState('')
   const pageSize = 10
 
   function resetFilters() {
@@ -58,10 +59,11 @@ export function BookingsPageClient({ bookings, students, instructors, bookingRul
     setStatusFilter('')
     setOriginFilter('')
     setPaymentFilter('')
+    setLessonDateFilter('')
     setCurrentPage(1)
   }
 
-  const hasActiveFilters = query || statusFilter || originFilter || paymentFilter
+  const hasActiveFilters = query || statusFilter || originFilter || paymentFilter || lessonDateFilter
 
   const filteredBookings = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -75,9 +77,10 @@ export function BookingsPageClient({ bookings, students, instructors, bookingRul
       if (originFilter === 'online' && !booking.payment_transaction_id) return false
       if (originFilter === 'presencial' && booking.payment_transaction_id) return false
       if (paymentFilter && booking.payment_status !== paymentFilter) return false
+      if (lessonDateFilter && booking.lesson_date !== lessonDateFilter) return false
       return true
     })
-  }, [bookings, query, statusFilter, originFilter, paymentFilter])
+  }, [bookings, query, statusFilter, originFilter, paymentFilter, lessonDateFilter])
 
   const paginatedBookings = useMemo(() => {
     const start = (currentPage - 1) * pageSize
@@ -121,6 +124,13 @@ export function BookingsPageClient({ bookings, students, instructors, bookingRul
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              value={lessonDateFilter}
+              onChange={(e) => { setLessonDateFilter(e.target.value); setCurrentPage(1) }}
+              title="Filtrar por data da aula"
+              className="h-10 rounded border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 focus:outline-none focus:border-slate-300"
+            />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as BookingStatus | ''); setCurrentPage(1) }}
@@ -371,5 +381,5 @@ function getBookingOriginLabel(booking: Booking) {
 }
 
 function getBookingPaymentLabel(booking: Booking) {
-  return booking.payment_method ? PAYMENT_METHOD_LABEL[booking.payment_method] ?? 'Nao informado' : 'Nao informado'
+  return booking.payment_method ? PAYMENT_METHOD_LABEL[booking.payment_method] ?? 'Não informado' : 'Não informado'
 }

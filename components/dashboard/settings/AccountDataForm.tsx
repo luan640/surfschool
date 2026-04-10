@@ -25,7 +25,7 @@ export function AccountDataForm({ school, status, action }: Props) {
       success('Dados da conta atualizados com sucesso.')
     }
     if (status === 'error') {
-      showError('Nao foi possivel salvar os dados da conta.')
+      showError('Não foi possível salvar os dados da conta.')
     }
   }, [showError, status, success])
 
@@ -62,7 +62,7 @@ export function AccountDataForm({ school, status, action }: Props) {
       </div>
 
       {status === 'saved' && <Banner tone="success" text="Dados da conta atualizados com sucesso." />}
-      {status === 'error' && <Banner tone="error" text="Nao foi possivel salvar os dados da conta." />}
+      {status === 'error' && <Banner tone="error" text="Não foi possível salvar os dados da conta." />}
 
       <form action={action} className="space-y-6">
         <div className="space-y-4 rounded border border-slate-200 bg-white p-6">

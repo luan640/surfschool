@@ -53,7 +53,7 @@ export function RulesForm({ rules, status, action }: Props) {
       success('Regras atualizadas com sucesso.')
     }
     if (status === 'error') {
-      showError('Nao foi possivel salvar as regras da escola.')
+      showError('Não foi possível salvar as regras da escola.')
     }
   }, [showError, status, success])
 
@@ -69,7 +69,7 @@ export function RulesForm({ rules, status, action }: Props) {
       </div>
 
       {status === 'saved' && <Banner tone="success" text="Regras atualizadas com sucesso." />}
-      {status === 'error' && <Banner tone="error" text="Nao foi possivel salvar as regras da escola." />}
+      {status === 'error' && <Banner tone="error" text="Não foi possível salvar as regras da escola." />}
 
       <form action={action} className="space-y-6">
         <section className="space-y-4 rounded border border-slate-200 bg-white p-6">

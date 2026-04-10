@@ -81,7 +81,7 @@ export async function createDiscountCoupon(formData: FormData): Promise<ActionRe
       success: false,
       error: error?.message.includes('discount_coupons_code_unique')
         ? 'Ja existe um cupom com este codigo.'
-        : error?.message ?? 'Nao foi possivel criar o cupom.',
+        : error?.message ?? 'Não foi possível criar o cupom.',
     }
   }
 

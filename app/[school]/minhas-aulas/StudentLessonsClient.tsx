@@ -8,15 +8,9 @@ import { Calendar, Clock, ArrowLeft, ArrowRight, History, Loader2, Mail, Phone, 
 import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import type { Booking, StudentProfile } from '@/lib/types'
 import { formatPrice, initials } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type StudentTabKey = 'upcoming' | 'history' | 'profile'
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pendente',
-  confirmed: 'Confirmada',
-  completed: 'Concluida',
-  cancelled: 'Cancelada',
-}
 
 export function StudentLessonsClient({
   school,
@@ -31,6 +25,7 @@ export function StudentLessonsClient({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t, dateLocale } = useLanguage()
   const [activeTab, setActiveTab] = useState<StudentTabKey>(initialTab)
   const [loadingTab, setLoadingTab] = useState<StudentTabKey | null>(null)
   const [navigatingBack, setNavigatingBack] = useState(false)
@@ -85,30 +80,35 @@ export function StudentLessonsClient({
       <SurfLoading
         compact
         fitParent
-        title="Carregando"
-        subtitle="Atualizando o conteudo do seu painel."
+        title={t.lessons_loading_title}
+        subtitle={t.lessons_loading_subtitle}
       />
     </section>
   ) : activeTab === 'upcoming' ? (
     <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold text-slate-900">Próximas aulas</h1>
+          <h1 className="text-[22px] font-semibold text-slate-900">{t.lessons_upcoming_title}</h1>
           <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-            Visualize suas reservas confirmadas e acompanhe o que vem pela frente.
+            {t.lessons_upcoming_desc}
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full bg-[var(--primary)]/8 px-2.5 py-1 text-[11px] font-semibold text-[var(--primary)]">
           <Calendar size={12} />
-          {upcoming.length} futuras
+          {t.lessons_upcoming_count(upcoming.length)}
         </div>
       </div>
       <div className="mt-4 space-y-3 transition-opacity duration-200">
         {upcoming.length === 0 ? (
-          <EmptyLessonState label="Voce nao tem aulas futuras no momento." />
+          <EmptyLessonState label={t.lessons_upcoming_empty} />
         ) : (
           upcoming.map((booking) => (
-            <LessonCard key={booking.id} booking={booking} />
+            <LessonCard key={booking.id} booking={booking} statusLabel={{
+              pending: t.lessons_status_pending,
+              confirmed: t.lessons_status_confirmed,
+              completed: t.lessons_status_completed,
+              cancelled: t.lessons_status_cancelled,
+            }} dateLocale={dateLocale} />
           ))
         )}
       </div>
@@ -117,22 +117,27 @@ export function StudentLessonsClient({
     <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-[22px] font-semibold text-slate-900">Historico</h2>
+          <h2 className="text-[22px] font-semibold text-slate-900">{t.lessons_history_title}</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-            Revise aulas passadas e reservas canceladas no mesmo painel.
+            {t.lessons_history_desc}
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
           <History size={12} />
-          {history.length} registros
+          {t.lessons_history_count(history.length)}
         </div>
       </div>
       <div className="mt-4 space-y-3 transition-opacity duration-200">
         {history.length === 0 ? (
-          <EmptyLessonState label="Seu historico de aulas aparecera aqui." />
+          <EmptyLessonState label={t.lessons_history_empty} />
         ) : (
           history.map((booking) => (
-            <LessonCard key={booking.id} booking={booking} />
+            <LessonCard key={booking.id} booking={booking} statusLabel={{
+              pending: t.lessons_status_pending,
+              confirmed: t.lessons_status_confirmed,
+              completed: t.lessons_status_completed,
+              cancelled: t.lessons_status_cancelled,
+            }} dateLocale={dateLocale} />
           ))
         )}
       </div>
@@ -141,22 +146,22 @@ export function StudentLessonsClient({
     <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-[22px] font-semibold text-slate-900">Perfil</h2>
+          <h2 className="text-[22px] font-semibold text-slate-900">{t.lessons_profile_title}</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-            Confira os dados vinculados ao seu cadastro nesta escola.
+            {t.lessons_profile_desc}
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
           <UserRound size={12} />
-          Cadastro
+          {t.lessons_profile_badge}
         </div>
       </div>
 
       <div className="mt-4 space-y-3 transition-opacity duration-200">
-        <ProfileItem label="Nome" value={profile?.full_name ?? 'Nao informado'} icon={<UserRound size={14} />} />
-        <ProfileItem label="E-mail" value={profile?.email ?? 'Nao informado'} icon={<Mail size={14} />} />
-        <ProfileItem label="Telefone" value={profile?.phone ?? 'Nao informado'} icon={<Phone size={14} />} />
-        <ProfileItem label="Data de nascimento" value={profile?.birth_date ? new Date(`${profile.birth_date}T00:00:00`).toLocaleDateString('pt-BR') : 'Nao informada'} icon={<Calendar size={14} />} />
+        <ProfileItem label={t.lessons_field_name} value={profile?.full_name ?? t.lessons_not_informed} icon={<UserRound size={14} />} />
+        <ProfileItem label={t.lessons_field_email} value={profile?.email ?? t.lessons_not_informed} icon={<Mail size={14} />} />
+        <ProfileItem label={t.lessons_field_phone} value={profile?.phone ?? t.lessons_not_informed} icon={<Phone size={14} />} />
+        <ProfileItem label={t.lessons_field_birth} value={profile?.birth_date ? new Date(`${profile.birth_date}T00:00:00`).toLocaleDateString(dateLocale) : t.lessons_not_informed_f} icon={<Calendar size={14} />} />
       </div>
     </section>
   )
@@ -192,22 +197,22 @@ export function StudentLessonsClient({
             <div className="min-w-0 flex-1">
               <div className="truncate text-[15px] font-semibold text-slate-900">{school.name}</div>
               <div className="mt-0.5 truncate text-[11px] text-slate-500">
-                {school.tagline || 'Acompanhe suas aulas e organize suas proximas reservas.'}
+                {school.tagline || t.lessons_tagline_default}
               </div>
             </div>
             <Link
               href={`/${school.slug}/agendar`}
               className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 px-3 text-[11px] font-semibold text-slate-600"
             >
-              Agendar
+              {t.lessons_book}
             </Link>
           </div>
 
           <div className="mt-4 flex items-center gap-5 overflow-x-auto border-b border-slate-100 pb-1">
             {[
-              { label: 'Próximas aulas', key: 'upcoming' as const },
-              { label: 'Histórico', key: 'history' as const },
-              { label: 'Perfil', key: 'profile' as const },
+              { label: t.lessons_tab_upcoming, key: 'upcoming' as const },
+              { label: t.lessons_tab_history, key: 'history' as const },
+              { label: t.lessons_tab_profile, key: 'profile' as const },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -236,7 +241,7 @@ export function StudentLessonsClient({
             href={`/${school.slug}/agendar`}
             className="inline-flex h-12 flex-1 items-center justify-center rounded-[14px] bg-[var(--primary)] px-4 text-[16px] font-medium text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition-transform active:scale-[0.99]"
           >
-            Agendar agora
+            {t.lessons_book_now}
             <ArrowRight size={15} className="ml-2" />
           </Link>
         </div>
@@ -245,18 +250,18 @@ export function StudentLessonsClient({
   )
 }
 
-function LessonCard({ booking }: { booking: Booking }) {
+function LessonCard({ booking, statusLabel, dateLocale }: { booking: Booking; statusLabel: Record<string, string>; dateLocale: string }) {
   return (
     <article className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold text-slate-900">
-            {booking.instructor?.full_name ?? 'Instrutor'}
+            {booking.instructor?.full_name ?? 'Instructor'}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
             <Clock size={12} />
             <span className="truncate">
-              {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {booking.time_slots.join(', ')}
+              {new Date(`${booking.lesson_date}T00:00:00`).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric' })} - {booking.time_slots.join(', ')}
             </span>
           </div>
         </div>
@@ -266,7 +271,7 @@ function LessonCard({ booking }: { booking: Booking }) {
             {formatPrice(booking.total_amount)}
           </div>
           <div className="mt-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-            {STATUS_LABEL[booking.status] ?? booking.status}
+            {statusLabel[booking.status] ?? booking.status}
           </div>
         </div>
       </div>

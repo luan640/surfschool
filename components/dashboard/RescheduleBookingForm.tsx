@@ -69,7 +69,7 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
 
     if (!result.success) {
       setError(result.error)
-      showError('Nao foi possivel reagendar a aula.', result.error)
+      showError('Não foi possível reagendar a aula.', result.error)
       setLoading(false)
       return
     }

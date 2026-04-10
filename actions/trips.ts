@@ -142,7 +142,7 @@ export async function createTrip(formData: FormData): Promise<ActionResult<{ id:
     .single()
 
   if (error || !trip) {
-    return { success: false, error: error?.message ?? 'Nao foi possivel criar a trip.' }
+    return { success: false, error: error?.message ?? 'Não foi possível criar a trip.' }
   }
 
   const mediaResult = await syncTripMedia({

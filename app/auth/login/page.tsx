@@ -38,7 +38,7 @@ export default function OwnerLoginPage() {
     }
     if (result && !result.success) {
       setError(result.error)
-      showError('Nao foi possivel entrar.', result.error)
+      showError('Não foi possível entrar.', result.error)
       setLoading(false)
     }
   }
@@ -102,10 +102,10 @@ export default function OwnerLoginPage() {
           {urlError && !error && (
             <p className="mb-4 text-sm font-medium text-red-500">
               {urlError === 'confirmation_failed'
-                ? 'Nao foi possivel confirmar seu e-mail automaticamente. Tente abrir o link novamente.'
+                ? 'Não foi possível confirmar seu e-mail automaticamente. Tente abrir o link novamente.'
                 : urlError === 'missing_code'
                   ? 'Link de confirmacao invalido.'
-                  : 'Nao foi possivel concluir a autenticacao.'}
+                  : 'Não foi possível concluir a autenticacao.'}
             </p>
           )}
 

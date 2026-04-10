@@ -30,7 +30,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
 
       {params?.mp === 'connected' && <Banner tone="success" text="Mercado Pago conectado com sucesso." />}
       {params?.mp === 'disconnected' && <Banner tone="warning" text="Conta do Mercado Pago desvinculada." />}
-      {params?.mp === 'error' && <Banner tone="error" text="Nao foi possivel concluir a autenticacao do Mercado Pago." />}
+      {params?.mp === 'error' && <Banner tone="error" text="Não foi possível concluir a autenticacao do Mercado Pago." />}
 
       <div className="mb-6 flex items-center gap-3 rounded border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
         <Globe size={16} className="shrink-0 text-[var(--primary)]" />

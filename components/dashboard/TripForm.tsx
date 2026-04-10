@@ -70,7 +70,7 @@ export function TripForm({ trip }: Props) {
 
     if (!result.success) {
       setError(result.error)
-      showError(trip ? 'Nao foi possivel salvar a trip.' : 'Nao foi possivel criar a trip.', result.error)
+      showError(trip ? 'Não foi possível salvar a trip.' : 'Não foi possível criar a trip.', result.error)
       setLoading(false)
       return
     }

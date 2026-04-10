@@ -53,7 +53,7 @@ export function ResendConfirmationForm({
 
     if (!result.success) {
       setError(result.error)
-      showError('Nao foi possivel reenviar o e-mail.', result.error)
+      showError('Não foi possível reenviar o e-mail.', result.error)
       setLoading(false)
       return
     }

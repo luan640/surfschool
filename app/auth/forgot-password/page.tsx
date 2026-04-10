@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
 
     if (result && !result.success) {
       setError(result.error)
-      showError('Nao foi possivel enviar o link.', result.error)
+      showError('Não foi possível enviar o link.', result.error)
       setLoading(false)
       return
     }

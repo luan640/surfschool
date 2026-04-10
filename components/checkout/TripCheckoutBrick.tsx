@@ -157,24 +157,32 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
           <p className="mt-1 text-sm text-slate-500">Preencha seus dados e escolha se prefere pagar agora ou combinar o pagamento no local.</p>
         </div>
 
-        <div className="mb-5 grid grid-cols-2 gap-3">
+        <div className="mb-5 flex flex-col gap-2">
           <button
             type="button"
             onClick={() => setPaymentMode('pay_now')}
-            className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_now' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
+            className={`flex items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${paymentMode === 'pay_now' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
           >
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opcao 1</div>
-            <div className="mt-1 font-semibold text-slate-900">Pagar agora</div>
-            <div className="mt-1 text-sm text-slate-500">Pix ou cartao pelo checkout.</div>
+            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${paymentMode === 'pay_now' ? 'border-[var(--primary)]' : 'border-slate-300'}`}>
+              {paymentMode === 'pay_now' && <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />}
+            </span>
+            <span>
+              <span className="block font-semibold text-slate-900">Pague agora</span>
+              <span className="block text-sm text-slate-500">Pix ou cartão pelo checkout.</span>
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setPaymentMode('pay_on_site')}
-            className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
+            className={`flex items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
           >
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opção 2</div>
-            <div className="mt-1 font-semibold text-slate-900">Pagar no local</div>
-            <div className="mt-1 text-sm text-slate-500">Reserva a vaga e deixa o pagamento pendente.</div>
+            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)]' : 'border-slate-300'}`}>
+              {paymentMode === 'pay_on_site' && <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />}
+            </span>
+            <span>
+              <span className="block font-semibold text-slate-900">Pague na hora</span>
+              <span className="block text-sm text-slate-500">Confirma o agendamento e deixa o pagamento pendente.</span>
+            </span>
           </button>
         </div>
 
@@ -266,7 +274,7 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
 
                 const payload = await response.json()
                 if (!response.ok) {
-                  const message = payload.error || 'Nao foi possivel processar a inscricao.'
+                  const message = payload.error || 'Não foi possível processar a inscricao.'
                   setError(message)
                   throw new Error(message)
                 }
@@ -326,7 +334,7 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
 
                   const payload = await response.json()
                   if (!response.ok) {
-                    const message = payload.error || 'Nao foi possivel reservar a inscricao.'
+                    const message = payload.error || 'Não foi possível reservar a inscricao.'
                     setError(message)
                     throw new Error(message)
                   }

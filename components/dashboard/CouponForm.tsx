@@ -43,7 +43,7 @@ export function CouponForm({ coupon, packages }: Props) {
 
     if (!result.success) {
       setError(result.error)
-      showError(coupon ? 'Nao foi possivel salvar o cupom.' : 'Nao foi possivel criar o cupom.', result.error)
+      showError(coupon ? 'Não foi possível salvar o cupom.' : 'Não foi possível criar o cupom.', result.error)
       setLoading(false)
       return
     }
@@ -63,7 +63,7 @@ export function CouponForm({ coupon, packages }: Props) {
 
     if (!result.success) {
       setError(result.error)
-      showError('Nao foi possivel excluir o cupom.', result.error)
+      showError('Não foi possível excluir o cupom.', result.error)
       setLoading(false)
       return
     }

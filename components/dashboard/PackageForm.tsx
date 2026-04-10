@@ -57,7 +57,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
 
     if (!result.success) {
       setError(result.error)
-      showError(pkg ? 'Nao foi possivel salvar o pacote.' : 'Nao foi possivel criar o pacote.', result.error)
+      showError(pkg ? 'Não foi possível salvar o pacote.' : 'Não foi possível criar o pacote.', result.error)
       setLoading(false)
       return
     }

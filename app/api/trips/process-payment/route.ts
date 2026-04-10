@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         .single()
 
       if (registrationError || !registration) {
-        return NextResponse.json({ error: registrationError?.message ?? 'Nao foi possivel reservar a vaga.' }, { status: 500 })
+        return NextResponse.json({ error: registrationError?.message ?? 'Não foi possível reservar a vaga.' }, { status: 500 })
       }
 
       return NextResponse.json({
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       .single()
 
     if (registrationError || !registration) {
-      return NextResponse.json({ error: registrationError?.message ?? 'Nao foi possivel iniciar a inscricao.' }, { status: 500 })
+      return NextResponse.json({ error: registrationError?.message ?? 'Não foi possível iniciar a inscricao.' }, { status: 500 })
     }
 
     const paymentClient = createMercadoPagoPaymentClient(accessToken)

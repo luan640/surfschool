@@ -33,7 +33,7 @@ export async function createPaymentTransactionRecord(input: PersistCheckoutTrans
     .single()
 
   if (error || !data) {
-    throw new Error(error?.message ?? 'Nao foi possivel registrar a transacao.')
+    throw new Error(error?.message ?? 'Não foi possível registrar a transacao.')
   }
 
   return data.id as string

@@ -60,7 +60,7 @@ export default async function ConfirmationStatusPage({ searchParams }: Props) {
           </div>
 
           <h2 className="font-condensed text-2xl font-bold uppercase tracking-wide text-slate-800">
-            {isSuccess ? 'Confirmacao concluida' : 'Nao foi possivel confirmar'}
+            {isSuccess ? 'Confirmacao concluida' : 'Não foi possível confirmar'}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-500">
             {isSuccess ? (

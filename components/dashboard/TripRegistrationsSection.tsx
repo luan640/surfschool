@@ -37,7 +37,7 @@ export function TripRegistrationsSection({ trip, registrations }: Props) {
     if (!result.success) {
       setSubmitError(result.error)
       showError(
-        editingRegistration ? 'Nao foi possivel salvar a inscricao.' : 'Nao foi possivel registrar a inscricao.',
+        editingRegistration ? 'Não foi possível salvar a inscricao.' : 'Não foi possível registrar a inscricao.',
         result.error,
       )
       setLoading(false)
@@ -294,6 +294,6 @@ function formatPaymentMethodLabel(paymentMethod: TripRegistration['payment_metho
     case 'cash':
       return 'Dinheiro'
     default:
-      return 'Nao informado'
+      return 'Não informado'
   }
 }

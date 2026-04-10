@@ -144,7 +144,7 @@ export function InstructorForm({
 
     if (!result.success) {
       setError(result.error)
-      showError(instructor ? 'Nao foi possivel salvar o instrutor.' : 'Nao foi possivel criar o instrutor.', result.error)
+      showError(instructor ? 'Não foi possível salvar o instrutor.' : 'Não foi possível criar o instrutor.', result.error)
       setLoading(false)
       return
     }
@@ -158,7 +158,7 @@ export function InstructorForm({
     const availabilityResult = await saveAvailability(instructorId, availabilityRows)
     if (!availabilityResult.success) {
       setError(availabilityResult.error)
-      showError('Nao foi possivel salvar os horarios do instrutor.', availabilityResult.error)
+      showError('Não foi possível salvar os horarios do instrutor.', availabilityResult.error)
       setLoading(false)
       return
     }

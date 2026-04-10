@@ -71,7 +71,8 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:max-h-[780px]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+      {/* Calendar column */}
       <div className="flex flex-col overflow-hidden rounded border border-slate-200 bg-white">
         <div className="shrink-0 flex flex-col gap-4 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
@@ -106,56 +107,54 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
 
         <div className="shrink-0 grid grid-cols-7 border-b border-slate-200 bg-slate-50">
           {WEEKDAYS_PT.map((day) => (
-            <div key={day} className="px-3 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">{day}</div>
+            <div key={day} className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">{day}</div>
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="grid grid-cols-7">
-          {monthCells.map((date, index) => {
-            if (!date) {
-              return <div key={`empty-${index}`} className="min-h-36 border-b border-r border-slate-100 bg-slate-50/60" />
-            }
+        {/* Calendar grid — fixed height, scrollable */}
+        <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+          <div className="grid grid-cols-7">
+            {monthCells.map((date, index) => {
+              if (!date) {
+                return <div key={`empty-${index}`} className="h-16 border-b border-r border-slate-100 bg-slate-50/60" />
+              }
 
-            const dateKey = toDateKey(date)
-            const items = bookingsByDate[dateKey] ?? []
-            const isSelected = dateKey === selectedDateKey
-            const isToday = dateKey === toDateKey(new Date())
+              const dateKey = toDateKey(date)
+              const items = bookingsByDate[dateKey] ?? []
+              const isSelected = dateKey === selectedDateKey
+              const isToday = dateKey === toDateKey(new Date())
 
-            return (
-              <button
-                key={dateKey}
-                type="button"
-                onClick={() => setSelectedDate(date)}
-                className={`min-h-36 border-b border-r border-slate-100 p-2 text-left align-top transition-colors ${isSelected ? 'bg-slate-950/5' : 'bg-white hover:bg-slate-50'}`}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${isToday ? 'bg-slate-900 text-white' : 'text-slate-700'}`}>
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  onClick={() => setSelectedDate(date)}
+                  className={`h-16 border-b border-r border-slate-100 p-1.5 text-left align-top transition-colors ${isSelected ? 'bg-slate-950/5' : 'bg-white hover:bg-slate-50'}`}
+                >
+                  <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-bold ${isToday ? 'bg-slate-900 text-white' : 'text-slate-700'}`}>
                     {date.getDate()}
                   </span>
                   {items.length > 0 && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
-                      {items.length}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  {items.slice(0, 3).map((booking) => (
-                    <div key={booking.id} className={`rounded border px-2 py-1 text-[11px] ${STATUS_STYLES[booking.status] ?? 'border-slate-200 bg-slate-50 text-slate-700'}`}>
-                      <div className="font-bold">{booking.time_slots.join(', ')}</div>
-                      <div className="truncate">{booking.instructor?.full_name ?? 'Instrutor'}</div>
+                    <div className="mt-1 space-y-0.5">
+                      {items.slice(0, 1).map((booking) => (
+                        <div key={booking.id} className={`truncate rounded px-1 py-0.5 text-[10px] font-semibold leading-tight ${STATUS_STYLES[booking.status] ?? 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                          {booking.time_slots[0]}
+                        </div>
+                      ))}
+                      {items.length > 1 && (
+                        <div className="text-[10px] font-semibold text-slate-400">+{items.length - 1}</div>
+                      )}
                     </div>
-                  ))}
-                  {items.length > 3 && <div className="text-[11px] font-semibold text-slate-400">+{items.length - 3} mais</div>}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
-      <aside className="flex flex-col rounded border border-slate-200 bg-white">
+      {/* Day detail column */}
+      <aside className="flex flex-col overflow-hidden rounded border border-slate-200 bg-white" style={{ maxHeight: 520 }}>
         <div className="shrink-0 border-b border-slate-200 px-5 py-4">
           <div className="font-condensed text-2xl font-bold uppercase text-slate-900">
             {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}

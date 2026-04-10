@@ -117,7 +117,7 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
     if (createUserError || !createdUser.user) {
       return {
         success: false,
-        error: createUserError?.message ?? 'Nao foi possivel criar o acesso do aluno.',
+        error: createUserError?.message ?? 'Não foi possível criar o acesso do aluno.',
       }
     }
 
@@ -144,7 +144,7 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
     }
     return {
       success: false,
-      error: `Nao foi possivel criar o perfil do aluno: ${profileError.message}`,
+      error: `Não foi possível criar o perfil do aluno: ${profileError.message}`,
     }
   }
 

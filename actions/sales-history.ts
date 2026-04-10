@@ -26,7 +26,7 @@ export async function getSalesHistoryPageData(): Promise<{
     return { sales: [] }
   }
 
-  const [transactionsResult, tripsResult, manualBookingsResult] = await Promise.all([
+  const [transactionsResult, tripsResult, lessonBookingsResult] = await Promise.all([
     supabase
       .from('payment_transactions')
       .select(`
@@ -47,7 +47,8 @@ export async function getSalesHistoryPageData(): Promise<{
       `)
       .eq('school_id', school.id)
       .eq('status', 'paid')
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(1000),
     supabase
       .from('trip_registrations')
       .select(`
@@ -71,13 +72,17 @@ export async function getSalesHistoryPageData(): Promise<{
       `)
       .eq('school_id', school.id)
       .eq('payment_status', 'paid')
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(1000),
     supabase
       .from('bookings')
       .select(`
         id,
+        payment_transaction_id,
         payment_method,
         payment_status,
+        billing_mode,
+        package_id,
         total_amount,
         status,
         lesson_date,
@@ -87,19 +92,40 @@ export async function getSalesHistoryPageData(): Promise<{
         student:student_profiles(full_name, phone)
       `)
       .eq('school_id', school.id)
-      .eq('payment_method', 'cash')
-      .is('payment_transaction_id', null)
       .eq('payment_status', 'paid')
-      .order('created_at', { ascending: false }),
+      .eq('billing_mode', 'hourly')
+      .is('package_id', null)
+      .order('created_at', { ascending: false })
+      .limit(1000),
   ])
 
-  const lessonAndPackageSales = (transactionsResult.data ?? []).map((row) => {
+  const transactions = (transactionsResult.data ?? []) as Array<{
+    id: string
+    product_type: 'single_lesson' | 'package'
+    payment_method: string | null
+    amount: number
+    status: SalesHistoryEntry['payment_status']
+    booking_ids: string[] | null
+    refund_reason: string | null
+    external_reference: string | null
+    mercadopago_payment_id: number | null
+    mercadopago_status: string | null
+    mercadopago_status_detail: string | null
+    created_at: string
+    updated_at: string
+    student: { full_name: string | null; phone: string | null } | { full_name: string | null; phone: string | null }[] | null
+  }>
+
+  const packageSales = transactions
+    .filter((row) => row.product_type === 'package')
+    .map((row) => {
     const title = row.product_type === 'package' ? 'Pacote de aulas' : 'Aula avulsa'
     const student = getSingleRelation(row.student)
 
     return {
       id: row.id as string,
       kind: row.product_type as 'single_lesson' | 'package',
+      origin: 'online' as const,
       title,
       customer_name: student?.full_name ?? 'Aluno',
       customer_email: null,
@@ -113,7 +139,7 @@ export async function getSalesHistoryPageData(): Promise<{
           : row.status === 'refunded'
             ? 'Venda reembolsada'
             : 'Falha no pagamento',
-      payment_method_label: row.payment_method === 'pix' ? 'Pix' : 'Cartao',
+      payment_method_label: formatPaymentMethodLabel(row.payment_method as string | null),
       external_reference: row.external_reference ?? null,
       mercadopago_payment_id: row.mercadopago_payment_id ?? null,
       mercadopago_status: row.mercadopago_status ?? null,
@@ -124,7 +150,9 @@ export async function getSalesHistoryPageData(): Promise<{
       coupon_usage: [] as string[],
       refund_reason: (row.refund_reason as string | null) ?? null,
     } satisfies SalesHistoryEntry
-  })
+    })
+
+  const transactionById = new Map(transactions.map((transaction) => [transaction.id, transaction]))
 
   const tripSales = (tripsResult.data ?? []).map((row) => {
     const trip = getSingleRelation(row.trip)
@@ -132,6 +160,7 @@ export async function getSalesHistoryPageData(): Promise<{
     return ({
     id: row.id as string,
     kind: 'trip' as const,
+    origin: row.mercadopago_payment_id ? 'online' as const : 'presencial' as const,
     title: trip?.title ? `Trip: ${trip.title}` : 'Trip',
     customer_name: row.full_name as string,
     customer_email: (row.email as string | null) ?? null,
@@ -143,9 +172,9 @@ export async function getSalesHistoryPageData(): Promise<{
       : row.status === 'pending'
         ? 'Inscricao pendente'
         : 'Inscricao cancelada',
-    payment_method_label: formatTripPaymentMethodLabel(
-      (row.payment_method as 'pix' | 'credit_card' | 'debit_card' | 'cash' | null)
-        ?? (row.qr_code ? 'pix' : 'credit_card')
+    payment_method_label: formatPaymentMethodLabel(
+      (row.payment_method as string | null)
+        ?? (row.qr_code ? 'pix' : null)
     ),
     external_reference: (row.external_reference as string | null) ?? null,
     mercadopago_payment_id: row.mercadopago_payment_id ?? null,
@@ -159,13 +188,17 @@ export async function getSalesHistoryPageData(): Promise<{
     })
   })
 
-  const manualSales = (manualBookingsResult.data ?? []).map((row) => {
+  const lessonSales = (lessonBookingsResult.data ?? []).map((row) => {
     const student = getSingleRelation(row.student)
+    const transaction = row.payment_transaction_id
+      ? transactionById.get(row.payment_transaction_id as string)
+      : null
 
     return ({
-    id: row.id as string,
+    id: (transaction?.id ?? row.id) as string,
     kind: 'single_lesson' as const,
-    title: 'Aula manual',
+    origin: transaction ? 'online' as const : 'presencial' as const,
+    title: 'Aula avulsa',
     customer_name: student?.full_name ?? 'Aluno',
     customer_email: null,
     customer_phone: student?.phone ?? null,
@@ -175,28 +208,28 @@ export async function getSalesHistoryPageData(): Promise<{
       ? 'Aula concluida'
       : row.status === 'confirmed'
         ? 'Aula confirmada'
-        : row.status === 'cancelled'
-          ? 'Aula cancelada'
-          : 'Aula pendente',
-    payment_method_label: 'Dinheiro',
-    external_reference: null,
-    mercadopago_payment_id: null,
-    mercadopago_status: null,
-    mercadopago_status_detail: `Aula em ${row.lesson_date}`,
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
-    can_refund: false,
+        : 'Aula pendente',
+    payment_method_label: formatPaymentMethodLabel(
+      (transaction?.payment_method as string | null) ?? (row.payment_method as string | null),
+    ),
+    external_reference: transaction?.external_reference ?? null,
+    mercadopago_payment_id: transaction?.mercadopago_payment_id ?? null,
+    mercadopago_status: transaction?.mercadopago_status ?? null,
+    mercadopago_status_detail: transaction?.mercadopago_status_detail ?? `Aula em ${row.lesson_date}`,
+    created_at: (transaction?.created_at ?? row.created_at) as string,
+    updated_at: (transaction?.updated_at ?? row.updated_at) as string,
+    can_refund: Boolean(transaction?.status === 'paid' && transaction.mercadopago_payment_id),
     coupon_usage: [] as string[],
     refund_reason: (row.refund_reason as string | null) ?? null,
     })
   })
 
   const bookingIds = new Set<string>()
-  ;(transactionsResult.data ?? []).forEach((row) => {
+  transactions.forEach((row) => {
     const transactionBookingIds = (row.booking_ids as string[] | null) ?? []
     transactionBookingIds.forEach((bookingId) => bookingIds.add(bookingId))
   })
-  ;(manualBookingsResult.data ?? []).forEach((row) => bookingIds.add(row.id as string))
+  ;(lessonBookingsResult.data ?? []).forEach((row) => bookingIds.add(row.id as string))
 
   const { data: couponRedemptions } = bookingIds.size
     ? await supabase
@@ -219,8 +252,8 @@ export async function getSalesHistoryPageData(): Promise<{
     couponUsageByBookingId.set(row.booking_id, [...new Set(current)])
   })
 
-  const lessonAndPackageSalesWithCoupons = lessonAndPackageSales.map((sale, index) => {
-    const bookingIdsForSale = (((transactionsResult.data ?? [])[index]?.booking_ids as string[] | null) ?? [])
+  const packageSalesWithCoupons = packageSales.map((sale) => {
+    const bookingIdsForSale = (transactionById.get(sale.id)?.booking_ids ?? []) as string[]
     const couponUsage = [...new Set(bookingIdsForSale.flatMap((bookingId) => couponUsageByBookingId.get(bookingId) ?? []))]
 
     return {
@@ -229,8 +262,8 @@ export async function getSalesHistoryPageData(): Promise<{
     }
   })
 
-  const manualSalesWithCoupons = manualSales.map((sale, index) => {
-    const bookingId = (manualBookingsResult.data ?? [])[index]?.id as string | undefined
+  const lessonSalesWithCoupons = lessonSales.map((sale, index) => {
+    const bookingId = (lessonBookingsResult.data ?? [])[index]?.id as string | undefined
 
     return {
       ...sale,
@@ -238,14 +271,14 @@ export async function getSalesHistoryPageData(): Promise<{
     }
   })
 
-  const sales = [...lessonAndPackageSalesWithCoupons, ...tripSales, ...manualSalesWithCoupons].sort((a, b) =>
+  const sales = [...packageSalesWithCoupons, ...tripSales, ...lessonSalesWithCoupons].sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   )
 
   return { sales }
 }
 
-function formatTripPaymentMethodLabel(paymentMethod: 'pix' | 'credit_card' | 'debit_card' | 'cash' | null) {
+function formatPaymentMethodLabel(paymentMethod: string | null) {
   switch (paymentMethod) {
     case 'pix':
       return 'Pix'
@@ -337,7 +370,7 @@ export async function refundSale(formData: FormData): Promise<ActionResult<{ ref
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Nao foi possivel reembolsar a venda.',
+        error: error instanceof Error ? error.message : 'Não foi possível reembolsar a venda.',
       }
     }
   }
@@ -385,7 +418,7 @@ export async function refundSale(formData: FormData): Promise<ActionResult<{ ref
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Nao foi possivel reembolsar a venda.',
+      error: error instanceof Error ? error.message : 'Não foi possível reembolsar a venda.',
     }
   }
 }

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { PaymentSuccessAnimation } from '@/components/checkout/PaymentSuccessAnimation'
 import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import { formatPrice } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface LessonPlanInput {
   lessonDate: string
@@ -59,6 +60,7 @@ interface AppliedCoupon {
 }
 
 export function MercadoPagoCheckoutBrick(props: Props) {
+  const { t, lang, dateLocale } = useLanguage()
   const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site' | null>(props.payOnSiteOnly ? 'pay_on_site' : null)
   const [submitting, setSubmitting] = useState(false)
   const [pollingStatus, setPollingStatus] = useState(false)
@@ -87,12 +89,12 @@ export function MercadoPagoCheckoutBrick(props: Props) {
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
     if (!publicKey) {
-      setError('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY nao configurada.')
+      setError(t.checkout_error_mp_key)
       return
     }
 
     initMercadoPago(publicKey, {
-      locale: 'pt-BR',
+      locale: lang === 'en' ? 'en-US' : 'pt-BR',
     })
   }, [])
 
@@ -113,9 +115,9 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             ...current,
             status: 'approved',
             statusDetail: payload.mercadopago_status_detail ?? current.statusDetail,
-            message: 'Pagamento aprovado.',
+            message: t.checkout_payment_approved,
           } : current)
-          props.onApproved('Pagamento aprovado.')
+          props.onApproved(t.checkout_payment_approved)
           window.clearInterval(interval)
         }
 
@@ -124,9 +126,9 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             ...current,
             status: 'rejected',
             statusDetail: payload.mercadopago_status_detail ?? current.statusDetail,
-            message: payload.mercadopago_status_detail || 'Pagamento rejeitado.',
+            message: payload.mercadopago_status_detail || t.checkout_payment_rejected,
           } : current)
-          props.onFailure(payload.mercadopago_status_detail || 'Pagamento rejeitado.')
+          props.onFailure(payload.mercadopago_status_detail || t.checkout_payment_rejected)
           window.clearInterval(interval)
         }
       } finally {
@@ -157,7 +159,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
 
   async function applyCoupon() {
     if (!couponCode.trim()) {
-      setCouponError('Informe um cupom.')
+      setCouponError(t.checkout_coupon_empty_error)
       return
     }
 
@@ -180,7 +182,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
       const payload = await response.json()
       if (!response.ok) {
         setAppliedCoupon(null)
-        setCouponError(payload.error || 'Nao foi possivel validar o cupom.')
+        setCouponError(payload.error || t.checkout_coupon_invalid_error)
         return
       }
 
@@ -206,41 +208,41 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             </div>
             <div className={`mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${payOnSite ? 'text-sky-700' : 'text-emerald-700'}`}>
               <PartyPopper size={14} />
-              {payOnSite ? 'Agendamento confirmado' : 'Pagamento aprovado'}
+              {payOnSite ? t.checkout_booking_confirmed_badge : t.checkout_payment_approved_badge}
             </div>
             <h2 className="font-condensed text-4xl font-bold uppercase tracking-wide text-slate-900 sm:text-5xl">
-              {payOnSite ? 'Sua aula foi reservada' : 'Sua aula esta confirmada'}
+              {payOnSite ? t.checkout_booking_reserved : t.checkout_booking_confirmed}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-              {payOnSite ? result.message : `${result.message} Agora e so se preparar e chegar no horario combinado.`}
+              {payOnSite ? result.message : `${result.message} ${t.checkout_booking_ready}`}
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-white/80 bg-white/75 p-5 text-left backdrop-blur-sm">
-                <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Resumo</div>
+                <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{t.checkout_summary}</div>
                 <div className="space-y-3">
-                  <SuccessRow label="Produto" value={props.title} />
-                  <SuccessRow label={payOnSite ? 'Valor combinado' : 'Valor pago'} value={formatPrice(payableAmount)} />
-                  <SuccessRow label="Instrutor" value={props.description} />
+                  <SuccessRow label={t.checkout_summary_product} value={props.title} />
+                  <SuccessRow label={payOnSite ? t.checkout_summary_amount_agreed : t.checkout_summary_amount_paid} value={formatPrice(payableAmount)} />
+                  <SuccessRow label={t.checkout_summary_instructor} value={props.description} />
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/80 bg-white/75 p-5 text-left backdrop-blur-sm">
                 <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
                   <Sparkles size={14} />
-                  Proximos passos
+                  {t.checkout_next_steps}
                 </div>
                 <div className="space-y-3 text-sm text-slate-600">
-                  <p>{payOnSite ? 'Apresente esta confirmção para concluir o pagamento diretamente com a escola.' : 'Voce pode acompanhar suas aulas e revisar os detalhes na sua area do aluno.'}</p>
+                  <p>{payOnSite ? t.checkout_next_pay_on_site : t.checkout_next_approved}</p>
                   {!payOnSite && result.ticketUrl && (
                     <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="inline-flex font-bold text-emerald-700 underline">
-                      Abrir comprovante
+                      {t.checkout_open_receipt}
                     </a>
                   )}
                 </div>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <Button asChild variant="primary">
-                    <Link href={`/${props.schoolSlug}/minhas-aulas`}>Ir para minhas aulas</Link>
+                    <Link href={`/${props.schoolSlug}/minhas-aulas`}>{t.checkout_my_lessons}</Link>
                   </Button>
                 </div>
               </div>
@@ -268,17 +270,17 @@ export function MercadoPagoCheckoutBrick(props: Props) {
             <div className="mb-5 rounded border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-end gap-3">
                 <label className="min-w-0 flex-1">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Cupom de desconto</div>
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">{t.checkout_coupon_label}</div>
                   <input
                     type="text"
                     value={couponCode}
                     onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                    placeholder="Digite seu cupom"
+                    placeholder={t.checkout_coupon_placeholder}
                     className="h-11 w-full rounded border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--primary)]"
                   />
                 </label>
                 <Button type="button" onClick={applyCoupon} disabled={couponLoading || submitting}>
-                  {couponLoading ? 'Aplicando...' : 'Aplicar'}
+                  {couponLoading ? t.checkout_coupon_applying : t.checkout_coupon_apply}
                 </Button>
                 {appliedCoupon && (
                   <Button
@@ -291,50 +293,58 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                     }}
                     disabled={couponLoading || submitting}
                   >
-                    Remover
+                    {t.checkout_coupon_remove}
                   </Button>
                 )}
               </div>
               {couponError && <div className="mt-2 text-sm text-rose-600">{couponError}</div>}
               {appliedCoupon && (
                 <div className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
-                  <div className="font-semibold">{appliedCoupon.code} aplicado</div>
-                  <div className="mt-1">Desconto: {formatPrice(appliedCoupon.discountAmount)}</div>
-                  <div>Total com desconto: {formatPrice(appliedCoupon.finalAmount)}</div>
+                  <div className="font-semibold">{t.checkout_coupon_applied(appliedCoupon.code)}</div>
+                  <div className="mt-1">{t.checkout_coupon_discount(formatPrice(appliedCoupon.discountAmount))}</div>
+                  <div>{t.checkout_coupon_total(formatPrice(appliedCoupon.finalAmount))}</div>
                 </div>
               )}
             </div>
           )}
 
           {!props.payOnSiteOnly && (
-          <div className="mb-5 grid grid-cols-2 gap-3">
+          <div className="mb-5 flex flex-col gap-2">
             <button
               type="button"
               onClick={() => props.onlineEnabled && setPaymentMode('pay_now')}
               disabled={!props.onlineEnabled}
-              className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_now' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'} ${!props.onlineEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
+              className={`flex items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${paymentMode === 'pay_now' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'} ${!props.onlineEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
             >
-              <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opção 1</div>
-              <div className="mt-1 font-semibold text-slate-900">Pague agora</div>
-              <div className="mt-1 text-sm text-slate-500">
-                {props.onlineEnabled ? 'Pix ou cartao pelo checkout.' : 'Indisponível'}
-              </div>
+              <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${paymentMode === 'pay_now' ? 'border-[var(--primary)]' : 'border-slate-300'}`}>
+                {paymentMode === 'pay_now' && <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />}
+              </span>
+              <span>
+                <span className="block font-semibold text-slate-900">{t.checkout_option1_title}</span>
+                <span className="block text-sm text-slate-500">
+                  {props.onlineEnabled ? t.checkout_option1_desc : t.checkout_option1_unavailable}
+                </span>
+              </span>
             </button>
             <button
               type="button"
               onClick={() => setPaymentMode('pay_on_site')}
-              className={`rounded border px-4 py-3 text-left ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
+              className={`flex items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
             >
-              <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Opção 2</div>
-              <div className="mt-1 font-semibold text-slate-900">Pague na hora</div>
-              <div className="mt-1 text-sm text-slate-500">Confirma o agendamento e deixa o pagamento pendente.</div>
+              <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${paymentMode === 'pay_on_site' ? 'border-[var(--primary)]' : 'border-slate-300'}`}>
+                {paymentMode === 'pay_on_site' && <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />}
+              </span>
+              <span>
+                <span className="block font-semibold text-slate-900">{t.checkout_option2_title}</span>
+                <span className="block text-sm text-slate-500">{t.checkout_option2_desc}</span>
+              </span>
             </button>
           </div>
           )}
 
           {paymentMode === 'pay_now' ? (
             <>
-              <div className="mb-4 text-sm text-slate-500">Escolha o meio de pagamento abaixo para concluir.</div>
+              <div className="mb-4 text-sm text-slate-500">{t.checkout_payment_intro}</div>
               <Payment
                 initialization={initialization}
                 customization={{
@@ -352,11 +362,11 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                     },
                   },
                 }}
-                locale="pt-BR"
+                locale={lang === 'en' ? 'en-US' : 'pt-BR'}
                 onReady={() => undefined}
                 onError={(brickError) => {
-                  setError(brickError.message ?? 'Erro ao inicializar o checkout.')
-                  props.onFailure(brickError.message ?? 'Erro ao inicializar o checkout.')
+                  setError(brickError.message ?? t.checkout_error_process)
+                  props.onFailure(brickError.message ?? t.checkout_error_process)
                 }}
                 onSubmit={async (submission, additionalData) => {
                   setSubmitting(true)
@@ -390,7 +400,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
 
                     const payload = await response.json()
                     if (!response.ok) {
-                      const message = payload.error || 'Nao foi possivel processar o pagamento.'
+                      const message = payload.error || t.checkout_error_process
                       setError(message)
                       props.onFailure(message)
                       throw new Error(message)
@@ -421,7 +431,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
               )}
               {!props.isTrialLesson && (
                 <div className="rounded border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
-                  Seu agendamento será confirmado agora, e o pagamento ficará pendente para ser feito na hora.
+                  {t.checkout_pay_on_site_info}
                 </div>
               )}
               <div className="flex justify-end">
@@ -452,7 +462,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
 
                       const payload = await response.json()
                       if (!response.ok) {
-                        const message = payload.error || 'Nao foi possivel confirmar o agendamento.'
+                        const message = payload.error || t.checkout_error_confirm
                         setError(message)
                         props.onFailure(message)
                         throw new Error(message)
@@ -467,13 +477,13 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                   }}
                   disabled={submitting}
                 >
-                  {submitting ? 'Confirmando...' : (props.payOnSiteLabel ?? 'Confirmar e pagar na hora')}
+                  {submitting ? t.checkout_confirming : (props.payOnSiteLabel ?? t.checkout_confirm_pay_later)}
                 </Button>
               </div>
             </div>
           ) : (
             <div className="rounded border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
-              Escolha uma das opcoes acima para continuar.
+              {t.checkout_choose_option}
             </div>
           )}
           {submitting && (
@@ -481,8 +491,8 @@ export function MercadoPagoCheckoutBrick(props: Props) {
               <SurfLoading
                 compact
                 fitParent
-                title="Processando pagamento"
-                subtitle="Estamos validando o metodo escolhido e finalizando a cobranca."
+                title={t.checkout_processing_title}
+                subtitle={t.checkout_processing_sub}
               />
             </div>
           )}
@@ -512,28 +522,27 @@ function PaymentFeedback({
   lastStatusCheckAt: number | null
   result: ProcessPaymentResponse
 }) {
+  const { t, dateLocale } = useLanguage()
   const isApproved = result.status === 'approved'
   const isPending = result.status === 'pending' || result.status === 'in_process'
-  const heading = isApproved ? 'Pagamento aprovado' : isPending ? 'Aguardando pagamento' : 'Pagamento nao aprovado'
-  const description = isPending
-    ? 'Finalize o pagamento no PIX ou aguarde a confirmação automatica.'
-    : result.message
+  const heading = isApproved ? t.checkout_payment_approved : isPending ? t.checkout_payment_waiting : t.checkout_payment_rejected
+  const description = isPending ? t.checkout_payment_pix_hint : result.message
 
   return (
     <div className={`rounded border px-4 py-4 ${isApproved ? 'border-emerald-200 bg-emerald-50' : isPending ? 'border-amber-200 bg-amber-50' : 'border-rose-200 bg-rose-50'}`}>
       <div className="font-condensed text-2xl font-bold uppercase">{heading}</div>
       <div className="mt-1 text-sm">{description}</div>
-      <div className="mt-2 text-sm font-semibold">Valor: {formatPrice(amount)}</div>
+      <div className="mt-2 text-sm font-semibold">{t.checkout_amount_label(formatPrice(amount))}</div>
       {isPending && (
         <div className="mt-4 rounded border border-amber-300 bg-white/70 px-3 py-3 text-sm text-amber-900">
-          <div className="font-semibold uppercase">Aguardando pagamento</div>
-          <div className="mt-1">O QR Code continua visivel ate o Mercado Pago confirmar a transacao.</div>
+          <div className="font-semibold uppercase">{t.checkout_payment_waiting_label}</div>
+          <div className="mt-1">{t.checkout_qr_pending}</div>
           <div className="mt-2 text-xs text-amber-700">
             {isPolling
-              ? 'Verificando pagamento...'
+              ? t.checkout_checking
               : lastStatusCheckAt
-                ? `Ultima verificacao: ${new Date(lastStatusCheckAt).toLocaleTimeString('pt-BR')}`
-                : 'A confirconfirmaçãomacao será atualizada automaticamente.'}
+                ? t.checkout_last_check(new Date(lastStatusCheckAt).toLocaleTimeString(dateLocale))
+                : t.checkout_auto_update}
           </div>
         </div>
       )}
@@ -545,7 +554,7 @@ function PaymentFeedback({
         />
       )}
       {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
-      {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Abrir comprovante</a>}
+      {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">{t.checkout_open_receipt}</a>}
     </div>
   )
 }

@@ -32,7 +32,7 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
 
     if (!result.success) {
       setError(result.error)
-      showError('Nao foi possivel cadastrar o aluno.', result.error)
+      showError('Não foi possível cadastrar o aluno.', result.error)
       setLoading(false)
       return
     }

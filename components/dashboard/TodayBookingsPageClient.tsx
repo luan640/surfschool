@@ -139,5 +139,5 @@ function getBookingOriginLabel(booking: Booking) {
 }
 
 function getBookingPaymentLabel(booking: Booking) {
-  return booking.payment_method ? PAYMENT_METHOD_LABEL[booking.payment_method] ?? 'Nao informado' : 'Nao informado'
+  return booking.payment_method ? PAYMENT_METHOD_LABEL[booking.payment_method] ?? 'Não informado' : 'Não informado'
 }

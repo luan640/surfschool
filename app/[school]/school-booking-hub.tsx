@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Clock3, MapPin, Search, ShieldCheck, UserRound, Waves, X } from 'lucide-react'
 import type { Instructor, LessonPackage } from '@/lib/types'
-import { formatPrice, initials, WEEKDAYS_PT } from '@/lib/utils'
+import { formatPrice, initials } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type SchoolPublicData = {
   slug: string
@@ -18,12 +19,6 @@ type SchoolPublicData = {
 }
 
 type TabKey = 'details' | 'services' | 'pros'
-
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: 'details', label: 'Detalhes' },
-  { key: 'services', label: 'Serviços' },
-  { key: 'pros', label: 'Profissionais' },
-]
 
 export function SchoolBookingHub({
   school,
@@ -37,10 +32,17 @@ export function SchoolBookingHub({
   initialTab?: TabKey
 }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
   const [serviceQuery, setServiceQuery] = useState('')
   const [proQuery, setProQuery] = useState('')
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null)
+
+  const TABS: Array<{ key: TabKey; label: string }> = [
+    { key: 'details', label: t.hub_tab_details },
+    { key: 'services', label: t.hub_tab_services },
+    { key: 'pros', label: t.hub_tab_pros },
+  ]
 
   const singleLessonPrice = useMemo(() => {
     if (instructors.length === 0) return null
@@ -53,18 +55,18 @@ export function SchoolBookingHub({
       ...(singleLessonPrice !== null
         ? [{
             id: 'single-lesson',
-            name: 'Aula avulsa',
-            description: 'Escolha data, horario e instrutor para reservar uma aula individual.',
+            name: t.hub_single_lesson,
+            description: t.hub_single_lesson_desc,
             price: singleLessonPrice,
-            duration: 'Reserva flexivel',
+            duration: t.hub_flexible_booking,
           }]
         : []),
       ...packages.map((item) => ({
         id: item.id,
         name: item.name,
-        description: item.description || `${item.lesson_count} aulas no pacote`,
+        description: item.description || t.hub_package_lessons(item.lesson_count),
         price: Number(item.price),
-        duration: `${item.lesson_count} aulas`,
+        duration: t.hub_package_duration(item.lesson_count),
       })),
     ]
 
@@ -95,12 +97,12 @@ export function SchoolBookingHub({
     return Array.from({ length: 7 }, (_, weekday) => {
       const slots = Array.from(new Set(grouped.get(weekday) ?? [])).sort()
       if (slots.length === 0) {
-        return { weekday, label: WEEKDAYS_PT[weekday], text: 'Sem agenda publicada' }
+        return { weekday, label: t.weekdays[weekday], text: t.hub_no_schedule }
       }
 
       const first = slots[0]
       const last = slots[slots.length - 1]
-      return { weekday, label: WEEKDAYS_PT[weekday], text: `${first} - ${last}` }
+      return { weekday, label: t.weekdays[weekday], text: `${first} - ${last}` }
     })
   }, [instructors])
 
@@ -134,14 +136,14 @@ export function SchoolBookingHub({
             <div className="min-w-0 flex-1">
               <div className="truncate text-[15px] font-semibold text-slate-900">{school.name}</div>
               <div className="mt-0.5 truncate text-[11px] text-slate-500">
-                {school.tagline || 'Reserve sua aula online em poucos passos.'}
+                {school.tagline || t.hub_tagline_default}
               </div>
             </div>
             <Link
               href={`/${school.slug}/entrar?mode=login&next=minhas-aulas`}
               className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 px-3 text-[11px] font-semibold text-slate-600"
             >
-              Entrar
+              {t.hub_signin}
             </Link>
           </div>
 
@@ -175,18 +177,18 @@ export function SchoolBookingHub({
                   <div className="max-w-[220px]">
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)]">
                       <ShieldCheck size={13} />
-                      Reserva online
+                      {t.hub_online_booking}
                     </div>
                     <h1 className="mt-3 text-[26px] font-semibold leading-[1.02] text-white">{school.name}</h1>
                     <p className="mt-2 text-[13px] leading-relaxed text-white/70">
-                      {school.tagline || 'Escolha seu servico, profissional e horario direto pelo celular.'}
+                      {school.tagline || t.hub_tagline_hero}
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-                <h2 className="text-[17px] font-semibold text-slate-900">Contato</h2>
+                <h2 className="text-[17px] font-semibold text-slate-900">{t.hub_contact}</h2>
                 <div className="mt-3 space-y-3 text-[14px] text-slate-600">
                   {school.phone && (
                     <div className="flex items-start gap-3">
@@ -205,17 +207,17 @@ export function SchoolBookingHub({
                     </div>
                   )}
                   {!school.phone && !school.address && (
-                    <p className="text-[14px] text-slate-500">As informações de contato ainda não foram publicadas.</p>
+                    <p className="text-[14px] text-slate-500">{t.hub_contact_empty}</p>
                   )}
                 </div>
               </div>
 
               <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-[17px] font-semibold text-slate-900">Disponibilidade</h2>
+                  <h2 className="text-[17px] font-semibold text-slate-900">{t.hub_availability}</h2>
                   <div className="inline-flex items-center gap-1 rounded-full bg-[var(--primary)]/8 px-2.5 py-1 text-[11px] font-semibold text-[var(--primary)]">
                     <CalendarDays size={12} />
-                    {instructors.length} profissionais
+                    {t.hub_professionals_count(instructors.length)}
                   </div>
                 </div>
                 <div className="mt-3 divide-y divide-slate-100">
@@ -235,11 +237,11 @@ export function SchoolBookingHub({
               <SearchField
                 value={serviceQuery}
                 onChange={setServiceQuery}
-                placeholder="Procurar servico"
+                placeholder={t.hub_search_service}
               />
               <div className="space-y-3">
                 {filteredPackages.length === 0 ? (
-                  <EmptyState label="Nenhum servico encontrado." />
+                  <EmptyState label={t.hub_no_service} />
                 ) : (
                   filteredPackages.map((item) => (
                     <div
@@ -270,11 +272,11 @@ export function SchoolBookingHub({
               <SearchField
                 value={proQuery}
                 onChange={setProQuery}
-                placeholder="Procurar profissional"
+                placeholder={t.hub_search_pro}
               />
               <div className="space-y-3">
                 {filteredInstructors.length === 0 ? (
-                  <EmptyState label="Nenhum profissional encontrado." />
+                  <EmptyState label={t.hub_no_pro} />
                 ) : (
                   filteredInstructors.map((instructor) => (
                     <div
@@ -317,7 +319,7 @@ export function SchoolBookingHub({
             href={`/${school.slug}/entrar?next=agendar`}
             className="inline-flex h-12 flex-1 items-center justify-center rounded-[14px] bg-[var(--primary)] px-4 text-[16px] font-medium text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition-transform active:scale-[0.99]"
           >
-            Agendar agora
+            {t.hub_book_now}
           </Link>
         </div>
       </div>

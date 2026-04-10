@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { CPF_INPUT_MAX_LENGTH, formatCpf } from '@/lib/cpf'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function GoogleIcon() {
   return (
@@ -38,6 +39,7 @@ export function StudentAuthClient({
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
   const [mode, setMode] = useState<Mode>(initialMode)
   const [next, setNext] = useState(initialNext)
   const [error, setError] = useState('')
@@ -61,7 +63,7 @@ export function StudentAuthClient({
       },
     })
     if (oauthError) {
-      setError('Erro ao conectar com Google. Tente novamente.')
+      setError(t.auth_google_error)
       setLoading(false)
     }
   }
@@ -119,7 +121,7 @@ export function StudentAuthClient({
                     mode === m ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  {m === 'register' ? 'Cadastrar' : 'Entrar'}
+                  {m === 'register' ? t.auth_register : t.auth_signin}
                 </button>
               ))}
             </div>
@@ -128,7 +130,7 @@ export function StudentAuthClient({
           {isCompleteMode && (
             <div className="mb-5 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex gap-3">
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-              <p>Vi que você ja usou nossa plataforma para agendar aula de surf. Mas para essa escola falta concluir seu cadastro.</p>
+              <p>{t.auth_complete_notice}</p>
             </div>
           )}
 
@@ -141,11 +143,11 @@ export function StudentAuthClient({
                 className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <GoogleIcon />
-                Continuar com Google
+                {t.auth_continue_google}
               </button>
               <div className="relative flex items-center">
                 <div className="flex-1 border-t border-slate-200" />
-                <span className="px-3 text-xs text-slate-400 uppercase font-medium">ou</span>
+                <span className="px-3 text-xs text-slate-400 uppercase font-medium">{t.auth_or}</span>
                 <div className="flex-1 border-t border-slate-200" />
               </div>
             </>
@@ -154,14 +156,14 @@ export function StudentAuthClient({
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {(mode === 'register' || mode === 'complete') && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Nome completo *</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_full_name}</label>
                 <Input name="full_name" required placeholder="Seu nome" icon={<User size={14} />} />
               </div>
             )}
 
             {mode !== 'complete' && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">E-mail *</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_email}</label>
                 <Input name="email" type="email" required placeholder="seu@email.com" icon={<Mail size={14} />} />
               </div>
             )}
@@ -169,11 +171,11 @@ export function StudentAuthClient({
             {(mode === 'register' || mode === 'complete') && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Telefone / WhatsApp</label>
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_phone}</label>
                   <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">CPF *</label>
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_cpf}</label>
                   <Input
                     name="cpf"
                     required
@@ -185,7 +187,7 @@ export function StudentAuthClient({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Data de nascimento *</label>
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_birth_date}</label>
                   <Input name="birth_date" type="date" required icon={<CalendarDays size={14} />} />
                 </div>
               </div>
@@ -193,8 +195,8 @@ export function StudentAuthClient({
 
             {mode !== 'complete' && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Senha *</label>
-                <Input name="password" type="password" required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" icon={<Lock size={14} />} />
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_password}</label>
+                <Input name="password" type="password" required placeholder="••••••••" icon={<Lock size={14} />} />
               </div>
             )}
 
@@ -208,18 +210,18 @@ export function StudentAuthClient({
               className="mt-1"
             >
               {loading
-                ? 'Aguarde...'
+                ? t.auth_wait
                 : mode === 'register'
-                  ? <><span>Criar conta e agendar</span><ArrowRight size={15} /></>
+                  ? <><span>{t.auth_create_account}</span><ArrowRight size={15} /></>
                   : mode === 'complete'
-                    ? <><span>Concluir cadastro</span><ArrowRight size={15} /></>
-                    : <><span>Entrar</span><ArrowRight size={15} /></>}
+                    ? <><span>{t.auth_complete_register}</span><ArrowRight size={15} /></>
+                    : <><span>{t.auth_signin}</span><ArrowRight size={15} /></>}
             </Button>
           </form>
 
           {!isCompleteMode && (
             <p className="text-center text-sm text-slate-400 mt-6">
-              {mode === 'register' ? 'JÃ¡ tem conta? ' : 'NÃ£o tem conta? '}
+              {mode === 'register' ? t.auth_already_have_account : t.auth_no_account}
               <button
                 type="button"
                 onClick={() => {
@@ -231,7 +233,7 @@ export function StudentAuthClient({
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--primary)' }}
               >
-                {mode === 'register' ? 'Fazer login' : 'Cadastre-se grÃ¡tis'}
+                {mode === 'register' ? t.auth_login_link : t.auth_register_link}
               </button>
             </p>
           )}

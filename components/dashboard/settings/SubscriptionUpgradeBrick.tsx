@@ -53,7 +53,7 @@ export function SubscriptionUpgradeBrick({ payerEmail, publicKey }: Props) {
 
       const payload = await response.json()
       if (!response.ok) {
-        setError(payload.error ?? 'Nao foi possivel ativar a assinatura.')
+        setError(payload.error ?? 'Não foi possível ativar a assinatura.')
         return
       }
 

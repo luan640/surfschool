@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { LanguageProvider } from '@/contexts/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +34,10 @@ export default async function SchoolLayout({
         '--cta-hover':     shadeColor(school.cta_color, -10),
       } as React.CSSProperties}
     >
-      {children}
+      <LanguageProvider>
+        {children}
+        <LanguageSwitcher />
+      </LanguageProvider>
     </div>
   )
 }

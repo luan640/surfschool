@@ -237,7 +237,7 @@ async function requestMercadoPagoOAuthToken(body: URLSearchParams) {
 
   const payload = await response.json()
   if (!response.ok) {
-    const details = payload.message ?? payload.error_description ?? payload.error ?? 'Nao foi possivel autenticar no Mercado Pago.'
+    const details = payload.message ?? payload.error_description ?? payload.error ?? 'Não foi possível autenticar no Mercado Pago.'
     throw new Error(`${details} Verifique se a aplicacao esta pronta para OAuth e se o redirect_uri cadastrado bate exatamente com MERCADOPAGO_OAUTH_REDIRECT_URI.`)
   }
 

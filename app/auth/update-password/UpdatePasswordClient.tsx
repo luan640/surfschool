@@ -73,7 +73,7 @@ export function UpdatePasswordClient() {
 
     if (result && !result.success) {
       setError(result.error)
-      showError('Nao foi possivel atualizar a senha.', result.error)
+      showError('Não foi possível atualizar a senha.', result.error)
       setLoading(false)
     }
   }

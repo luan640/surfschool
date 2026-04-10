@@ -11,6 +11,6 @@ export function formatTripPaymentMethodLabel(paymentMethod: PaymentMethod | null
     case 'cash':
       return 'Dinheiro'
     default:
-      return 'Nao informado'
+      return 'Não informado'
   }
 }

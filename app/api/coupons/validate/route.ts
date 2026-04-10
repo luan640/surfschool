@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result.data)
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Nao foi possivel validar o cupom.' },
+      { error: error instanceof Error ? error.message : 'Não foi possível validar o cupom.' },
       { status: 500 },
     )
   }

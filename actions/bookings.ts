@@ -95,7 +95,7 @@ export async function createPackageBookingPlan(params: {
     if (error?.message.includes('PACKAGE_INSTRUCTOR_MISMATCH')) {
       return { success: false, error: 'Instrutor invalido para este pacote.' }
     }
-    return { success: false, error: error?.message ?? 'Nao foi possivel criar o pacote.' }
+    return { success: false, error: error?.message ?? 'Não foi possível criar o pacote.' }
   }
 
   revalidatePath('/dashboard/bookings')
@@ -120,7 +120,7 @@ export async function getBookings(filters?: {
       student:student_profiles(full_name, phone)
     `)
     .eq('school_id', school.id)
-    .order('lesson_date', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (filters?.status)       query = query.eq('status', filters.status)
   if (filters?.from)         query = query.gte('lesson_date', filters.from)
@@ -192,7 +192,7 @@ export async function updateBookingStatus(
   return { success: true, data: undefined }
 }
 
-export async function confirmBookingPayment(id: string, amount?: number): Promise<ActionResult> {
+export async function confirmBookingPayment(id: string, amount?: number, paymentMethod?: string): Promise<ActionResult> {
   const supabase = await createClient()
   const school = await getMySchool()
   if (!school) return { success: false, error: 'Nao autorizado' }
@@ -225,7 +225,7 @@ export async function confirmBookingPayment(id: string, amount?: number): Promis
     .from('bookings')
     .update({
       payment_status: 'paid',
-      payment_method: booking.payment_method ?? 'cash',
+      payment_method: paymentMethod ?? booking.payment_method ?? 'cash',
       unit_price: normalizedUnitPrice,
       updated_at: new Date().toISOString(),
     })

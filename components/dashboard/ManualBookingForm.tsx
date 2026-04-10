@@ -102,7 +102,7 @@ export function ManualBookingForm({ students, instructors, bookingRules, onSucce
 
     if (!result.success) {
       setError(result.error)
-      showError('Nao foi possivel criar o agendamento.', result.error)
+      showError('Não foi possível criar o agendamento.', result.error)
       setLoading(false)
       return
     }

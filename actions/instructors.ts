@@ -228,7 +228,7 @@ async function uploadInstructorPhoto({
     })
 
   if (uploadError) {
-    return { photoUrl: null, storagePath: null, error: `Nao foi possivel enviar a foto: ${uploadError.message}` }
+    return { photoUrl: null, storagePath: null, error: `Não foi possível enviar a foto: ${uploadError.message}` }
   }
 
   const { data: publicPhoto } = admin.storage

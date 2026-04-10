@@ -121,7 +121,7 @@ export async function POST(request: Request) {
           .eq('cpf', student.cpf)
 
         if (matchingProfilesError || !matchingProfiles || matchingProfiles.length === 0) {
-          return NextResponse.json({ error: matchingProfilesError?.message ?? 'Nao foi possivel validar o CPF do aluno.' }, { status: 500 })
+          return NextResponse.json({ error: matchingProfilesError?.message ?? 'Não foi possível validar o CPF do aluno.' }, { status: 500 })
         }
 
         const { count: existingBookingsCount, error: existingBookingsError } = await admin
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
       if (bookingError || !booking) {
         const message = bookingError?.message.includes('SLOT_CONFLICT')
           ? 'Um ou mais horarios selecionados ja foram reservados.'
-          : bookingError?.message ?? 'Nao foi possivel reservar a aula.'
+          : bookingError?.message ?? 'Não foi possível reservar a aula.'
         return NextResponse.json({ error: message }, { status: 409 })
       }
 
@@ -300,7 +300,7 @@ export async function POST(request: Request) {
       if (packagePlanError || !packagePlanId) {
         const message = packagePlanError?.message.includes('SLOT_CONFLICT_LESSON_')
           ? 'Um ou mais horarios do pacote nao estao mais disponiveis.'
-          : packagePlanError?.message ?? 'Nao foi possivel reservar o pacote.'
+          : packagePlanError?.message ?? 'Não foi possível reservar o pacote.'
         return NextResponse.json({ error: message }, { status: 409 })
       }
 

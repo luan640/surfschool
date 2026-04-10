@@ -560,7 +560,7 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
       .list(folder, { limit: 100 })
 
     if (listError) {
-      return { success: false, error: `Nao foi possivel acessar o storage: ${listError.message}` }
+      return { success: false, error: `Não foi possível acessar o storage: ${listError.message}` }
     }
 
     if ((existingFiles ?? []).length > 0) {
@@ -569,7 +569,7 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
         .remove(existingFiles!.map((file) => `${folder}/${file.name}`))
 
       if (removeError) {
-        return { success: false, error: `Nao foi possivel atualizar a logo atual: ${removeError.message}` }
+        return { success: false, error: `Não foi possível atualizar a logo atual: ${removeError.message}` }
       }
     }
 
@@ -582,7 +582,7 @@ export async function updateSchoolSettings(formData: FormData): Promise<ActionRe
       })
 
     if (uploadError) {
-      return { success: false, error: `Nao foi possivel enviar a logo: ${uploadError.message}` }
+      return { success: false, error: `Não foi possível enviar a logo: ${uploadError.message}` }
     }
 
     const { data: publicLogo } = admin.storage

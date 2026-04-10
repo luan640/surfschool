@@ -107,7 +107,7 @@ export async function createLessonPackage(formData: FormData): Promise<ActionRes
     .single()
 
   if (error || !data) {
-    return { success: false, error: error?.message ?? 'Nao foi possivel criar o pacote' }
+    return { success: false, error: error?.message ?? 'Não foi possível criar o pacote' }
   }
 
   const linkResult = await replacePackageInstructors(supabase, data.id, payload.data.instructorIds)
