@@ -8,7 +8,7 @@ import { validatePhoneField } from '@/lib/phone'
 import { formatTripPaymentMethodLabel } from '@/lib/trips'
 import { slugify } from '@/lib/utils'
 import { getMySchool } from './instructors'
-import type { ActionResult, PaymentMethod, Trip, TripImage, TripRegistration } from '@/lib/types'
+import type { ActionResult, PaymentMethod, SchoolTripSettings, Trip, TripImage, TripRegistration } from '@/lib/types'
 
 const SCHOOL_ASSETS_BUCKET = 'school-assets'
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -588,6 +588,86 @@ function parseManualTripRegistrationFormData(formData: FormData):
     },
   }
 }
+
+// ── Trip mode settings ──────────────────────────────────────────────────────
+
+const DEFAULT_TRIP_SETTINGS: Omit<SchoolTripSettings, 'school_id'> = {
+  trip_start_date: null,
+  trip_end_date: null,
+  booking_mode: 'both',
+  location_note: null,
+  updated_at: '',
+}
+
+export async function getTripSettings(): Promise<SchoolTripSettings | null> {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return null
+
+  const { data } = await supabase
+    .from('school_trip_settings')
+    .select('*')
+    .eq('school_id', school.id)
+    .maybeSingle()
+
+  if (data) return data as SchoolTripSettings
+  return { school_id: school.id, ...DEFAULT_TRIP_SETTINGS }
+}
+
+export async function saveTripSettings(formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const tripStartDate = (formData.get('trip_start_date') as string | null) || null
+  const tripEndDate   = (formData.get('trip_end_date')   as string | null) || null
+  const bookingMode   = formData.get('booking_mode') === 'trip_only' ? 'trip_only' : 'both'
+  const locationNote  = (formData.get('location_note') as string | null)?.trim() || null
+
+  if (tripStartDate && tripEndDate && tripStartDate > tripEndDate) {
+    return { success: false, error: 'A data de início deve ser anterior à data de término.' }
+  }
+
+  const { error } = await supabase
+    .from('school_trip_settings')
+    .upsert({
+      school_id: school.id,
+      trip_start_date: tripStartDate,
+      trip_end_date: tripEndDate,
+      booking_mode: bookingMode,
+      location_note: locationNote,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'school_id' })
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/dashboard/trips')
+  return { success: true, data: undefined }
+}
+
+export async function getPublicTripSettingsBySlug(slug: string): Promise<SchoolTripSettings | null> {
+  if (!slug) return null
+  const admin = createAdminClient()
+
+  const { data: school } = await admin
+    .from('schools')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (!school) return null
+
+  const { data } = await admin
+    .from('school_trip_settings')
+    .select('*')
+    .eq('school_id', school.id)
+    .maybeSingle()
+
+  if (data) return data as SchoolTripSettings
+  return { school_id: school.id, ...DEFAULT_TRIP_SETTINGS }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 function buildManualTripPaymentDetail(paymentMethod: PaymentMethod, paymentStatus: 'pending' | 'paid') {
   if (paymentStatus === 'pending') {

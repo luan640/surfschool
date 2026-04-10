@@ -85,7 +85,7 @@ const NAV_SECTIONS: NavSection[] = [
         icon: Settings,
         children: [
           { href: '/dashboard/settings/account-data', label: 'Dados da conta' },
-          { href: '/dashboard/settings/rules', label: 'Regras' },
+          { href: '/dashboard/settings/rules', label: 'Avançado' },
         ],
       },
     ],

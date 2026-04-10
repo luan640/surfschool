@@ -302,20 +302,6 @@ export function ManualBookingForm({ students, instructors, bookingRules, onSucce
         <Button type="submit" variant="primary" disabled={loading || !studentId || !instructorId || !lessonDate || selectedSlots.length === 0}>
           {loading ? 'Salvando...' : 'Criar agendamento'}
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            if (onCancel) {
-              onCancel()
-              return
-            }
-
-            router.push('/dashboard/bookings')
-          }}
-        >
-          Cancelar
-        </Button>
       </div>
     </form>
   )

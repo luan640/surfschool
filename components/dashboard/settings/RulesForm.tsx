@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Clock3, RefreshCw, ShieldCheck, TimerReset } from 'lucide-react'
+import { Clock3, ShieldCheck, TimerReset } from 'lucide-react'
 import type { SchoolRules } from '@/lib/types'
 import { Banner } from '@/components/dashboard/settings/SettingsStatus'
 import { Button } from '@/components/ui/button'
@@ -108,25 +108,6 @@ export function RulesForm({ rules, status, action }: Props) {
               />
             </div>
 
-            <ToggleField
-              name="allow_student_reschedule"
-              title="Permitir reagendamento pelo aluno"
-              description="Quando ligado, o aluno pode trocar a data da aula dentro da janela permitida."
-              defaultChecked={rules.allow_student_reschedule}
-            />
-            <div className="grid gap-1.5 sm:max-w-xs">
-              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Horas minimas para reagendar
-              </label>
-              <Input
-                type="number"
-                min="0"
-                step="1"
-                name="reschedule_notice_hours"
-                defaultValue={rules.reschedule_notice_hours}
-                icon={<RefreshCw size={14} />}
-              />
-            </div>
           </div>
         </section>
 
@@ -194,35 +175,6 @@ export function RulesForm({ rules, status, action }: Props) {
             description="Quando ligado, o aluno pode ver a opcao Aula experimental com valor R$ 0,00 na primeira reserva."
             defaultChecked={rules.trial_lesson_enabled}
           />
-        </section>
-
-        <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
-          <div>
-            <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-              Limites operacionais
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Evite concentrar muitas reservas futuras no mesmo aluno e mantenha a agenda distribuida.
-            </p>
-          </div>
-
-          <div className="grid gap-1.5 sm:max-w-xs">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-              Limite de aulas futuras por aluno
-            </label>
-            <Input
-              type="number"
-              min="1"
-              step="1"
-              name="max_active_bookings_per_student"
-              defaultValue={rules.max_active_bookings_per_student ?? ''}
-              placeholder="Sem limite"
-              icon={<ShieldCheck size={14} />}
-            />
-            <p className="text-xs text-slate-400">
-              Deixe vazio para permitir quantas aulas futuras forem necessarias.
-            </p>
-          </div>
         </section>
 
         <div className="flex justify-end gap-3">

@@ -129,12 +129,7 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
                 </div>
                 <div className="space-y-3 text-sm text-slate-600">
                   <p>Você receberá as informações da trip no e-mail informado durante a inscrição.</p>
-                  <p>{payOnSite ? 'O pagamento ficara marcado como pendente ate ser recebido pela escola.' : 'Se precisar revisar os detalhes do pagamento, o comprovante continua disponivel logo abaixo.'}</p>
-                  {!payOnSite && result.ticketUrl && (
-                    <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="inline-flex font-bold text-emerald-700 underline">
-                      Abrir comprovante
-                    </a>
-                  )}
+                  <p>{payOnSite ? 'O pagamento ficara marcado como pendente ate ser recebido pela escola.' : 'Se precisar revisar os detalhes do pagamento, verifique o e-mail informado durante a inscricao.'}</p>
                 </div>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <Button asChild variant="primary">
@@ -225,7 +220,6 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
             <img src={`data:image/png;base64,${result.qrCodeBase64}`} alt="QR Code PIX" className="mt-4 h-48 w-48 rounded border border-white bg-white p-2" />
           )}
           {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
-          {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Abrir comprovante</a>}
         </div>
       ) : paymentMode === 'pay_now' ? (
         <div className="relative rounded-2xl border border-slate-200 bg-white p-4">

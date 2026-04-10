@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
 import { getMercadoPagoConnection, getSchoolSettings } from '@/actions/dashboard'
-import { CopyBookingLinkButton } from '@/components/dashboard/CopyBookingLinkButton'
 import { DisconnectMercadoPagoButton } from '@/components/dashboard/settings/DisconnectMercadoPagoButton'
 import { Banner, ConnectionBadge } from '@/components/dashboard/settings/SettingsStatus'
 import { Button } from '@/components/ui/button'
-import { CreditCard, Globe } from 'lucide-react'
+import { CreditCard } from 'lucide-react'
 
 interface Props {
   searchParams?: Promise<{ mp?: string }>
@@ -16,8 +15,6 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
   if (!school) redirect('/auth/login')
 
   const params = searchParams ? await searchParams : undefined
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://vamosurfar.app').replace(/\/$/, '')
-  const bookingUrl = `${appUrl}/${school.slug}`
 
   return (
     <div className="dashboard-page-compact">
@@ -31,15 +28,6 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
       {params?.mp === 'connected' && <Banner tone="success" text="Mercado Pago conectado com sucesso." />}
       {params?.mp === 'disconnected' && <Banner tone="warning" text="Conta do Mercado Pago desvinculada." />}
       {params?.mp === 'error' && <Banner tone="error" text="Não foi possível concluir a autenticacao do Mercado Pago." />}
-
-      <div className="mb-6 flex items-center gap-3 rounded border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
-        <Globe size={16} className="shrink-0 text-[var(--primary)]" />
-        <div className="min-w-0 flex-1">
-          <p className="mb-0.5 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Link de agendamento dos alunos</p>
-          <p className="truncate font-mono text-sm text-slate-700">{bookingUrl}</p>
-        </div>
-        <CopyBookingLinkButton url={bookingUrl} />
-      </div>
 
       <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
         <div className="flex items-start justify-between gap-4">

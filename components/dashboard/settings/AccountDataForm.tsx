@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, type ChangeEvent } from 'react'
-import { Building2, ImageUp, MapPin, Phone } from 'lucide-react'
+import { Building2, Globe, ImageUp, MapPin, Phone } from 'lucide-react'
+import { CopyBookingLinkButton } from '@/components/dashboard/CopyBookingLinkButton'
 import { Banner } from '@/components/dashboard/settings/SettingsStatus'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,11 +13,12 @@ interface Props {
   school: School
   status?: string
   action: (formData: FormData) => void
+  bookingUrl: string
 }
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024
 
-export function AccountDataForm({ school, status, action }: Props) {
+export function AccountDataForm({ school, status, action, bookingUrl }: Props) {
   const [logoError, setLogoError] = useState('')
   const { success, error: showError } = useToast()
 
@@ -63,6 +65,15 @@ export function AccountDataForm({ school, status, action }: Props) {
 
       {status === 'saved' && <Banner tone="success" text="Dados da conta atualizados com sucesso." />}
       {status === 'error' && <Banner tone="error" text="Não foi possível salvar os dados da conta." />}
+
+      <div className="mb-6 flex items-center gap-3 rounded border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
+        <Globe size={16} className="shrink-0 text-[var(--primary)]" />
+        <div className="min-w-0 flex-1">
+          <p className="mb-0.5 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Link de agendamento dos alunos</p>
+          <p className="truncate font-mono text-sm text-slate-700">{bookingUrl}</p>
+        </div>
+        <CopyBookingLinkButton url={bookingUrl} />
+      </div>
 
       <form action={action} className="space-y-6">
         <div className="space-y-4 rounded border border-slate-200 bg-white p-6">
@@ -132,7 +143,7 @@ export function AccountDataForm({ school, status, action }: Props) {
                 <input type="color" name="primary_color" defaultValue={school.primary_color} className="h-11 w-11 cursor-pointer rounded border border-slate-200 p-0.5" />
                 <span className="font-mono text-sm text-slate-500">{school.primary_color}</span>
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">Header, botoes e links</p>
+              <p className="mt-1 text-[11px] text-slate-400">Header, botões e links</p>
             </div>
             <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">Cor de destaque</label>
@@ -140,7 +151,7 @@ export function AccountDataForm({ school, status, action }: Props) {
                 <input type="color" name="cta_color" defaultValue={school.cta_color} className="h-11 w-11 cursor-pointer rounded border border-slate-200 p-0.5" />
                 <span className="font-mono text-sm text-slate-500">{school.cta_color}</span>
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">Botao principal de acao</p>
+              <p className="mt-1 text-[11px] text-slate-400">Botão principal de ação</p>
             </div>
           </div>
         </div>

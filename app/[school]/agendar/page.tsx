@@ -6,11 +6,12 @@ import { ArrowLeft, ArrowRight, Calendar, Check, ChevronLeft, ChevronRight, Cloc
 import { getTakenSlots } from '@/actions/bookings'
 import { getPublicMercadoPagoConnectionBySlug, getPublicSchoolRulesBySlug } from '@/actions/dashboard'
 import { getInstructorsBySchoolSlug } from '@/actions/instructors'
+import { getPublicTripSettingsBySlug } from '@/actions/trips'
 import { getPublicLessonPackagesBySchoolSlug } from '@/actions/packages'
 import { MercadoPagoCheckoutBrick } from '@/components/checkout/MercadoPagoCheckoutBrick'
 import { filterBookableSlots, getDateKeyFromDate, getDefaultBookingRules, getSchoolNowDateKey, isDateWithinBookingWindow } from '@/lib/booking-rules'
 import { createClient } from '@/lib/supabase/client'
-import type { BookingWizardState, Instructor, LessonPackage, SchoolRules } from '@/lib/types'
+import type { BookingWizardState, Instructor, LessonPackage, SchoolRules, SchoolTripSettings } from '@/lib/types'
 import { formatDate, formatPrice, initials } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -26,6 +27,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
   const [slug, setSlug] = useState('')
   const [school, setSchool] = useState<{ id: string; name: string; address: string | null; primary_color: string; cta_color: string } | null>(null)
   const [schoolRules, setSchoolRules] = useState<SchoolRules | null>(null)
+  const [tripSettings, setTripSettings] = useState<SchoolTripSettings | null>(null)
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [packages, setPackages] = useState<LessonPackage[]>([])
   const [studentEmail, setStudentEmail] = useState<string | null>(null)
@@ -79,6 +81,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
     getInstructorsBySchoolSlug(slug).then(setInstructors)
     getPublicLessonPackagesBySchoolSlug(slug).then(setPackages)
     getPublicSchoolRulesBySlug(slug).then(setSchoolRules)
+    getPublicTripSettingsBySlug(slug).then(setTripSettings)
     getPublicMercadoPagoConnectionBySlug(slug).then((connection) => setMercadoPagoReady(connection?.status === 'connected'))
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
@@ -430,6 +433,16 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   const { year, month, cells } = buildCalendar()
 
+  function isDateInTripPeriod(date: Date | null): boolean {
+    if (!date || !tripSettings?.trip_start_date || !tripSettings?.trip_end_date) return false
+    const key = getDateKeyFromDate(date)
+    return key >= tripSettings.trip_start_date && key <= tripSettings.trip_end_date
+  }
+
+  const selectedDateInTrip = isDateInTripPeriod(wizard.selectedDate)
+  const tripOnlyMode = tripSettings?.booking_mode === 'trip_only'
+  const showTripWarning = selectedDateInTrip && tripOnlyMode
+
   function canAdvance() {
     if (wizard.step === 1) return !!wizard.selectionType
     if (!isPackageFlow && wizard.step === 2) return !!wizard.selectedInstructor
@@ -647,6 +660,16 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
             <section className="space-y-4">
               <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_choose_date}</h1><p className="mt-1 text-[14px] text-slate-500">{t.wizard_choose_date_sub}</p></div>
               <CalendarSelector year={year} month={month} cells={cells} onPrev={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() - 1, 1))} onNext={() => setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} onSelect={setSingleDate} ctaColor={ctaColor} months={t.months} weekdays={t.weekdays} />
+              {showTripWarning && (
+                <div className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <div className="font-semibold">⚠️ A escola estará em trip nesta data</div>
+                  <p className="mt-1 text-[13px]">
+                    {tripSettings?.location_note
+                      ? tripSettings.location_note
+                      : 'Neste período os agendamentos normais não estão disponíveis. Confira as trips abertas!'}
+                  </p>
+                </div>
+              )}
             </section>
           )}
 

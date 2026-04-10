@@ -369,7 +369,8 @@ export async function createManualBooking(formData: FormData): Promise<ActionRes
   const { error } = await supabase
     .from('bookings')
     .update({
-      status: 'confirmed',
+      status: 'pending',
+      payment_status: 'pending',
       payment_method: paymentMethod,
     })
     .eq('id', bookingResult.data.id)

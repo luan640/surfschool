@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { Plus, Search, Users, Waves, X } from 'lucide-react'
+import { CalendarDays, LayoutList, Plus, Search, Users, Waves, X } from 'lucide-react'
 import { BookingStatusActions } from '@/components/dashboard/BookingStatusActions'
+import { BookingsDayInstructorCalendar } from '@/components/dashboard/BookingsDayInstructorCalendar'
+import { BookingsWeekCalendar } from '@/components/dashboard/BookingsWeekCalendar'
 import { ManualBookingForm } from '@/components/dashboard/ManualBookingForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,6 +46,7 @@ interface Props {
 }
 
 export function BookingsPageClient({ bookings, students, instructors, bookingRules }: Props) {
+  const [view, setView] = useState<'calendar' | 'instructor' | 'table'>('calendar')
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const canCreateBooking = students.length > 0 && instructors.length > 0
   const [currentPage, setCurrentPage] = useState(1)
@@ -102,17 +105,67 @@ export function BookingsPageClient({ bookings, students, instructors, bookingRul
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <Button asChild variant="ghost" size="sm" className="w-full sm:w-auto">
-              <Link href="/dashboard/bookings/today">
-                Hoje
-              </Link>
-            </Button>
+            {/* View toggle */}
+            <div className="flex overflow-hidden rounded border border-slate-200 bg-white">
+              <button
+                type="button"
+                onClick={() => setView('calendar')}
+                title="Modo calendário semanal"
+                className={`flex h-9 items-center gap-1.5 px-3 text-xs font-semibold transition-colors ${
+                  view === 'calendar'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <CalendarDays size={14} /> Semana
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('instructor')}
+                title="Visão por instrutor"
+                className={`flex h-9 items-center gap-1.5 border-l border-slate-200 px-3 text-xs font-semibold transition-colors ${
+                  view === 'instructor'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <Users size={14} /> Instrutores
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('table')}
+                title="Modo tabela"
+                className={`flex h-9 items-center gap-1.5 border-l border-slate-200 px-3 text-xs font-semibold transition-colors ${
+                  view === 'table'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <LayoutList size={14} /> Tabela
+              </button>
+            </div>
             <Button size="sm" onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto">
               <Plus size={15} /> Agendar aula manualmente
             </Button>
           </div>
         </div>
 
+        {view === 'calendar' && (
+          <BookingsWeekCalendar
+            bookings={bookings}
+            instructors={instructors}
+          />
+        )}
+
+        {view === 'instructor' && (
+          <BookingsDayInstructorCalendar
+            bookings={bookings}
+            instructors={instructors}
+          />
+        )}
+
+        {view === 'table' && (
+        <>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex-1">
             <Input
@@ -311,6 +364,8 @@ export function BookingsPageClient({ bookings, students, instructors, bookingRul
             </>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {createModalOpen && (

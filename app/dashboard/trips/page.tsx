@@ -1,15 +1,16 @@
 import Link from 'next/link'
 import { CalendarDays, MapPin, Plus, Users } from 'lucide-react'
 import { getSchoolSettings } from '@/actions/dashboard'
-import { getTrips } from '@/actions/trips'
+import { getTrips, getTripSettings } from '@/actions/trips'
 import { CopyBookingLinkButton } from '@/components/dashboard/CopyBookingLinkButton'
+import { TripModeModal } from '@/components/dashboard/TripModeModal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/utils'
 
 export default async function TripsPage() {
   const school = await getSchoolSettings()
-  const trips = await getTrips()
+  const [trips, tripSettings] = await Promise.all([getTrips(), getTripSettings()])
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://vamosurfar.app').replace(/\/$/, '')
 
   return (
@@ -21,11 +22,14 @@ export default async function TripsPage() {
             {trips.length} trip{trips.length !== 1 ? 's' : ''} cadastrada{trips.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button asChild size="sm">
-          <Link href="/dashboard/trips/new">
-            <Plus size={15} /> Nova trip
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {tripSettings && <TripModeModal settings={tripSettings} />}
+          <Button asChild size="sm">
+            <Link href="/dashboard/trips/new">
+              <Plus size={15} /> Nova trip
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {trips.length === 0 ? (
@@ -80,7 +84,7 @@ export default async function TripsPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
-                  <div className="text-xs text-slate-400">Slug publico: {trip.slug}</div>
+                  <div className="text-xs text-slate-400">Slug público: {trip.slug}</div>
                   <div className="flex items-center gap-2">
                     {school && <CopyBookingLinkButton url={`${appUrl}/${school.slug}/trips/${trip.slug}`} />}
                     <Button asChild variant="ghost" size="sm">

@@ -17,5 +17,8 @@ export default async function AccountDataPage({ searchParams }: Props) {
     redirect(`/dashboard/settings/account-data?status=${result.success ? 'saved' : 'error'}`)
   }
 
-  return <AccountDataForm school={school} status={params?.status} action={save} />
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://vamosurfar.app').replace(/\/$/, '')
+  const bookingUrl = `${appUrl}/${school.slug}`
+
+  return <AccountDataForm school={school} status={params?.status} action={save} bookingUrl={bookingUrl} />
 }

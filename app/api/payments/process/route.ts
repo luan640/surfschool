@@ -323,7 +323,7 @@ export async function POST(request: Request) {
       const { error: bookingUpdateError } = await admin
         .from('bookings')
         .update({
-          status: 'confirmed',
+          status: isTrialLesson ? 'confirmed' : 'pending',
           payment_status: isTrialLesson ? 'paid' : 'pending',
           payment_method: isTrialLesson ? 'cash' : null,
         })

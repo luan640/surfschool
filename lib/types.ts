@@ -207,6 +207,15 @@ export interface SchoolRules {
   updated_at: string
 }
 
+export interface SchoolTripSettings {
+  school_id: string
+  trip_start_date: string | null
+  trip_end_date: string | null
+  booking_mode: 'both' | 'trip_only'
+  location_note: string | null
+  updated_at: string
+}
+
 export interface InstructorCommissionPayment {
   id: string
   school_id: string

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, ImagePlus, MapPin, Tag, Users } from 'lucide-react'
+import { CalendarDays, MapPin, Tag, Users } from 'lucide-react'
 import { createTrip, updateTrip } from '@/actions/trips'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,7 +33,7 @@ export function TripForm({ trip }: Props) {
     }
   }, [coverPreviewUrl])
 
-  function validateFiles(files: FileList | null, mode: 'cover' | 'gallery') {
+  function validateFiles(files: FileList | null) {
     if (!files || files.length === 0) {
       setMediaError('')
       return true
@@ -49,7 +49,7 @@ export function TripForm({ trip }: Props) {
       }
 
       if (file.size > maxSize) {
-        setMediaError(`Cada imagem ${mode === 'cover' ? 'de capa' : 'da galeria'} deve ter no maximo 4 MB.`)
+        setMediaError('A imagem de capa deve ter no maximo 4 MB.')
         return false
       }
     }
@@ -92,10 +92,6 @@ export function TripForm({ trip }: Props) {
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Titulo *</label>
             <Input name="title" required defaultValue={trip?.title ?? ''} placeholder="Trip para Fernando de Noronha" icon={<Tag size={14} />} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Slug publico</label>
-            <Input name="slug" defaultValue={trip?.slug ?? ''} placeholder="noronha-2026" />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Local</label>
@@ -199,76 +195,45 @@ export function TripForm({ trip }: Props) {
       <div className="space-y-4 rounded border border-slate-200 bg-white p-6">
         <div>
           <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">Midia da trip</h2>
-          <p className="mt-1 text-sm text-slate-500">Suba uma imagem de capa e uma galeria para montar a pagina publica.</p>
+          <p className="mt-1 text-sm text-slate-500">Suba uma imagem de capa para montar a pagina publica.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="space-y-3 rounded border border-dashed border-slate-200 bg-slate-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Capa</div>
-            {coverPreviewUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverPreviewUrl} alt={`Capa de ${trip?.title ?? 'nova trip'}`} className="h-40 w-full rounded object-cover" />
-            )}
-            <input
-              type="file"
-              name="cover_image"
-              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                if (!validateFiles(event.target.files, 'cover')) {
-                  event.target.value = ''
-                  return
+        <div className="space-y-3 rounded border border-dashed border-slate-200 bg-slate-50 p-4">
+          {coverPreviewUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverPreviewUrl} alt={`Capa de ${trip?.title ?? 'nova trip'}`} className="h-40 w-full rounded object-cover" />
+          )}
+          <input
+            type="file"
+            name="cover_image"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+            onChange={(event) => {
+              if (!validateFiles(event.target.files)) {
+                event.target.value = ''
+                return
+              }
+
+              const file = event.target.files?.[0]
+              if (!file) {
+                setCoverPreviewUrl(trip?.cover_image_url ?? null)
+                return
+              }
+
+              setCoverPreviewUrl((current) => {
+                if (current?.startsWith('blob:')) {
+                  URL.revokeObjectURL(current)
                 }
-
-                const file = event.target.files?.[0]
-                if (!file) {
-                  setCoverPreviewUrl(trip?.cover_image_url ?? null)
-                  return
-                }
-
-                setCoverPreviewUrl((current) => {
-                  if (current?.startsWith('blob:')) {
-                    URL.revokeObjectURL(current)
-                  }
-                  return URL.createObjectURL(file)
-                })
-              }}
-              className="block w-full text-sm text-slate-600 file:mr-4 file:rounded file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-bold file:uppercase file:text-white"
-            />
-            <div className="rounded border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">
-              {coverPreviewUrl
-                ? 'Preview da capa selecionada. Essa imagem sera usada no destaque principal da trip.'
-                : 'Escolha uma capa para destacar a trip na tela publica.'}
-            </div>
+                return URL.createObjectURL(file)
+              })
+            }}
+            className="block w-full text-sm text-slate-600 file:mr-4 file:rounded file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-bold file:uppercase file:text-white"
+          />
+          <div className="rounded border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">
+            {coverPreviewUrl
+              ? 'Preview da capa selecionada. Essa imagem sera usada no destaque principal da trip.'
+              : 'Escolha uma capa para destacar a trip na tela publica.'}
           </div>
-
-          <div className="space-y-3 rounded border border-dashed border-slate-200 bg-slate-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Galeria</div>
-            {(trip?.images?.length ?? 0) > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {trip?.images?.map((image) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={image.id} src={image.image_url} alt={trip.title} className="h-20 w-full rounded object-cover" />
-                ))}
-              </div>
-            )}
-            <div className="rounded border border-slate-200 bg-white px-3 py-3 text-sm text-slate-500">
-              <div className="inline-flex items-center gap-2">
-                <ImagePlus size={14} />
-                {trip?.images?.length ? 'Enviar novas imagens substitui a galeria atual.' : 'Adicione varias imagens para a pagina publica.'}
-              </div>
-            </div>
-            <input
-              type="file"
-              name="gallery_images"
-              multiple
-              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                if (!validateFiles(event.target.files, 'gallery')) event.target.value = ''
-              }}
-              className="block w-full text-sm text-slate-600 file:mr-4 file:rounded file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-bold file:uppercase file:text-white"
-            />
-            {mediaError && <p className="text-sm font-medium text-rose-600">{mediaError}</p>}
-          </div>
+          {mediaError && <p className="text-sm font-medium text-rose-600">{mediaError}</p>}
         </div>
       </div>
 
