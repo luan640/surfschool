@@ -7,15 +7,16 @@ import {
   BarChart3,
   CalendarDays,
   ChevronDown,
-  ChevronLeft,
   CircleDollarSign,
   CreditCard,
   Crown,
   LayoutDashboard,
   LogOut,
+  Menu,
   PanelLeftClose,
   Package,
-  ReceiptText,
+  RefreshCcw,
+  ShoppingBag,
   Settings,
   TicketPercent,
   Users,
@@ -71,7 +72,8 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Financeiro',
     items: [
       { href: '/dashboard/settings/payment-methods', label: 'Meio de pagamento', icon: CreditCard },
-      { href: '/dashboard/sales-history', label: 'Histórico de vendas', icon: ReceiptText },
+      { href: '/dashboard/purchases', label: 'Compras', icon: ShoppingBag },
+      { href: '/dashboard/refunds', label: 'Reembolsos', icon: RefreshCcw },
       { href: '/dashboard/commission-payments', label: 'Pagamentos', icon: CircleDollarSign },
     ],
   },
@@ -141,7 +143,7 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = fa
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col bg-[#0d1b2a] transition-[width] duration-200',
+        'relative flex shrink-0 flex-col bg-[#0d1b2a] transition-[width] duration-200',
         mobile
           ? 'h-full min-h-full w-full max-w-none'
           : cn('sticky top-0 h-screen min-h-screen', collapsed ? 'w-20' : 'w-64'),
@@ -170,26 +172,13 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = fa
           )}
         </div>
 
-        {mobile ? (
+        {mobile && (
           <div className="mt-4 flex h-9 items-center justify-between rounded border border-white/10 bg-white/5 px-3 text-slate-300">
             <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Menu</span>
             <button type="button" onClick={onNavigate} aria-label="Fechar menu mobile">
               <PanelLeftClose size={16} />
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setCollapsed((value) => !value)}
-            className={cn(
-              'mt-4 flex h-9 items-center rounded border border-white/10 bg-white/5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white',
-              collapsed ? 'w-full justify-center' : 'w-full justify-between px-3',
-            )}
-            title={collapsed ? 'Expandir menu' : 'Fechar menu'}
-          >
-            {!collapsed && <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Menu</span>}
-            <ChevronLeft size={16} className={cn('transition-transform', collapsed && 'rotate-180')} />
-          </button>
         )}
       </div>
 
@@ -297,6 +286,19 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = fa
           </div>
         ))}
       </nav>
+
+      {/* Hamburger toggle — floating on the right edge, vertically centered */}
+      {!mobile && (
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          className="absolute -right-3.5 top-[52px] z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-700 bg-[#0d1b2a] text-slate-400 shadow-md transition-colors hover:border-slate-500 hover:text-white"
+        >
+          <Menu size={13} />
+        </button>
+      )}
 
       <div className={cn('border-t border-white/5 bg-black/10 py-4', collapsed ? 'px-2' : 'px-4')}>
         <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-3')}>

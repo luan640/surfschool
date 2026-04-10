@@ -5,6 +5,7 @@ import { Calendar, Clock, User } from 'lucide-react'
 import { getTakenSlotsForBooking, rescheduleBooking } from '@/actions/bookings'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toaster'
+import { filterBookableSlots } from '@/lib/booking-rules'
 import type { Booking, Instructor } from '@/lib/types'
 import { WEEKDAYS_PT } from '@/lib/utils'
 
@@ -36,6 +37,15 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
     return selectedInstructor.availability?.find((item) => Number(item.weekday) === weekday)?.time_slots ?? []
   }, [lessonDate, selectedInstructor])
 
+  const bookableSlots = useMemo(() => {
+    if (!lessonDate || availableSlots.length === 0) return new Set<string>()
+    const slots = filterBookableSlots(lessonDate, availableSlots, {
+      minimumBookingNoticeHours: 0,
+      bookingWindowDays: 3650,
+    })
+    return new Set(slots)
+  }, [lessonDate, availableSlots])
+
   useEffect(() => {
     if (!selectedInstructor || !lessonDate) {
       setTakenSlots([])
@@ -51,8 +61,10 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
   }, [booking.id, lessonDate, selectedInstructor])
 
   useEffect(() => {
-    setSelectedSlots((current) => current.filter((slot) => availableSlots.includes(slot)))
-  }, [availableSlots])
+    setSelectedSlots((current) =>
+      current.filter((slot) => availableSlots.includes(slot) && bookableSlots.has(slot)),
+    )
+  }, [availableSlots, bookableSlots])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -155,21 +167,26 @@ export function RescheduleBookingForm({ booking, instructors, onSuccess, onCance
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
             {availableSlots.map((slot) => {
-              const disabled = takenSlots.includes(slot)
-              const selected = selectedSlots.includes(slot)
+              const isPast     = !bookableSlots.has(slot)
+              const isTaken    = takenSlots.includes(slot)
+              const disabled   = isPast || isTaken
+              const selected   = selectedSlots.includes(slot)
 
               return (
                 <button
                   key={slot}
                   type="button"
                   disabled={disabled}
+                  title={isPast ? 'Horário já passou' : isTaken ? 'Horário ocupado' : undefined}
                   onClick={() => toggleSlot(slot)}
                   className={`rounded border-2 px-2 py-3 text-sm font-bold ${
-                    disabled
-                      ? 'border-slate-200 bg-slate-50 text-slate-300'
-                      : selected
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 bg-white text-slate-700'
+                    isPast
+                      ? 'border-slate-100 bg-slate-50 text-slate-300 line-through cursor-not-allowed'
+                      : isTaken
+                        ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                        : selected
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'
                   }`}
                 >
                   <span className="inline-flex items-center gap-1">

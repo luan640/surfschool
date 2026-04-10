@@ -269,7 +269,6 @@ export async function createManualTripRegistration(tripId: string, formData: For
 
   revalidatePath('/dashboard/trips')
   revalidatePath(`/dashboard/trips/${trip.id}`)
-  revalidatePath('/dashboard/sales-history')
   return { success: true, data: undefined }
 }
 
@@ -316,7 +315,6 @@ export async function updateManualTripRegistration(registrationId: string, formD
 
   revalidatePath('/dashboard/trips')
   revalidatePath(`/dashboard/trips/${registration.trip_id}`)
-  revalidatePath('/dashboard/sales-history')
   return { success: true, data: undefined }
 }
 

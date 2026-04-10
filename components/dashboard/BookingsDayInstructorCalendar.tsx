@@ -180,13 +180,14 @@ export function BookingsDayInstructorCalendar({ bookings, instructors }: Props) 
             className="sticky top-0 z-10 grid border-b border-slate-200 bg-white shadow-sm"
             style={{ gridTemplateColumns: gridCols }}
           >
-            <div className="border-r border-slate-100" />
+            <div className="border-r-2 border-slate-200" />
             {instructors.map((ins) => {
               const dayCount = (byInstructor[ins.id] ?? []).length
               return (
                 <div
                   key={ins.id}
-                  className="flex flex-col items-center gap-1.5 border-r border-slate-100 px-2 py-3 last:border-r-0"
+                  className="flex flex-col items-center gap-1.5 border-r-2 border-slate-200 px-2 py-3 last:border-r-0"
+                  style={{ borderTopWidth: 3, borderTopStyle: 'solid', borderTopColor: ins.color }}
                 >
                   {ins.photo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -236,7 +237,7 @@ export function BookingsDayInstructorCalendar({ bookings, instructors }: Props) 
                 style={{ gridTemplateColumns: gridCols, minHeight: CELL_H }}
               >
                 {/* Time label */}
-                <div className="border-r border-slate-100 pr-2 pt-1 text-right text-[10px] font-semibold text-slate-300 select-none">
+                <div className="border-r-2 border-slate-200 pr-2 pt-1 text-right text-[10px] font-semibold text-slate-300 select-none">
                   {String(hour).padStart(2, '0')}:00
                 </div>
 
@@ -249,8 +250,8 @@ export function BookingsDayInstructorCalendar({ bookings, instructors }: Props) 
                   return (
                     <div
                       key={ins.id}
-                      className="relative border-r border-slate-100 last:border-r-0"
-                      style={{ minHeight: CELL_H }}
+                      className="relative border-r-2 border-slate-200 last:border-r-0"
+                      style={{ minHeight: CELL_H, backgroundColor: `${ins.color}0d` }}
                     >
                       {/* Half-hour dashed line */}
                       <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-slate-100" />

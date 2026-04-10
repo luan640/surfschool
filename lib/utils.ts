@@ -61,3 +61,13 @@ export function percentChange(current: number, previous: number): number {
   if (previous === 0) return current > 0 ? 100 : 0
   return Math.round(((current - previous) / previous) * 100)
 }
+
+export function formatPaymentMethod(method: string | null): string | null {
+  switch (method) {
+    case 'pix': return 'Pix'
+    case 'credit_card': return 'Cartão de crédito'
+    case 'debit_card': return 'Cartão de débito'
+    case 'cash': return 'Dinheiro'
+    default: return null
+  }
+}

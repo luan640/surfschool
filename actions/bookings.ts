@@ -237,7 +237,6 @@ export async function confirmBookingPayment(id: string, amount?: number, payment
   revalidatePath('/dashboard/bookings/today')
   revalidatePath('/dashboard/overview')
   revalidatePath('/dashboard/reports')
-  revalidatePath('/dashboard/sales-history')
   return { success: true, data: undefined }
 }
 
@@ -293,7 +292,6 @@ export async function rescheduleBooking(formData: FormData): Promise<ActionResul
 
   if (booking.billing_mode === 'hourly' && !booking.package_id) {
     updatePayload.unit_price = Number(instructor.hourly_price)
-    updatePayload.total_amount = Number(instructor.hourly_price) * selectedSlots.length
   }
 
   const { error } = await supabase
