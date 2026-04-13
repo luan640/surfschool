@@ -199,7 +199,7 @@ export async function confirmBookingPayment(id: string, amount?: number, payment
 
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, school_id, payment_status, payment_transaction_id, payment_method, billing_mode, time_slots')
+    .select('id, school_id, payment_status, payment_transaction_id, payment_method, billing_mode, package_id, time_slots')
     .eq('id', id)
     .eq('school_id', school.id)
     .maybeSingle()
@@ -213,31 +213,115 @@ export async function confirmBookingPayment(id: string, amount?: number, payment
   }
 
   const normalizedAmount = Number(amount)
-  const normalizedUnitPrice = Number(
-    (
-      booking.billing_mode === 'package'
-        ? normalizedAmount
-        : normalizedAmount / Math.max(booking.time_slots?.length ?? 0, 1)
-    ).toFixed(2),
-  )
+  const normalizedPaymentMethod = (paymentMethod ?? booking.payment_method ?? 'cash') as PaymentMethod
 
-  const { error } = await supabase
-    .from('bookings')
-    .update({
-      payment_status: 'paid',
-      payment_method: paymentMethod ?? booking.payment_method ?? 'cash',
-      unit_price: normalizedUnitPrice,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
+  if (booking.billing_mode === 'package' && booking.package_id) {
+    const { data: packageLesson, error: packageLessonError } = await supabase
+      .from('student_package_lessons')
+      .select('student_package_id')
+      .eq('booking_id', id)
+      .maybeSingle()
 
-  if (error) return { success: false, error: error.message }
+    if (packageLessonError) return { success: false, error: packageLessonError.message }
+    if (!packageLesson?.student_package_id) {
+      return { success: false, error: 'Nao foi possivel localizar o pacote vinculado a este agendamento.' }
+    }
+
+    const { data: packageBookings, error: packageBookingsError } = await supabase
+      .from('student_package_lessons')
+      .select('booking_id')
+      .eq('student_package_id', packageLesson.student_package_id)
+
+    if (packageBookingsError) return { success: false, error: packageBookingsError.message }
+
+    const relatedBookingIds = (packageBookings ?? [])
+      .map((item) => item.booking_id as string | null)
+      .filter((value): value is string => Boolean(value))
+
+    if (relatedBookingIds.length > 0) {
+      const { error: bookingsUpdateError } = await supabase
+        .from('bookings')
+        .update({
+          payment_status: 'paid',
+          payment_method: normalizedPaymentMethod,
+          updated_at: new Date().toISOString(),
+        })
+        .in('id', relatedBookingIds)
+
+      if (bookingsUpdateError) return { success: false, error: bookingsUpdateError.message }
+    }
+
+    const { error: studentPackageError } = await supabase
+      .from('student_packages')
+      .update({
+        total_amount: Number(normalizedAmount.toFixed(2)),
+        payment_status: 'paid',
+        payment_method: normalizedPaymentMethod,
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', packageLesson.student_package_id)
+
+    if (studentPackageError) return { success: false, error: studentPackageError.message }
+  } else {
+    const normalizedUnitPrice = Number(
+      (normalizedAmount / Math.max(booking.time_slots?.length ?? 0, 1)).toFixed(2),
+    )
+
+    const { error } = await supabase
+      .from('bookings')
+      .update({
+        payment_status: 'paid',
+        payment_method: normalizedPaymentMethod,
+        unit_price: normalizedUnitPrice,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+
+    if (error) return { success: false, error: error.message }
+  }
 
   revalidatePath('/dashboard/bookings')
   revalidatePath('/dashboard/bookings/today')
   revalidatePath('/dashboard/overview')
   revalidatePath('/dashboard/reports')
+  revalidatePath('/dashboard/purchases')
+  revalidatePath('/dashboard/refunds')
   return { success: true, data: undefined }
+}
+
+export async function getBookingPaymentPreview(id: string): Promise<ActionResult<{ amount: number }>> {
+  const supabase = await createClient()
+  const school = await getMySchool()
+  if (!school) return { success: false, error: 'Nao autorizado' }
+
+  const { data: booking, error: bookingError } = await supabase
+    .from('bookings')
+    .select('id, school_id, billing_mode, total_amount, package_id')
+    .eq('id', id)
+    .eq('school_id', school.id)
+    .maybeSingle()
+
+  if (bookingError) return { success: false, error: bookingError.message }
+  if (!booking) return { success: false, error: 'Agendamento invalido para esta escola.' }
+
+  if (booking.billing_mode === 'package' && booking.package_id) {
+    const { data: packageLesson, error: packageLessonError } = await supabase
+      .from('student_package_lessons')
+      .select('student_package:student_packages(total_amount)')
+      .eq('booking_id', id)
+      .maybeSingle()
+
+    if (packageLessonError) return { success: false, error: packageLessonError.message }
+
+    const studentPackage = Array.isArray(packageLesson?.student_package)
+      ? packageLesson?.student_package[0]
+      : packageLesson?.student_package
+
+    return { success: true, data: { amount: Number(studentPackage?.total_amount ?? 0) } }
+  }
+
+  return { success: true, data: { amount: Number(booking.total_amount ?? 0) } }
 }
 
 export async function rescheduleBooking(formData: FormData): Promise<ActionResult> {

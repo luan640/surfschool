@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarClock, Check, CircleDollarSign, MoreHorizontal, RotateCcw, X } from 'lucide-react'
-import { confirmBookingPayment, updateBookingStatus } from '@/actions/bookings'
+import { confirmBookingPayment, getBookingPaymentPreview, updateBookingStatus } from '@/actions/bookings'
 import { RescheduleBookingForm } from '@/components/dashboard/RescheduleBookingForm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +44,25 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   const { success, error: showError } = useToast()
 
   // Close menu on outside click or Escape
+  useEffect(() => {
+    if (!paymentOpen || !booking) return
+
+    let cancelled = false
+    const currentBookingId = booking.id
+
+    async function loadPaymentPreview() {
+      const result = await getBookingPaymentPreview(currentBookingId)
+      if (!result.success || cancelled) return
+      setAgreedAmount(Number(result.data.amount).toFixed(2).replace('.', ','))
+    }
+
+    loadPaymentPreview()
+
+    return () => {
+      cancelled = true
+    }
+  }, [paymentOpen, booking])
+
   useEffect(() => {
     if (!menuOpen) return
     function onMouseDown(e: MouseEvent) {
