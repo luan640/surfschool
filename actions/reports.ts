@@ -81,6 +81,11 @@ type BookingReportQueryRow = {
   }> | null
 }
 
+type CancelledBookingRow = {
+  id: string
+  total_amount: number
+}
+
 export async function getReportFilterOptions(): Promise<ReportFilterOptions> {
   const supabase = await createClient()
   const school = await getMySchool()
@@ -189,8 +194,22 @@ export async function getReportsData(filters: ReportFilters) {
   if (normalizedFilters.paymentOrigin === 'presential') query = query.is('payment_transaction_id', null)
   if (couponBookingIds) query = query.in('id', couponBookingIds)
 
-  const { data } = await query
+  let cancelledQuery = supabase
+    .from('bookings')
+    .select('id, total_amount')
+    .eq('school_id', school.id)
+    .eq('status', 'cancelled')
+
+  if (normalizedFilters.from) cancelledQuery = cancelledQuery.gte('lesson_date', normalizedFilters.from)
+  if (normalizedFilters.to) cancelledQuery = cancelledQuery.lte('lesson_date', normalizedFilters.to)
+  if (normalizedFilters.instructorId) cancelledQuery = cancelledQuery.eq('instructor_id', normalizedFilters.instructorId)
+  if (normalizedFilters.paymentOrigin === 'online') cancelledQuery = cancelledQuery.not('payment_transaction_id', 'is', null)
+  if (normalizedFilters.paymentOrigin === 'presential') cancelledQuery = cancelledQuery.is('payment_transaction_id', null)
+  if (couponBookingIds) cancelledQuery = cancelledQuery.in('id', couponBookingIds)
+
+  const [{ data }, { data: cancelledData }] = await Promise.all([query, cancelledQuery])
   const bookings = normalizeBookingRows((data ?? []) as BookingReportQueryRow[])
+  const cancelledBookings = (cancelledData ?? []) as CancelledBookingRow[]
   const filteredBookingIds = new Set(bookings.map((booking) => booking.id))
 
   const { data: transactions } = scopeBookingIds.size
@@ -205,7 +224,7 @@ export async function getReportsData(filters: ReportFilters) {
   const financialAllocations = buildFinancialAllocations(bookings, transactionRows)
   const accountingTransactions = buildRelevantTransactions(transactionRows, bookings, scopeBookingIds, filteredBookingIds, normalizedFilters)
   const accountingEntries = buildFinancialEntries(bookings, accountingTransactions)
-  const kpis = buildKpis(bookings, accountingTransactions, accountingEntries)
+  const kpis = buildKpis(bookings, accountingTransactions, accountingEntries, cancelledBookings)
   const trend = buildTrend(bookings, accountingEntries)
   const instructorSummary = buildInstructorSummary(bookings, financialAllocations)
   const couponSummary = buildCouponSummary(bookings)
@@ -248,6 +267,8 @@ function emptyKpis(): ReportKpis {
     pendingBookings: 0,
     refundedAmount: 0,
     abandonedOrders: 0,
+    cancelledBookings: 0,
+    cancelledAmount: 0,
   }
 }
 
@@ -255,6 +276,7 @@ function buildKpis(
   bookings: BookingReportRow[],
   transactions: PaymentTransactionReportRow[],
   financialEntries: ReportFinancialEntry[],
+  cancelledBookings: CancelledBookingRow[],
 ): ReportKpis {
   const grossRevenue = financialEntries.reduce((acc, entry) => acc + entry.gross, 0)
   const mercadoPagoFees = financialEntries.reduce((acc, entry) => acc + entry.fee, 0)
@@ -272,6 +294,7 @@ function buildKpis(
     (transaction) => transaction.status === 'pending' || transaction.status === 'failed',
   ).length
   const paidFinancialEvents = financialEntries.length
+  const cancelledAmount = cancelledBookings.reduce((acc, booking) => acc + Number(booking.total_amount ?? 0), 0)
 
   return {
     totalRevenue: Number(netRevenue.toFixed(2)),
@@ -289,6 +312,8 @@ function buildKpis(
     pendingBookings: bookings.filter((booking) => booking.status === 'pending' || booking.status === 'confirmed').length,
     refundedAmount,
     abandonedOrders,
+    cancelledBookings: cancelledBookings.length,
+    cancelledAmount: Number(cancelledAmount.toFixed(2)),
   }
 }
 

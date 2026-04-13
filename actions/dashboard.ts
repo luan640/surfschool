@@ -39,6 +39,13 @@ type DashboardRevenueRow = {
   status: DashboardCalendarBooking['status']
 }
 
+type DashboardFutureBookingRow = {
+  id: string
+  billing_mode: 'hourly' | 'package'
+  package_id: string | null
+  total_amount: number
+}
+
 type DashboardRevenueBookingCountRow = {
   created_at: string
   status: DashboardCalendarBooking['status']
@@ -80,6 +87,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
       activeInstructors: 0,
       upcomingLessons: 0,
       paidScheduledLessons: 0,
+      futureLessonsAmount: 0,
     }
   }
 
@@ -96,6 +104,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
     { data: lastMonthBookings },
     { data: completedLessons },
     { data: paidScheduledLessons },
+    { data: futureBookings },
     { data: instructors },
   ] = await Promise.all([
     supabase
@@ -138,11 +147,61 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
       .in('status', ['pending', 'confirmed'])
       .gte('lesson_date', today),
     supabase
+      .from('bookings')
+      .select('id, billing_mode, package_id, total_amount')
+      .eq('school_id', school.id)
+      .eq('payment_status', 'paid')
+      .in('status', ['pending', 'confirmed'])
+      .gte('lesson_date', today)
+      .neq('status', 'cancelled'),
+    supabase
       .from('instructors')
       .select('id')
       .eq('school_id', school.id)
       .eq('active', true),
   ])
+
+  const futureLessons = (futureBookings ?? []) as DashboardFutureBookingRow[]
+  const futurePackageBookingIds = futureLessons
+    .filter((booking) => booking.billing_mode === 'package' && booking.package_id)
+    .map((booking) => booking.id)
+
+  const packageAmountsByBookingId = new Map<string, { packageId: string; amount: number }>()
+
+  if (futurePackageBookingIds.length > 0) {
+    const { data: packageLessons } = await supabase
+      .from('student_package_lessons')
+      .select('booking_id, student_package_id, student_package:student_packages(total_amount)')
+      .in('booking_id', futurePackageBookingIds)
+
+    for (const row of packageLessons ?? []) {
+      const studentPackage = Array.isArray((row as any).student_package)
+        ? (row as any).student_package[0]
+        : (row as any).student_package
+
+      if (!(row as any).booking_id || !(row as any).student_package_id) continue
+
+      packageAmountsByBookingId.set((row as any).booking_id, {
+        packageId: String((row as any).student_package_id),
+        amount: Number(studentPackage?.total_amount ?? 0),
+      })
+    }
+  }
+
+  const countedPackageIds = new Set<string>()
+  const futureLessonsAmount = futureLessons.reduce((sum, booking) => {
+    if (booking.billing_mode !== 'package') {
+      return sum + Number(booking.total_amount ?? 0)
+    }
+
+    const packageEntry = packageAmountsByBookingId.get(booking.id)
+    if (!packageEntry || countedPackageIds.has(packageEntry.packageId)) {
+      return sum
+    }
+
+    countedPackageIds.add(packageEntry.packageId)
+    return sum + packageEntry.amount
+  }, 0)
 
   const currentMonthFinancials = emptyFinancialBreakdown()
   const lastMonthFinancials = emptyFinancialBreakdown()
@@ -193,6 +252,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
     activeInstructors: (instructors ?? []).length,
     upcomingLessons: (completedLessons ?? []).length,
     paidScheduledLessons: (paidScheduledLessons ?? []).length,
+    futureLessonsAmount: Number(futureLessonsAmount.toFixed(2)),
   }
 }
 

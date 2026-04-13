@@ -1,4 +1,4 @@
-import { Activity, Clock3, DollarSign, RotateCcw, ShoppingCart, TicketPercent, Users } from 'lucide-react'
+import { Activity, Clock3, DollarSign, RotateCcw, ShoppingCart, TicketPercent, Users, XCircle } from 'lucide-react'
 import { getReportsData } from '@/actions/reports'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { ReportsRevenueTrendChart, ReportsVolumeChart } from '@/components/dashboard/ReportsTrendChart'
@@ -39,6 +39,8 @@ export async function ReportsResults({
         <KpiCard label="Descontos" value={formatPrice(report.kpis.totalDiscounts)} icon={<TicketPercent size={18} />} />
         <KpiCard label="Finalizadas" value={String(report.kpis.completedBookings)} icon={<Clock3 size={18} />} />
         <KpiCard label="Pendentes" value={String(report.kpis.pendingBookings)} icon={<Clock3 size={18} />} />
+        <KpiCard label="Cancelamentos" value={String(report.kpis.cancelledBookings)} icon={<XCircle size={18} />} />
+        <KpiCard label="Valor cancelado" value={formatPrice(report.kpis.cancelledAmount)} icon={<XCircle size={18} />} />
         <KpiCard label="Reembolsos" value={formatPrice(report.kpis.refundedAmount)} icon={<RotateCcw size={18} />} />
         <KpiCard label="Ordens sem pagamento" value={String(report.kpis.abandonedOrders)} icon={<ShoppingCart size={18} />} />
       </div>

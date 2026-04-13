@@ -15,11 +15,26 @@ interface Props {
   onPendingChange?: (pending: boolean) => void
 }
 
+function getCurrentMonthDateRange() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+
+  const start = new Date(year, month, 1)
+  const end = new Date(year, month + 1, 0)
+
+  return {
+    from: start.toISOString().slice(0, 10),
+    to: end.toISOString().slice(0, 10),
+  }
+}
+
 export function ReportsFilters({ instructors, coupons, onPendingChange }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
+  const defaultDateRange = getCurrentMonthDateRange()
 
   useEffect(() => {
     onPendingChange?.(isPending)
@@ -55,7 +70,7 @@ export function ReportsFilters({ instructors, coupons, onPendingChange }: Props)
         <input
           name="from"
           type="date"
-          defaultValue={searchParams.get('from') ?? ''}
+          defaultValue={searchParams.get('from') ?? defaultDateRange.from}
           className="h-11 w-full rounded border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
         />
       </FilterField>
@@ -64,7 +79,7 @@ export function ReportsFilters({ instructors, coupons, onPendingChange }: Props)
         <input
           name="to"
           type="date"
-          defaultValue={searchParams.get('to') ?? ''}
+          defaultValue={searchParams.get('to') ?? defaultDateRange.to}
           className="h-11 w-full rounded border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
         />
       </FilterField>

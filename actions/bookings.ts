@@ -128,7 +128,37 @@ export async function getBookings(filters?: {
   if (filters?.instructorId) query = query.eq('instructor_id', filters.instructorId)
 
   const { data } = await query
-  return (data ?? []) as Booking[]
+  const bookings = (data ?? []) as Booking[]
+
+  const packageBookingIds = bookings
+    .filter((booking) => booking.billing_mode === 'package' && booking.package_id)
+    .map((booking) => booking.id)
+
+  if (packageBookingIds.length === 0) {
+    return bookings
+  }
+
+  const { data: packageLessons } = await supabase
+    .from('student_package_lessons')
+    .select('booking_id, student_package:student_packages(total_amount)')
+    .in('booking_id', packageBookingIds)
+
+  const packageAmountByBookingId = new Map<string, number>()
+
+  ;(packageLessons ?? []).forEach((row: any) => {
+    if (!row.booking_id) return
+    const studentPackage = Array.isArray(row.student_package)
+      ? row.student_package[0]
+      : row.student_package
+    const totalAmount = Number(studentPackage?.total_amount ?? 0)
+    packageAmountByBookingId.set(row.booking_id, totalAmount)
+  })
+
+  return bookings.map((booking) => (
+    booking.billing_mode === 'package' && packageAmountByBookingId.has(booking.id)
+      ? { ...booking, total_amount: packageAmountByBookingId.get(booking.id) ?? booking.total_amount }
+      : booking
+  ))
 }
 
 export async function getTakenSlots(instructorId: string, date: string): Promise<string[]> {

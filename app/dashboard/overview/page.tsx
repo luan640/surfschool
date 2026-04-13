@@ -87,9 +87,14 @@ export default async function OverviewPage() {
           icon={<Clock size={18} />}
         />
         <KpiCard
-          label="Aulas pagas agendadas"
+          label="Qtd. aulas futuras"
           value={String(kpis.paidScheduledLessons)}
           icon={<Clock size={18} />}
+        />
+        <KpiCard
+          label="Valor aulas futuras"
+          value={formatPrice(kpis.futureLessonsAmount)}
+          icon={<DollarSign size={18} />}
         />
       </div>
 

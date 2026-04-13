@@ -8,10 +8,25 @@ interface Props {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
+function getCurrentMonthDateRange() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+
+  const start = new Date(year, month, 1)
+  const end = new Date(year, month + 1, 0)
+
+  return {
+    from: start.toISOString().slice(0, 10),
+    to: end.toISOString().slice(0, 10),
+  }
+}
+
 export default async function ReportsPage({ searchParams }: Props) {
   const params = await searchParams
-  const rawFrom = typeof params?.from === 'string' ? params.from : undefined
-  const rawTo = typeof params?.to === 'string' ? params.to : undefined
+  const currentMonthRange = getCurrentMonthDateRange()
+  const rawFrom = typeof params?.from === 'string' ? params.from : currentMonthRange.from
+  const rawTo = typeof params?.to === 'string' ? params.to : currentMonthRange.to
   const rawInstructorId = typeof params?.instructorId === 'string' ? params.instructorId : undefined
   const rawCouponId = typeof params?.couponId === 'string' ? params.couponId : undefined
   const rawPaymentOrigin = typeof params?.paymentOrigin === 'string' ? params.paymentOrigin : undefined

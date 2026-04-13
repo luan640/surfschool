@@ -306,6 +306,7 @@ export interface DashboardKPIs {
   activeInstructors: number
   upcomingLessons: number
   paidScheduledLessons: number
+  futureLessonsAmount: number
 }
 
 export interface DashboardCalendarBooking {
@@ -364,6 +365,8 @@ export interface ReportKpis {
   pendingBookings: number
   refundedAmount: number
   abandonedOrders: number
+  cancelledBookings: number
+  cancelledAmount: number
 }
 
 // ─── Server Action result ─────────────────────────────────────────────────────
