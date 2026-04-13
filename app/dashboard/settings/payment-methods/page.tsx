@@ -44,7 +44,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
               descontadas as taxas da operação.
             </p>
             <div className="space-y-3">
-              <p className="font-semibold text-blue-900">Taxas praticadas pelo Mercado Pago (Checkout Bricks):</p>
+              <p className="font-semibold text-blue-900">Taxas praticadas pelo Mercado Pago:</p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="flex items-center gap-2 rounded border border-blue-200 bg-white px-3 py-2 text-blue-800">
                   <Zap size={14} className="text-emerald-500" />

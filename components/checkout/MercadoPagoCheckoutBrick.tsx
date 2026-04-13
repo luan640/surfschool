@@ -523,10 +523,19 @@ function PaymentFeedback({
   result: ProcessPaymentResponse
 }) {
   const { t, dateLocale } = useLanguage()
+  const [copied, setCopied] = useState(false)
   const isApproved = result.status === 'approved'
   const isPending = result.status === 'pending' || result.status === 'in_process'
   const heading = isApproved ? t.checkout_payment_approved : isPending ? t.checkout_payment_waiting : t.checkout_payment_rejected
   const description = isPending ? t.checkout_payment_pix_hint : result.message
+
+  function copyQrCode() {
+    if (!result.qrCode) return
+    navigator.clipboard.writeText(result.qrCode).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
 
   return (
     <div className={`rounded border px-4 py-4 ${isApproved ? 'border-emerald-200 bg-emerald-50' : isPending ? 'border-amber-200 bg-amber-50' : 'border-rose-200 bg-rose-50'}`}>
@@ -547,11 +556,22 @@ function PaymentFeedback({
         </div>
       )}
       {result.qrCodeBase64 && (
-        <img
-          src={`data:image/png;base64,${result.qrCodeBase64}`}
-          alt="QR Code PIX"
-          className="mt-4 h-48 w-48 rounded border border-white bg-white p-2"
-        />
+        <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-end">
+          <img
+            src={`data:image/png;base64,${result.qrCodeBase64}`}
+            alt="QR Code PIX"
+            className="h-48 w-48 rounded border border-white bg-white p-2"
+          />
+          {result.qrCode && (
+            <button
+              type="button"
+              onClick={copyQrCode}
+              className={`flex items-center gap-2 rounded border px-4 py-2 text-sm font-semibold transition-colors ${copied ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-50'}`}
+            >
+              {copied ? '✓ Copiado!' : 'Copiar código PIX'}
+            </button>
+          )}
+        </div>
       )}
       {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
       {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">{t.checkout_open_receipt}</a>}
