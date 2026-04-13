@@ -34,6 +34,8 @@ export interface Instructor {
   specialty: string | null
   bio: string | null
   hourly_price: number
+  pix_price: number | null
+  card_price: number | null
   color: string
   active: boolean
   created_at: string
@@ -47,6 +49,8 @@ export interface LessonPackage {
   description: string | null
   lesson_count: number
   price: number
+  pix_price: number | null
+  card_price: number | null
   active: boolean
   created_at: string
   updated_at: string

@@ -37,6 +37,8 @@ interface NavItem {
   label: string
   icon: typeof LayoutDashboard
   children?: NavChildItem[]
+  disabled?: boolean
+  badge?: string
 }
 
 interface NavSection {
@@ -71,10 +73,10 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Financeiro',
     items: [
-      { href: '/dashboard/settings/payment-methods', label: 'Meio de pagamento', icon: CreditCard },
+      { href: '/dashboard/settings/payment-methods', label: 'Meio de pagamento', icon: CreditCard, disabled: true, badge: 'Em breve' },
       { href: '/dashboard/purchases', label: 'Minhas vendas', icon: ShoppingBag },
       { href: '/dashboard/refunds', label: 'Reembolsos', icon: RefreshCcw },
-      { href: '/dashboard/commission-payments', label: 'Pagamentos', icon: CircleDollarSign },
+      { href: '/dashboard/commission-payments', label: 'Comissões', icon: CircleDollarSign },
     ],
   },
   {
@@ -192,7 +194,7 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = fa
             )}
 
             <div className="flex flex-col gap-0.5">
-              {section.items.map(({ href, label, icon: Icon, children }) => {
+              {section.items.map(({ href, label, icon: Icon, children, disabled, badge }) => {
                 const childMatch = children?.some((child) => pathname === child.href) ?? false
                 const baseActive = pathname.startsWith(href)
                 const active = href === '/dashboard/settings'
@@ -263,23 +265,47 @@ export function DashboardNav({ schoolName, schoolLogoUrl, ownerName, mobile = fa
                 }
 
                 return (
-                  <Link
-                    key={href}
-                    href={href}
-                    prefetch
-                    title={label}
-                    onClick={onNavigate}
-                    className={cn(
-                      'flex items-center rounded text-sm font-medium transition-colors',
-                      collapsed ? 'justify-center px-3 py-3' : 'gap-3 px-3 py-2.5',
-                      active
-                        ? 'bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-white',
-                    )}
-                  >
-                    <Icon size={16} className={active ? 'text-[var(--primary-light)]' : 'text-slate-500'} />
-                    {!collapsed && <span>{label}</span>}
-                  </Link>
+                  disabled ? (
+                    <div
+                      key={href}
+                      title={label}
+                      className={cn(
+                        'flex items-center rounded text-sm font-medium opacity-60',
+                        collapsed ? 'justify-center px-3 py-3' : 'gap-3 px-3 py-2.5',
+                        'cursor-not-allowed text-slate-500',
+                      )}
+                    >
+                      <Icon size={16} className="text-slate-600" />
+                      {!collapsed && (
+                        <>
+                          <span>{label}</span>
+                          {badge && (
+                            <span className="ml-auto rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-300">
+                              {badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      key={href}
+                      href={href}
+                      prefetch
+                      title={label}
+                      onClick={onNavigate}
+                      className={cn(
+                        'flex items-center rounded text-sm font-medium transition-colors',
+                        collapsed ? 'justify-center px-3 py-3' : 'gap-3 px-3 py-2.5',
+                        active
+                          ? 'bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]'
+                          : 'text-slate-400 hover:bg-white/5 hover:text-white',
+                      )}
+                    >
+                      <Icon size={16} className={active ? 'text-[var(--primary-light)]' : 'text-slate-500'} />
+                      {!collapsed && <span>{label}</span>}
+                    </Link>
+                  )
                 )
               })}
             </div>

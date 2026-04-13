@@ -27,6 +27,7 @@ interface Props {
   onSuccess?: () => void
   onCancel?: () => void
   layout?: 'default' | 'modal'
+  mpConnected?: boolean
 }
 
 export function InstructorForm({
@@ -34,6 +35,7 @@ export function InstructorForm({
   onSuccess,
   onCancel,
   layout = 'default',
+  mpConnected = false,
 }: Props) {
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -48,6 +50,20 @@ export function InstructorForm({
     instructor?.hourly_price ? String(instructor.hourly_price) : '',
   )
 
+  const [pixPrice, setPixPrice] = useState(instructor?.pix_price ? String(instructor.pix_price) : '')
+  const [cardPrice, setCardPrice] = useState(instructor?.card_price ? String(instructor.card_price) : '')
+
+  const [receiveMode, setReceiveMode] = useState(false)
+  const [targetReceive, setTargetReceive] = useState('')
+  const [receiveMethod, setReceiveMethod] = useState<'pix' | 'card1x' | 'card12x'>('pix')
+
+  const MP_FEES = { pix: 0.0099, card1x: 0.0498, card12x: 0.0679 }
+  const MP_LABELS = { pix: 'PIX (0,99%)', card1x: 'Cartão 1x (4,98%)', card12x: 'Cartão 12x (6,79%)' }
+
+  const calculatedGross = receiveMode && Number(targetReceive) > 0
+    ? (Number(targetReceive) / (1 - MP_FEES[receiveMethod])).toFixed(2)
+    : ''
+
   const [avail, setAvail] = useState<Record<number, string[]>>(() => {
     const init: Record<number, string[]> = {}
     for (let i = 0; i <= 6; i++) {
@@ -58,7 +74,8 @@ export function InstructorForm({
   })
 
   const hasAvailability = Object.values(avail).some((slots) => slots.length > 0)
-  const profileComplete = fullName.trim().length > 0 && Number(hourlyPrice) > 0 && !photoError
+  const effectivePrice = receiveMode ? calculatedGross : hourlyPrice
+  const profileComplete = fullName.trim().length > 0 && Number(effectivePrice) > 0 && !photoError
 
   const sections = [
     {
@@ -248,19 +265,26 @@ export function InstructorForm({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor por hora (R$) *</label>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Valor por hora (R$) *
+          </label>
           <Input
             name="hourly_price"
             type="number"
             step="0.01"
             required
-            defaultValue={instructor?.hourly_price}
+            value={hourlyPrice}
             placeholder="150.00"
             icon={<DollarSign size={14} />}
             onChange={(event) => setHourlyPrice(event.target.value)}
           />
         </div>
+
+        {/*
+        Campos extras de preço desabilitados nesta tela.
+        Mantido apenas o campo principal "Valor por hora (R$) *".
+        */}
 
         {instructor && (
           <div className="flex flex-col gap-1.5">

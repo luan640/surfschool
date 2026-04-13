@@ -1,6 +1,9 @@
+import { getMercadoPagoConnection } from '@/actions/dashboard'
 import { InstructorForm } from '@/components/dashboard/InstructorForm'
 
-export default function NewInstructorPage() {
+export default async function NewInstructorPage() {
+  const connection = await getMercadoPagoConnection()
+
   return (
     <div className="dashboard-page">
       <div className="mb-8">
@@ -9,7 +12,7 @@ export default function NewInstructorPage() {
         </h1>
         <p className="text-slate-400 text-sm mt-1">Preencha os dados e configure a disponibilidade.</p>
       </div>
-      <InstructorForm />
+      <InstructorForm mpConnected={connection?.status === 'connected'} />
     </div>
   )
 }

@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
     const { data: instructor, error: instructorError } = await admin
       .from('instructors')
-      .select('id, full_name, hourly_price')
+      .select('id, full_name, hourly_price, pix_price, card_price')
       .eq('id', body.instructorId)
       .eq('school_id', school.id)
       .single()
@@ -153,7 +153,13 @@ export async function POST(request: Request) {
         )
       }
 
-      const grossAmount = isTrialLesson ? 0 : Number(instructor.hourly_price) * normalizedSelectedSlots.length
+      const paymentMethodForPrice = paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData)
+      const instr = instructor as typeof instructor & { pix_price: number | null; card_price: number | null }
+      const unitPriceForMethod = isTrialLesson ? 0
+        : paymentMethodForPrice === 'pix' ? Number(instr.pix_price ?? instr.hourly_price)
+        : paymentMethodForPrice === 'credit_card' ? Number(instr.card_price ?? instr.hourly_price)
+        : Number(instr.hourly_price)
+      const grossAmount = isTrialLesson ? 0 : unitPriceForMethod * normalizedSelectedSlots.length
 
       if (body.couponCode && !isTrialLesson) {
         const couponResult = await validateCheckoutCoupon({
@@ -179,7 +185,7 @@ export async function POST(request: Request) {
         p_instructor_id: instructor.id,
         p_lesson_date: body.selectedDate,
         p_time_slots: normalizedSelectedSlots,
-        p_unit_price: isTrialLesson ? 0 : instructor.hourly_price,
+        p_unit_price: unitPriceForMethod,
         p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
         p_billing_mode: 'hourly',
         p_package_id: null,
@@ -192,7 +198,7 @@ export async function POST(request: Request) {
           p_instructor_id: instructor.id,
           p_lesson_date: body.selectedDate,
           p_time_slots: normalizedSelectedSlots,
-          p_unit_price: isTrialLesson ? 0 : instructor.hourly_price,
+          p_unit_price: unitPriceForMethod,
           p_payment_method: paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData),
         })
 
@@ -256,7 +262,7 @@ export async function POST(request: Request) {
 
       const { data: pkg, error: packageError } = await admin
         .from('lesson_packages')
-        .select('id, name, price')
+        .select('id, name, price, pix_price, card_price')
         .eq('id', body.packageId)
         .eq('school_id', school.id)
         .single()
@@ -265,7 +271,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Pacote invalido.' }, { status: 400 })
       }
 
-      const grossAmount = Number(pkg.price)
+      const pkgData = pkg as typeof pkg & { pix_price: number | null; card_price: number | null }
+      const pkgPaymentMethod = paymentMode === 'pay_on_site' ? 'cash' : resolveLocalPaymentMethod(body.checkoutData)
+      const grossAmount = pkgPaymentMethod === 'pix'
+        ? Number(pkgData.pix_price ?? pkgData.price)
+        : pkgPaymentMethod === 'credit_card'
+          ? Number(pkgData.card_price ?? pkgData.price)
+          : Number(pkgData.price)
       packageName = pkg.name
 
       if (body.couponCode) {

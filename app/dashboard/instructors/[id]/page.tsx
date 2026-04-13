@@ -1,13 +1,17 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getMySchool } from '@/actions/instructors'
+import { getMercadoPagoConnection } from '@/actions/dashboard'
 import { InstructorForm } from '@/components/dashboard/InstructorForm'
 import type { Instructor } from '@/lib/types'
 
 export default async function EditInstructorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  const school = await getMySchool()
+  const [school, connection] = await Promise.all([
+    getMySchool(),
+    getMercadoPagoConnection(),
+  ])
   if (!school) notFound()
 
   const { data } = await supabase
@@ -27,7 +31,7 @@ export default async function EditInstructorPage({ params }: { params: Promise<{
         </h1>
         <p className="text-slate-400 text-sm mt-1">{data.full_name}</p>
       </div>
-      <InstructorForm instructor={data as Instructor} />
+      <InstructorForm instructor={data as Instructor} mpConnected={connection?.status === 'connected'} />
     </div>
   )
 }

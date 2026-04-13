@@ -13,7 +13,7 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/utils'
-import { CalendarDays, Clock, DollarSign, Receipt, Users } from 'lucide-react'
+import { CalendarDays, Clock, DollarSign, Users } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -61,13 +61,6 @@ export default async function OverviewPage() {
           current={kpis.grossRevenueThisMonth}
           previous={kpis.grossRevenueLastMonth}
           icon={<DollarSign size={18} />}
-        />
-        <KpiCard
-          label="Taxas Mercado Pago"
-          value={formatPrice(kpis.mercadoPagoFeesThisMonth)}
-          current={kpis.mercadoPagoFeesThisMonth}
-          previous={kpis.mercadoPagoFeesLastMonth}
-          icon={<Receipt size={18} />}
         />
         <KpiCard
           label="Faturamento líquido no mes"
@@ -181,3 +174,4 @@ export default async function OverviewPage() {
     </div>
   )
 }
+

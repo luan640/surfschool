@@ -21,6 +21,8 @@ interface Props {
   schoolId: string
   selectionType: 'single' | 'package'
   amount: number
+  pixAmount?: number | null
+  cardAmount?: number | null
   title: string
   description: string
   onlineEnabled?: boolean
@@ -62,6 +64,17 @@ interface AppliedCoupon {
 export function MercadoPagoCheckoutBrick(props: Props) {
   const { t, lang, dateLocale } = useLanguage()
   const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site' | null>(props.payOnSiteOnly ? 'pay_on_site' : null)
+  const [onlineMethod, setOnlineMethod] = useState<'pix' | 'card' | null>(null)
+
+  const hasOnlineMethodOptions = props.onlineEnabled &&
+    props.pixAmount != null && props.cardAmount != null &&
+    props.pixAmount >= 0 && props.cardAmount >= 0
+
+  const effectiveAmount = hasOnlineMethodOptions
+    ? onlineMethod === 'pix' ? (props.pixAmount ?? props.amount)
+      : onlineMethod === 'card' ? (props.cardAmount ?? props.amount)
+      : props.amount
+    : props.amount
   const [submitting, setSubmitting] = useState(false)
   const [pollingStatus, setPollingStatus] = useState(false)
   const [lastStatusCheckAt, setLastStatusCheckAt] = useState<number | null>(null)
@@ -75,6 +88,10 @@ export function MercadoPagoCheckoutBrick(props: Props) {
   useEffect(() => {
     setPaymentMode(props.payOnSiteOnly ? 'pay_on_site' : null)
   }, [props.instructorId, props.onlineEnabled, props.packageId, props.payOnSiteOnly, props.schoolId, props.selectedDate, props.selectionType])
+
+  useEffect(() => {
+    setOnlineMethod(null)
+  }, [props.amount, props.cardAmount, props.instructorId, props.packageId, props.pixAmount, props.schoolId, props.selectedDate, props.selectionType])
 
   useEffect(() => {
     setCouponCode('')
@@ -139,7 +156,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
     return () => window.clearInterval(interval)
   }, [props, result])
 
-  const payableAmount = appliedCoupon?.finalAmount ?? props.amount
+  const payableAmount = appliedCoupon?.finalAmount ?? effectiveAmount
 
   const initialization = useMemo(() => ({
     amount: payableAmount,
@@ -342,21 +359,74 @@ export function MercadoPagoCheckoutBrick(props: Props) {
           </div>
           )}
 
+          {paymentMode === 'pay_now' && hasOnlineMethodOptions && (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Como você quer pagar?</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setOnlineMethod('pix')}
+                  className={`flex flex-1 items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${onlineMethod === 'pix' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                >
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${onlineMethod === 'pix' ? 'border-emerald-500' : 'border-slate-300'}`}>
+                    {onlineMethod === 'pix' && <span className="h-2 w-2 rounded-full bg-emerald-500" />}
+                  </span>
+                  <span>
+                    <span className="block font-semibold text-slate-900">PIX</span>
+                    <span className="block text-sm font-bold text-emerald-600">{formatPrice(props.pixAmount ?? props.amount)}</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOnlineMethod('card')}
+                  className={`flex flex-1 items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${onlineMethod === 'card' ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                >
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${onlineMethod === 'card' ? 'border-blue-500' : 'border-slate-300'}`}>
+                    {onlineMethod === 'card' && <span className="h-2 w-2 rounded-full bg-blue-500" />}
+                  </span>
+                  <span>
+                    <span className="block font-semibold text-slate-900">Cartão de crédito</span>
+                    <span className="block text-sm font-bold text-blue-600">{formatPrice(props.cardAmount ?? props.amount)}</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {paymentMode === 'pay_now' ? (
             <>
-              <div className="mb-4 text-sm text-slate-500">{t.checkout_payment_intro}</div>
+              {(!hasOnlineMethodOptions || onlineMethod) && (
+                <div className="mb-4 text-sm text-slate-500">{t.checkout_payment_intro}</div>
+              )}
+              {(hasOnlineMethodOptions && !onlineMethod) ? (
+                <div className="rounded border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                  Selecione a forma de pagamento acima para continuar.
+                </div>
+              ) : (
               <Payment
+                key={hasOnlineMethodOptions ? `payment-${onlineMethod ?? 'none'}-${payableAmount}` : `payment-default-${payableAmount}`}
                 initialization={initialization}
                 customization={{
                   paymentMethods: {
                     creditCard: 'all',
                     bankTransfer: 'all',
                     types: {
-                      included: ['creditCard', 'bank_transfer'],
+                      included: hasOnlineMethodOptions && onlineMethod === 'pix'
+                        ? ['bank_transfer']
+                        : hasOnlineMethodOptions && onlineMethod === 'card'
+                          ? ['creditCard']
+                          : ['creditCard', 'bank_transfer'],
                     },
                     maxInstallments: 12,
                   },
                   visual: {
+                    defaultPaymentOption: hasOnlineMethodOptions
+                      ? onlineMethod === 'pix'
+                        ? { bankTransferForm: true }
+                        : onlineMethod === 'card'
+                          ? { creditCardForm: true }
+                          : undefined
+                      : undefined,
                     style: {
                       theme: 'default',
                     },
@@ -421,6 +491,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                   }
                 }}
               />
+              )}
             </>
           ) : paymentMode === 'pay_on_site' ? (
             <div className="space-y-4">
@@ -578,3 +649,5 @@ function PaymentFeedback({
     </div>
   )
 }
+
+

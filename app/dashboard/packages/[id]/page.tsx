@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getAvailablePackageInstructors, getLessonPackageById } from '@/actions/packages'
+import { getMercadoPagoConnection } from '@/actions/dashboard'
 import { PackageForm } from '@/components/dashboard/PackageForm'
 
 interface Props {
@@ -8,9 +9,10 @@ interface Props {
 
 export default async function EditPackagePage({ params }: Props) {
   const { id } = await params
-  const [pkg, instructors] = await Promise.all([
+  const [pkg, instructors, connection] = await Promise.all([
     getLessonPackageById(id),
     getAvailablePackageInstructors(),
+    getMercadoPagoConnection(),
   ])
 
   if (!pkg) redirect('/dashboard/packages')
@@ -25,7 +27,7 @@ export default async function EditPackagePage({ params }: Props) {
           Atualize valor, quantidade de aulas e instrutores aptos.
         </p>
       </div>
-      <PackageForm instructors={instructors} pkg={pkg} />
+      <PackageForm instructors={instructors} pkg={pkg} mpConnected={connection?.status === 'connected'} />
     </div>
   )
 }

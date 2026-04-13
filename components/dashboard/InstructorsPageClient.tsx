@@ -11,9 +11,10 @@ import type { Instructor } from '@/lib/types'
 
 interface Props {
   instructors: Instructor[]
+  mpConnected?: boolean
 }
 
-export function InstructorsPageClient({ instructors }: Props) {
+export function InstructorsPageClient({ instructors, mpConnected }: Props) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
   return (
@@ -146,6 +147,7 @@ export function InstructorsPageClient({ instructors }: Props) {
                 layout="modal"
                 onCancel={() => setCreateModalOpen(false)}
                 onSuccess={() => setCreateModalOpen(false)}
+                mpConnected={mpConnected}
               />
             </div>
           </div>

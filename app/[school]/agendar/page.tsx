@@ -267,13 +267,27 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
   const completedPackageLessons = wizard.packageLessons.filter((item) => item.date && item.slots.length > 0).length
   const packageReady = isPackageFlow && wizard.packageLessons.length > 0 && completedPackageLessons === wizard.packageLessons.length
+  const slots = wizard.selectedSlots.length
+  const instr = wizard.selectedInstructor
   const totalAmount = isPackageFlow && wizard.selectedPackage
     ? Number(wizard.selectedPackage.price)
     : isTrialFlow
       ? 0
-    : wizard.selectedInstructor && wizard.selectedSlots.length > 0
-      ? wizard.selectedInstructor.hourly_price * wizard.selectedSlots.length
+    : instr && slots > 0
+      ? instr.hourly_price * slots
       : 0
+  const pixTotalAmount = isTrialFlow ? 0
+    : isPackageFlow && wizard.selectedPackage
+      ? Number(wizard.selectedPackage.pix_price ?? wizard.selectedPackage.price)
+      : instr && slots > 0
+        ? (instr.pix_price ?? instr.hourly_price) * slots
+        : totalAmount
+  const cardTotalAmount = isTrialFlow ? 0
+    : isPackageFlow && wizard.selectedPackage
+      ? Number(wizard.selectedPackage.card_price ?? wizard.selectedPackage.price)
+      : instr && slots > 0
+        ? (instr.card_price ?? instr.hourly_price) * slots
+        : totalAmount
 
   function resetForProduct() {
     setError(null)
@@ -756,37 +770,15 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
           {wizard.step === finalStep && wizard.selectedInstructor && (
             <section className="space-y-4">
               <div><h1 className="text-[24px] font-semibold text-slate-900">{t.wizard_confirm_title}</h1><p className="mt-1 text-[14px] text-slate-500">{isTrialFlow ? t.wizard_confirm_sub_trial : t.wizard_confirm_sub_default}</p></div>
-              {false && (
-                <div className="overflow-hidden rounded border border-slate-200 bg-white">
-                <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Produto</div><div className="font-semibold text-slate-900">{isPackageFlow ? wizard.selectedPackage?.name : 'Aula avulsa'}</div></div>
-                <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Instrutor</div><div className="font-semibold text-slate-900">{wizard.selectedInstructor?.full_name ?? ''}</div></div>
-                {isPackageFlow ? (
-                  <div className="px-4 py-3">
-                    <div className="mb-3 text-[11px] font-bold uppercase text-slate-400">Aulas planejadas</div>
-                    <div className="space-y-2">
-                      {wizard.packageLessons.map((lesson) => (
-                        <div key={lesson.sequence} className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                          Aula {lesson.sequence}: {lesson.date ? formatDate(lesson.date) : 'Sem data'} • {lesson.slots.join(', ')}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="border-b border-slate-100 px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Data</div><div className="font-semibold text-slate-900">{wizard.selectedDate ? formatDate(wizard.selectedDate ?? new Date()) : ''}</div></div>
-                    <div className="px-4 py-3"><div className="text-[11px] font-bold uppercase text-slate-400">Horarios</div><div className="font-semibold text-slate-900">{wizard.selectedSlots.join(', ')}</div></div>
-                  </>
-                )}
-                <div className="flex items-center justify-between bg-slate-950 px-4 py-3 text-white"><span className="font-condensed text-lg font-bold uppercase">Total</span><span className="font-condensed text-3xl font-bold">{formatPrice(totalAmount)}</span></div>
-                </div>
-              )}
               <MercadoPagoCheckoutBrick
                 schoolSlug={slug}
                 schoolId={school!.id}
                 selectionType={isPackageFlow ? 'package' : 'single'}
                 amount={totalAmount}
+                pixAmount={isTrialFlow ? null : pixTotalAmount}
+                cardAmount={isTrialFlow ? null : cardTotalAmount}
                 title={isPackageFlow ? wizard.selectedPackage?.name ?? t.wizard_packages_fallback : isTrialFlow ? t.wizard_trial_title : t.wizard_single_title}
-                onlineEnabled={isTrialFlow ? false : mercadoPagoReady}
+                onlineEnabled={false}
                 description={isPackageFlow
                   ? `${wizard.packageLessons.length} aulas com ${wizard.selectedInstructor.full_name}`
                   : `${formatDate(wizard.selectedDate!)} • ${wizard.selectedSlots.join(', ')}`}
@@ -948,3 +940,8 @@ function ConfirmationRow({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+
+
+
+
+

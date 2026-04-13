@@ -54,6 +54,12 @@ export async function createInstructor(formData: FormData): Promise<ActionResult
   })
   if (photoResult.error) return { success: false, error: photoResult.error }
 
+  const hasPriceOverrides = formData.has('pix_price') || formData.has('card_price')
+  const priceOverrides = hasPriceOverrides ? {
+    pix_price: formData.get('pix_price') ? parseFloat(formData.get('pix_price') as string) : null,
+    card_price: formData.get('card_price') ? parseFloat(formData.get('card_price') as string) : null,
+  } : {}
+
   const { data, error } = await supabase
     .from('instructors')
     .insert({
@@ -64,6 +70,7 @@ export async function createInstructor(formData: FormData): Promise<ActionResult
       specialty: (formData.get('specialty') as string) || null,
       bio: (formData.get('bio') as string) || null,
       hourly_price: parseFloat(formData.get('hourly_price') as string),
+      ...priceOverrides,
       color: (formData.get('color') as string) || '#0077b6',
       photo_url: photoResult.photoUrl,
     })
@@ -80,6 +87,7 @@ export async function createInstructor(formData: FormData): Promise<ActionResult
 }
 
 export async function updateInstructor(id: string, formData: FormData): Promise<ActionResult> {
+  try {
   const supabase = await createClient()
   const school = await getMySchool()
   if (!school) return { success: false, error: 'Nao autorizado' }
@@ -103,6 +111,14 @@ export async function updateInstructor(id: string, formData: FormData): Promise<
   })
   if (photoResult.error) return { success: false, error: photoResult.error }
 
+  // Only include pix_price/card_price when the form actually submitted them
+  // (i.e. MP is connected and the columns exist in the DB after migration 028)
+  const hasPriceOverrides = formData.has('pix_price') || formData.has('card_price')
+  const priceOverrides = hasPriceOverrides ? {
+    pix_price: formData.get('pix_price') ? parseFloat(formData.get('pix_price') as string) : null,
+    card_price: formData.get('card_price') ? parseFloat(formData.get('card_price') as string) : null,
+  } : {}
+
   const { error } = await supabase
     .from('instructors')
     .update({
@@ -112,6 +128,7 @@ export async function updateInstructor(id: string, formData: FormData): Promise<
       specialty: (formData.get('specialty') as string) || null,
       bio: (formData.get('bio') as string) || null,
       hourly_price: parseFloat(formData.get('hourly_price') as string),
+      ...priceOverrides,
       color: formData.get('color') as string,
       active: formData.get('active') === 'true',
       photo_url: photoResult.photoUrl,
@@ -127,6 +144,9 @@ export async function updateInstructor(id: string, formData: FormData): Promise<
 
   revalidateInstructorPaths(school.slug)
   return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Erro inesperado ao salvar instrutor.' }
+  }
 }
 
 export async function saveAvailability(

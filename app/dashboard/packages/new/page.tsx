@@ -1,8 +1,12 @@
 import { PackageForm } from '@/components/dashboard/PackageForm'
 import { getAvailablePackageInstructors } from '@/actions/packages'
+import { getMercadoPagoConnection } from '@/actions/dashboard'
 
 export default async function NewPackagePage() {
-  const instructors = await getAvailablePackageInstructors()
+  const [instructors, connection] = await Promise.all([
+    getAvailablePackageInstructors(),
+    getMercadoPagoConnection(),
+  ])
 
   return (
     <div className="dashboard-page">
@@ -14,7 +18,7 @@ export default async function NewPackagePage() {
           Defina valor, quantidade de aulas e quais instrutores podem atender.
         </p>
       </div>
-      <PackageForm instructors={instructors} />
+      <PackageForm instructors={instructors} mpConnected={connection?.status === 'connected'} />
     </div>
   )
 }

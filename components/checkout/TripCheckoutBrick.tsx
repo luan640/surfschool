@@ -1,12 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { initMercadoPago, Payment } from '@mercadopago/sdk-react'
 import { PartyPopper, Sparkles } from 'lucide-react'
 import { PaymentSuccessAnimation } from '@/components/checkout/PaymentSuccessAnimation'
 import { Button } from '@/components/ui/button'
-import { SurfLoading } from '@/components/dashboard/SurfLoading'
 import { formatPhone, PHONE_INPUT_MAX_LENGTH } from '@/lib/phone'
 import { formatPrice } from '@/lib/utils'
 
@@ -29,7 +27,7 @@ interface ProcessTripPaymentResponse {
 }
 
 export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title }: Props) {
-  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site'>('pay_now')
+  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_site'>('pay_on_site')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -37,16 +35,6 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ProcessTripPaymentResponse | null>(null)
-
-  useEffect(() => {
-    const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
-    if (!publicKey) {
-      setError('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY nao configurada.')
-      return
-    }
-
-    initMercadoPago(publicKey, { locale: 'pt-BR' })
-  }, [])
 
   useEffect(() => {
     if (!result?.registrationId || (result.status !== 'pending' && result.status !== 'in_process')) return
@@ -69,22 +57,6 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
 
     return () => window.clearInterval(interval)
   }, [result])
-
-  const initialization = useMemo(() => ({
-    amount,
-    payer: email ? { email } : undefined,
-    items: {
-      totalItemsAmount: amount,
-      itemsList: [
-        {
-          name: title,
-          description: 'Inscricao de trip',
-          units: 1,
-          value: amount,
-        },
-      ],
-    },
-  }), [amount, email, title])
 
   const formReady = fullName.trim() && email.trim()
 
@@ -149,23 +121,10 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="mb-4">
           <div className="font-condensed text-2xl font-bold uppercase text-slate-900">Inscreva-se na trip</div>
-          <p className="mt-1 text-sm text-slate-500">Preencha seus dados e escolha se prefere pagar agora ou combinar o pagamento no local.</p>
+          <p className="mt-1 text-sm text-slate-500">Preencha seus dados para reservar a vaga e pagar na hora.</p>
         </div>
 
         <div className="mb-5 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => setPaymentMode('pay_now')}
-            className={`flex items-center gap-3 rounded border px-4 py-3 text-left transition-colors ${paymentMode === 'pay_now' ? 'border-[var(--primary)] bg-sky-50' : 'border-slate-200 bg-white'}`}
-          >
-            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${paymentMode === 'pay_now' ? 'border-[var(--primary)]' : 'border-slate-300'}`}>
-              {paymentMode === 'pay_now' && <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />}
-            </span>
-            <span>
-              <span className="block font-semibold text-slate-900">Pague agora</span>
-              <span className="block text-sm text-slate-500">Pix ou cartão pelo checkout.</span>
-            </span>
-          </button>
           <button
             type="button"
             onClick={() => setPaymentMode('pay_on_site')}
@@ -221,77 +180,8 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
           )}
           {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
         </div>
-      ) : paymentMode === 'pay_now' ? (
-        <div className="relative rounded-2xl border border-slate-200 bg-white p-4">
-          {!formReady && (
-            <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Preencha pelo menos nome e e-mail para liberar o pagamento.
-            </div>
-          )}
-          <Payment
-            initialization={initialization}
-            customization={{
-              paymentMethods: {
-                creditCard: 'all',
-                bankTransfer: 'all',
-                types: { included: ['creditCard', 'bank_transfer'] },
-                maxInstallments: 12,
-              },
-            }}
-            locale="pt-BR"
-            onError={(brickError) => setError(brickError.message ?? 'Erro ao inicializar o checkout.')}
-            onReady={() => undefined}
-            onSubmit={async (submission, additionalData) => {
-              if (!formReady) {
-                setError('Preencha nome e e-mail antes de pagar.')
-                throw new Error('Form incompleto.')
-              }
-
-              setSubmitting(true)
-              setError(null)
-              try {
-                const response = await fetch('/api/trips/process-payment', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    tripId,
-                    schoolId,
-                    registrant: { fullName, email, phone, notes },
-                    checkoutData: {
-                      paymentType: submission.paymentType,
-                      selectedPaymentMethod: submission.selectedPaymentMethod,
-                      formData: submission.formData,
-                      additionalData: additionalData ?? null,
-                    },
-                  }),
-                })
-
-                const payload = await response.json()
-                if (!response.ok) {
-                  const message = payload.error || 'Não foi possível processar a inscricao.'
-                  setError(message)
-                  throw new Error(message)
-                }
-
-                setResult(payload as ProcessTripPaymentResponse)
-              } finally {
-                setSubmitting(false)
-              }
-            }}
-          />
-          {submitting && (
-            <div className="absolute inset-0 z-10 overflow-hidden rounded-2xl bg-white/80 backdrop-blur-[1px]">
-              <SurfLoading
-                compact
-                fitParent
-                title="Processando pagamento"
-                subtitle="Estamos validando o metodo escolhido e finalizando sua inscricao."
-              />
-            </div>
-          )}
-          {!formReady && <div className="absolute inset-0 z-[5] rounded-2xl bg-white/35" />}
-        </div>
       ) : (
+
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           {!formReady && (
             <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -366,3 +256,4 @@ function SuccessRow({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+

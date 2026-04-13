@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Box, DollarSign, FileText, Layers3 } from 'lucide-react'
+import { Box, CreditCard, DollarSign, FileText, Layers3, Zap } from 'lucide-react'
 import { createLessonPackage, updateLessonPackage } from '@/actions/packages'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,9 +16,10 @@ interface Props {
   pkg?: LessonPackage
   onSuccess?: () => void
   onCancel?: () => void
+  mpConnected?: boolean
 }
 
-export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
+export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected = false }: Props) {
   const router = useRouter()
   const { success, error: showError } = useToast()
   const [selectedInstructorIds, setSelectedInstructorIds] = useState<string[]>(
@@ -28,6 +29,9 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [price, setPrice] = useState(pkg?.price ? String(pkg.price) : '')
+  const [pixPrice, setPixPrice] = useState(pkg?.pix_price ? String(pkg.pix_price) : '')
+  const [cardPrice, setCardPrice] = useState(pkg?.card_price ? String(pkg.card_price) : '')
 
   const totalLessons = Number(pkg?.lesson_count ?? 0)
   const packagePrice = Number(pkg?.price ?? 0)
@@ -123,11 +127,17 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
               min="0"
               step="0.01"
               required
-              defaultValue={pkg?.price ?? ''}
+              value={price}
               placeholder="1200.00"
               icon={<DollarSign size={14} />}
+              onChange={(e) => setPrice(e.target.value)}
             />
           </div>
+
+          {/*
+          Campos extras de preço desabilitados nesta tela.
+          Mantido apenas o campo principal "Valor total *".
+          */}
 
           {!pkg && (
             <div className="flex flex-col gap-1.5">
@@ -250,7 +260,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel }: Props) {
 
       {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
 
-      <div className="flex gap-3">
+      <div className="flex justify-end gap-3">
         <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : pkg ? 'Salvar alteracoes' : 'Criar pacote'}
         </Button>

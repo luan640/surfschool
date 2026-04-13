@@ -101,6 +101,8 @@ export async function createLessonPackage(formData: FormData): Promise<ActionRes
       description: payload.data.description,
       lesson_count: payload.data.lessonCount,
       price: payload.data.price,
+      pix_price: payload.data.pixPrice,
+      card_price: payload.data.cardPrice,
       active: payload.data.active,
     })
     .select()
@@ -132,6 +134,8 @@ export async function updateLessonPackage(id: string, formData: FormData): Promi
       description: payload.data.description,
       lesson_count: payload.data.lessonCount,
       price: payload.data.price,
+      pix_price: payload.data.pixPrice,
+      card_price: payload.data.cardPrice,
       active: payload.data.active,
     })
     .eq('id', id)
@@ -165,7 +169,7 @@ export async function deleteLessonPackage(id: string): Promise<ActionResult> {
 }
 
 function parsePackageFormData(formData: FormData):
-  | { success: true; data: { name: string; description: string | null; lessonCount: number; price: number; active: boolean; instructorIds: string[] } }
+  | { success: true; data: { name: string; description: string | null; lessonCount: number; price: number; pixPrice: number | null; cardPrice: number | null; active: boolean; instructorIds: string[] } }
   | { success: false; error: string } {
   const name = (formData.get('name') as string | null)?.trim() ?? ''
   const descriptionRaw = (formData.get('description') as string | null)?.trim() ?? ''
@@ -173,6 +177,11 @@ function parsePackageFormData(formData: FormData):
   const price = Number(formData.get('price'))
   const activeValue = formData.get('active')
   const instructorIds = Array.from(new Set(formData.getAll('instructor_ids').map(String).filter(Boolean)))
+
+  const pixPriceRaw = formData.get('pix_price')
+  const cardPriceRaw = formData.get('card_price')
+  const pixPrice = pixPriceRaw && Number(pixPriceRaw) > 0 ? Number(pixPriceRaw) : null
+  const cardPrice = cardPriceRaw && Number(cardPriceRaw) > 0 ? Number(cardPriceRaw) : null
 
   if (!name) return { success: false, error: 'Informe o nome do pacote' }
   if (!Number.isFinite(lessonCount) || lessonCount <= 0) return { success: false, error: 'Informe a quantidade de aulas' }
@@ -186,6 +195,8 @@ function parsePackageFormData(formData: FormData):
       description: descriptionRaw || null,
       lessonCount,
       price,
+      pixPrice,
+      cardPrice,
       active: activeValue !== 'false',
       instructorIds,
     },

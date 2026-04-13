@@ -1,4 +1,4 @@
-import { Activity, Clock3, DollarSign, ReceiptText, RotateCcw, ShoppingCart, TicketPercent, Users } from 'lucide-react'
+import { Activity, Clock3, DollarSign, RotateCcw, ShoppingCart, TicketPercent, Users } from 'lucide-react'
 import { getReportsData } from '@/actions/reports'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { ReportsRevenueTrendChart, ReportsVolumeChart } from '@/components/dashboard/ReportsTrendChart'
@@ -31,9 +31,8 @@ export async function ReportsResults({
     <>
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard label="Faturamento bruto" value={formatPrice(report.kpis.grossRevenue)} icon={<DollarSign size={18} />} />
-        <KpiCard label="Tx. Mercado Pago" value={formatPrice(report.kpis.mercadoPagoFees)} icon={<ReceiptText size={18} />} />
         <KpiCard label="Faturamento líquido" value={formatPrice(report.kpis.netRevenue)} icon={<DollarSign size={18} />} />
-        <KpiCard label="Ticket medio" value={formatPrice(report.kpis.averageTicket)} icon={<ReceiptText size={18} />} />
+        <KpiCard label="Ticket medio" value={formatPrice(report.kpis.averageTicket)} icon={<DollarSign size={18} />} />
         <KpiCard label="Aulas no período" value={String(report.kpis.totalBookings)} icon={<Activity size={18} />} />
         <KpiCard label="Alunos únicos" value={String(report.kpis.uniqueStudents)} icon={<Users size={18} />} />
         <KpiCard label="Cupons usados" value={String(report.kpis.couponRedemptions)} icon={<TicketPercent size={18} />} />
