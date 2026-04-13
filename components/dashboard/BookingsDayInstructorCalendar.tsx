@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { BookingStatusActions } from '@/components/dashboard/BookingStatusActions'
+import { getBookingVisualStatus } from '@/components/dashboard/bookingVisualStatus'
 import type { Booking, BookingStatus, Instructor } from '@/lib/types'
 
 const HOUR_START = 5
@@ -259,7 +260,8 @@ export function BookingsDayInstructorCalendar({ bookings, instructors }: Props) 
                       {chips.map((booking, idx) => {
                         const spanHours = booking.time_slots.length
                         const chipH    = spanHours * CELL_H - 4
-                        const chipStyle = STATUS_CHIP[booking.status] ?? STATUS_CHIP.pending
+                        const visualStatus = getBookingVisualStatus(booking)
+                        const chipStyle = STATUS_CHIP[visualStatus] ?? STATUS_CHIP.pending
                         const total    = chips.length
                         const w        = 100 / total
                         const l        = idx * w

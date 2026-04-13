@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarClock, Check, CircleDollarSign, MoreHorizontal, RotateCcw, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CalendarClock, Check, CircleDollarSign, MoreHorizontal, X } from 'lucide-react'
 import { confirmBookingPayment, getBookingPaymentPreview, updateBookingStatus } from '@/actions/bookings'
 import { RescheduleBookingForm } from '@/components/dashboard/RescheduleBookingForm'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ function parseCurrencyInput(value: string) {
 }
 
 export function BookingStatusActions({ bookingId, status, booking, instructors = [] }: Props) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
@@ -34,7 +36,6 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
 
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [agreedAmount, setAgreedAmount] = useState(() =>
@@ -106,10 +107,9 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
     success(
       next === 'completed'
         ? 'Aula marcada como concluida.'
-        : next === 'confirmed'
-          ? 'Aula confirmada com sucesso.'
-          : 'Aula cancelada com sucesso.',
+        : 'Aula cancelada com sucesso.',
     )
+    router.refresh()
     setLoading(false)
   }
 
@@ -127,6 +127,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
       return false
     }
     success('Pagamento confirmado com sucesso.')
+    router.refresh()
     setLoading(false)
     return true
   }
@@ -135,9 +136,6 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
 
   const canConfirmPayment = Boolean(
     booking && !booking.payment_transaction_id && booking.payment_status === 'pending',
-  )
-  const canConfirmBooking = Boolean(
-    booking && booking.payment_status === 'paid' && status !== 'confirmed' && status !== 'completed',
   )
   const paymentConfirmed = Boolean(booking && booking.payment_status === 'paid')
 
@@ -160,12 +158,6 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
       color: 'text-emerald-600',
       disabled: !paymentConfirmed,
       onClick: () => { if (paymentConfirmed) { setMenuOpen(false); setCompleteOpen(true) } },
-    }] : []),
-    ...(canConfirmBooking ? [{
-      label: 'Confirmar',
-      icon: RotateCcw,
-      color: 'text-blue-600',
-      onClick: () => { setMenuOpen(false); setConfirmOpen(true) },
     }] : []),
     {
       label: 'Cancelar aula',
@@ -235,7 +227,10 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 booking={booking}
                 instructors={instructors}
                 onCancel={() => setRescheduleOpen(false)}
-                onSuccess={() => setRescheduleOpen(false)}
+                onSuccess={() => {
+                  setRescheduleOpen(false)
+                  router.refresh()
+                }}
               />
             </div>
           </div>
@@ -301,39 +296,6 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                 <Button variant="ghost" onClick={() => setPaymentOpen(false)} disabled={loading}>Cancelar</Button>
                 <Button variant="success" onClick={async () => { const ok = await handleConfirmPayment(); if (ok) setPaymentOpen(false) }} disabled={loading}>
                   {loading ? 'Confirmando...' : 'Confirmar pagamento'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {confirmOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
-          <div className="w-full max-w-md rounded border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
-              <div>
-                <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">Confirmar aula</h2>
-                <p className="mt-1 text-sm text-slate-500">Esta acao vai marcar o agendamento como confirmado.</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setConfirmOpen(false)} aria-label="Fechar">
-                <X size={18} />
-              </Button>
-            </div>
-            <div className="space-y-4 px-6 py-5">
-              {booking && (
-                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  <p><span className="font-semibold text-slate-800">Aluno:</span> {booking.student?.full_name ?? 'Não informado'}</p>
-                  <p><span className="font-semibold text-slate-800">Instrutor:</span> {booking.instructor?.full_name ?? 'Não informado'}</p>
-                  <p><span className="font-semibold text-slate-800">Data:</span> {formatBookingDate(booking.lesson_date)}</p>
-                  <p><span className="font-semibold text-slate-800">Horario:</span> {booking.time_slots.join(', ')}</p>
-                </div>
-              )}
-              <div className="flex justify-end gap-3">
-                <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={loading}>Cancelar</Button>
-                <Button onClick={async () => { await change('confirmed'); setConfirmOpen(false) }} disabled={loading}>
-                  {loading ? 'Confirmando...' : 'Confirmar aula'}
                 </Button>
               </div>
             </div>
