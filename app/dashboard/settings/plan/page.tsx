@@ -130,7 +130,7 @@ export default async function PlanPage({ searchParams }: Props) {
                   Upgrade para VSPro
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Acesso ilimitado a todas as funcionalidades da plataforma por apenas R$ 99,90/mes.
+                  Acesso ilimitado a todas as funcionalidades da plataforma por apenas R$ -/mes.
                 </p>
 
                 <ul className="mt-4 space-y-2 text-sm text-slate-600">
@@ -149,10 +149,8 @@ export default async function PlanPage({ searchParams }: Props) {
                 </ul>
 
                 <div className="mt-6">
-                  <Button asChild variant="primary">
-                    <a href="/dashboard/settings/plan/upgrade">
-                      Assinar VSPro — R$ 99,90/mes
-                    </a>
+                  <Button variant="primary" disabled>
+                    -
                   </Button>
                 </div>
               </div>
