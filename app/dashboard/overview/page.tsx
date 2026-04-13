@@ -96,6 +96,11 @@ export default async function OverviewPage() {
           value={formatPrice(kpis.futureLessonsAmount)}
           icon={<DollarSign size={18} />}
         />
+        <KpiCard
+          label="Aulas pend. pagamento"
+          value={String(kpis.pendingPaymentLessons)}
+          icon={<Clock size={18} />}
+        />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

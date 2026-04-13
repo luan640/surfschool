@@ -20,7 +20,7 @@ export default async function PaymentMethodsPage({ searchParams }: Props) {
     <div className="dashboard-page-compact">
       <div className="mb-8">
         <h1 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">
-          Meio de pagamento
+          Pagamento online
         </h1>
         <p className="mt-1 text-sm text-slate-400">Configure como a escola recebe pagamentos e acompanhe o estado da conexao.</p>
       </div>

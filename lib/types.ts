@@ -307,6 +307,7 @@ export interface DashboardKPIs {
   upcomingLessons: number
   paidScheduledLessons: number
   futureLessonsAmount: number
+  pendingPaymentLessons: number
 }
 
 export interface DashboardCalendarBooking {

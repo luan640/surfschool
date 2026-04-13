@@ -88,6 +88,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
       upcomingLessons: 0,
       paidScheduledLessons: 0,
       futureLessonsAmount: 0,
+      pendingPaymentLessons: 0,
     }
   }
 
@@ -105,6 +106,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
     { data: completedLessons },
     { data: paidScheduledLessons },
     { data: futureBookings },
+    { data: pendingPaymentLessons },
     { data: instructors },
   ] = await Promise.all([
     supabase
@@ -153,6 +155,12 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
       .eq('payment_status', 'paid')
       .in('status', ['pending', 'confirmed'])
       .gte('lesson_date', today)
+      .neq('status', 'cancelled'),
+    supabase
+      .from('bookings')
+      .select('id')
+      .eq('school_id', school.id)
+      .eq('payment_status', 'pending')
       .neq('status', 'cancelled'),
     supabase
       .from('instructors')
@@ -253,6 +261,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
     upcomingLessons: (completedLessons ?? []).length,
     paidScheduledLessons: (paidScheduledLessons ?? []).length,
     futureLessonsAmount: Number(futureLessonsAmount.toFixed(2)),
+    pendingPaymentLessons: (pendingPaymentLessons ?? []).length,
   }
 }
 
