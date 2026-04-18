@@ -158,12 +158,6 @@ export default async function HomePage({
                     >
                       Sou escola
                     </Link>
-                    <Link
-                      href="/aluno"
-                      className="inline-flex items-center justify-center border border-white/28 px-6 py-3 text-sm font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-white/10"
-                    >
-                      Sou aluno
-                    </Link>
                   </div>
                 </div>
               </div>

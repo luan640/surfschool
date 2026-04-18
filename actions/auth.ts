@@ -42,7 +42,10 @@ export async function signUpOwner(formData: FormData): Promise<ActionResult> {
   })
 
   if (schoolErr) {
-    return { success: false, error: 'Conta criada, mas escola não pode ser registrada: ' + schoolErr.message }
+    return {
+      success: false,
+      error: 'Sua conta foi criada, mas nao foi possivel finalizar o cadastro da escola agora. Tente novamente em instantes ou entre em contato com o suporte.',
+    }
   }
 
   redirect(`/auth/register/success?email=${encodeURIComponent(email)}`)

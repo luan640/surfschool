@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Clock3, ShieldCheck, TimerReset } from 'lucide-react'
 import type { SchoolRules } from '@/lib/types'
 import { Banner } from '@/components/dashboard/settings/SettingsStatus'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toaster'
@@ -19,14 +20,16 @@ function ToggleField({
   title,
   description,
   defaultChecked,
+  disabled = false,
 }: {
   name: string
   title: string
   description: string
   defaultChecked: boolean
+  disabled?: boolean
 }) {
   return (
-    <label className="flex items-start justify-between gap-4 rounded border border-slate-200 bg-slate-50 p-4">
+    <label className={`flex items-start justify-between gap-4 rounded border border-slate-200 bg-slate-50 p-4 ${disabled ? 'cursor-not-allowed' : ''}`}>
       <div>
         <div className="text-sm font-semibold text-slate-700">{title}</div>
         <p className="mt-1 text-sm text-slate-500">{description}</p>
@@ -36,10 +39,11 @@ function ToggleField({
           type="checkbox"
           name={name}
           defaultChecked={defaultChecked}
+          disabled={disabled}
           className="peer sr-only"
         />
-        <span className="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-[var(--primary)]" />
-        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+        <span className="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-[var(--primary)] peer-disabled:opacity-70" />
+        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5 peer-disabled:opacity-90" />
       </span>
     </label>
   )
@@ -78,21 +82,29 @@ export function RulesForm({ rules, status, action }: Props) {
               <ShieldCheck size={16} />
             </div>
             <div>
-              <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
-                Cancelamentos e reagendamentos
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+                  Cancelamentos e reagendamentos
+                </h2>
+                <Badge variant="neutral">Em breve</Badge>
+              </div>
               <p className="mt-1 text-sm text-slate-500">
                 Controle se o aluno pode alterar a agenda sem falar com a escola e com quanta antecedencia.
               </p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Essa automacao ainda nao esta liberada. Por enquanto, cancelamentos e reagendamentos seguem sendo tratados diretamente pela escola.
+          </div>
+
+          <div className="space-y-4 opacity-60">
             <ToggleField
               name="allow_student_cancellation"
               title="Permitir cancelamento pelo aluno"
               description="Quando desligado, o aluno precisa falar com a escola para cancelar uma aula."
               defaultChecked={rules.allow_student_cancellation}
+              disabled
             />
             <div className="grid gap-1.5 sm:max-w-xs">
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -105,6 +117,7 @@ export function RulesForm({ rules, status, action }: Props) {
                 name="cancellation_notice_hours"
                 defaultValue={rules.cancellation_notice_hours}
                 icon={<Clock3 size={14} />}
+                disabled
               />
             </div>
 
