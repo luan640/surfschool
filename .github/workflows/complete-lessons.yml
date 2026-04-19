@@ -1,0 +1,15 @@
+name: Complete lessons
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cron endpoint
+        run: |
+          curl -f -X GET "${{ secrets.APP_URL }}/api/cron/complete-lessons" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
