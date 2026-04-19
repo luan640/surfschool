@@ -171,7 +171,7 @@ export async function deleteLessonPackage(id: string): Promise<ActionResult> {
 }
 
 function parsePackageFormData(formData: FormData):
-  | { success: true; data: { name: string; description: string | null; lessonCount: number; price: number; pixPrice: number | null; cardPrice: number | null; active: boolean; instructorIds: string[] } }
+  | { success: true; data: { name: string; description: string | null; lessonCount: number; price: number; pixPrice: number | null; cardPrice: number | null; card12xPrice: number | null; active: boolean; instructorIds: string[] } }
   | { success: false; error: string } {
   const name = (formData.get('name') as string | null)?.trim() ?? ''
   const descriptionRaw = (formData.get('description') as string | null)?.trim() ?? ''
