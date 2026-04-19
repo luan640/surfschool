@@ -9,8 +9,9 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient()
   const now = new Date()
-  const today = now.toISOString().slice(0, 10)
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const brFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  const [today, , currentTime] = brFormatter.format(now).split(' ')
+
 
   const { data: schools } = await admin
     .from('school_rules')
