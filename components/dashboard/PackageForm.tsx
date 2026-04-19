@@ -29,9 +29,15 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const MP_FEES = { pix: 0.0099, card1x: 0.0498, card12x: 0.0679 }
+
   const [price, setPrice] = useState(pkg?.price ? String(pkg.price) : '')
   const [pixPrice, setPixPrice] = useState(pkg?.pix_price ? String(pkg.pix_price) : '')
+  const [pixReceive, setPixReceive] = useState(pkg?.pix_price ? (pkg.pix_price * (1 - MP_FEES.pix)).toFixed(2) : '')
   const [cardPrice, setCardPrice] = useState(pkg?.card_price ? String(pkg.card_price) : '')
+  const [cardReceive, setCardReceive] = useState(pkg?.card_price ? (pkg.card_price * (1 - MP_FEES.card1x)).toFixed(2) : '')
+  const [cardPrice12x, setCardPrice12x] = useState(pkg?.card12x_price ? String(pkg.card12x_price) : '')
+  const [card12xReceive, setCard12xReceive] = useState(pkg?.card12x_price ? (pkg.card12x_price * (1 - MP_FEES.card12x)).toFixed(2) : '')
 
   const totalLessons = Number(pkg?.lesson_count ?? 0)
   const packagePrice = Number(pkg?.price ?? 0)
@@ -119,25 +125,146 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor total *</label>
-            <Input
-              name="price"
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              value={price}
-              placeholder="1200.00"
-              icon={<DollarSign size={14} />}
-              onChange={(e) => setPrice(e.target.value)}
-            />
+            <input type="hidden" name="price" value={pixPrice || cardPrice || '0'} />
+            <p className="text-xs text-slate-400">Defina os preços por método de pagamento abaixo.</p>
           </div>
 
-          {/*
-          Campos extras de preço desabilitados nesta tela.
-          Mantido apenas o campo principal "Valor total *".
-          */}
+          {mpConnected && (
+            <div className="sm:col-span-2 space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Preços por método de pagamento</p>
+
+              {/* PIX */}
+              <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-xs font-bold text-slate-600">PIX <span className="font-normal text-slate-400">(taxa 0,99%)</span></p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor cobrado</label>
+                    <Input
+                      name="pix_price"
+                      type="number"
+                      step="0.01"
+                      required
+                      value={pixPrice}
+                      placeholder="1200.00"
+                      icon={<DollarSign size={14} />}
+                      onChange={(e) => {
+                        setPixPrice(e.target.value)
+                        const gross = Number(e.target.value)
+                        setPixReceive(gross > 0 ? (gross * (1 - MP_FEES.pix)).toFixed(2) : '')
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Você recebe</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={pixReceive}
+                      placeholder="1188.12"
+                      icon={<DollarSign size={14} />}
+                      onChange={(e) => {
+                        setPixReceive(e.target.value)
+                        const net = Number(e.target.value)
+                        setPixPrice(net > 0 ? (net / (1 - MP_FEES.pix)).toFixed(2) : '')
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cartão de crédito */}
+              <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-xs font-bold text-slate-600">Cartão de crédito</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor cobrado (1x)</label>
+                    <Input
+                      name="card_price"
+                      type="number"
+                      step="0.01"
+                      required
+                      value={cardPrice}
+                      placeholder="1200.00"
+                      icon={<DollarSign size={14} />}
+                      onChange={(e) => {
+                        setCardPrice(e.target.value)
+                        const gross = Number(e.target.value)
+                        setCardReceive(gross > 0 ? (gross * (1 - MP_FEES.card1x)).toFixed(2) : '')
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Você recebe (1x · 4,98%)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={cardReceive}
+                      placeholder="1140.24"
+                      icon={<DollarSign size={14} />}
+                      onChange={(e) => {
+                        setCardReceive(e.target.value)
+                        const net = Number(e.target.value)
+                        setCardPrice(net > 0 ? (net / (1 - MP_FEES.card1x)).toFixed(2) : '')
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor cobrado (12x)</label>
+                    <Input
+                      name="card12x_price"
+                      type="number"
+                      step="0.01"
+                      required
+                      value={cardPrice12x}
+                      placeholder="1300.00"
+                      icon={<DollarSign size={14} />}
+                      onChange={(e) => {
+                        setCardPrice12x(e.target.value)
+                        const gross = Number(e.target.value)
+                        setCard12xReceive(gross > 0 ? (gross * (1 - MP_FEES.card12x)).toFixed(2) : '')
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Você recebe (12x · 6,79%)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={card12xReceive}
+                      placeholder="1211.73"
+                      icon={<DollarSign size={14} />}
+                      onChange={(e) => {
+                        setCard12xReceive(e.target.value)
+                        const net = Number(e.target.value)
+                        setCardPrice12x(net > 0 ? (net / (1 - MP_FEES.card12x)).toFixed(2) : '')
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!mpConnected && (
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor total *</label>
+              <Input
+                name="price"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={price}
+                placeholder="1200.00"
+                icon={<DollarSign size={14} />}
+                onChange={(e) => { setPrice(e.target.value) }}
+              />
+            </div>
+          )}
 
           {!pkg && (
             <div className="flex flex-col gap-1.5">

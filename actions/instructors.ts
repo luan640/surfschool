@@ -58,6 +58,7 @@ export async function createInstructor(formData: FormData): Promise<ActionResult
   const priceOverrides = hasPriceOverrides ? {
     pix_price: formData.get('pix_price') ? parseFloat(formData.get('pix_price') as string) : null,
     card_price: formData.get('card_price') ? parseFloat(formData.get('card_price') as string) : null,
+    card12x_price: formData.get('card12x_price') ? parseFloat(formData.get('card12x_price') as string) : null,
   } : {}
 
   const { data, error } = await supabase
@@ -111,12 +112,11 @@ export async function updateInstructor(id: string, formData: FormData): Promise<
   })
   if (photoResult.error) return { success: false, error: photoResult.error }
 
-  // Only include pix_price/card_price when the form actually submitted them
-  // (i.e. MP is connected and the columns exist in the DB after migration 028)
   const hasPriceOverrides = formData.has('pix_price') || formData.has('card_price')
   const priceOverrides = hasPriceOverrides ? {
     pix_price: formData.get('pix_price') ? parseFloat(formData.get('pix_price') as string) : null,
     card_price: formData.get('card_price') ? parseFloat(formData.get('card_price') as string) : null,
+    card12x_price: formData.get('card12x_price') ? parseFloat(formData.get('card12x_price') as string) : null,
   } : {}
 
   const { error } = await supabase

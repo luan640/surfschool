@@ -73,7 +73,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Financeiro',
     items: [
-      { href: '/dashboard/settings/payment-methods', label: 'Pagamento online', icon: CreditCard, disabled: true, badge: 'Em breve' },
+      { href: '/dashboard/settings/payment-methods', label: 'Pagamento online', icon: CreditCard, badge: 'Novo' },
       { href: '/dashboard/purchases', label: 'Minhas vendas', icon: ShoppingBag },
       { href: '/dashboard/refunds', label: 'Reembolsos', icon: RefreshCcw },
       { href: '/dashboard/commission-payments', label: 'Comissões', icon: CircleDollarSign },

@@ -778,7 +778,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
                 pixAmount={isTrialFlow ? null : pixTotalAmount}
                 cardAmount={isTrialFlow ? null : cardTotalAmount}
                 title={isPackageFlow ? wizard.selectedPackage?.name ?? t.wizard_packages_fallback : isTrialFlow ? t.wizard_trial_title : t.wizard_single_title}
-                onlineEnabled={false}
+                onlineEnabled={mercadoPagoReady}
                 description={isPackageFlow
                   ? `${wizard.packageLessons.length} aulas com ${wizard.selectedInstructor.full_name}`
                   : `${formatDate(wizard.selectedDate!)} • ${wizard.selectedSlots.join(', ')}`}

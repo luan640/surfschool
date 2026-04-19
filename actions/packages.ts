@@ -103,6 +103,7 @@ export async function createLessonPackage(formData: FormData): Promise<ActionRes
       price: payload.data.price,
       pix_price: payload.data.pixPrice,
       card_price: payload.data.cardPrice,
+      card12x_price: payload.data.card12xPrice,
       active: payload.data.active,
     })
     .select()
@@ -136,6 +137,7 @@ export async function updateLessonPackage(id: string, formData: FormData): Promi
       price: payload.data.price,
       pix_price: payload.data.pixPrice,
       card_price: payload.data.cardPrice,
+      card12x_price: payload.data.card12xPrice,
       active: payload.data.active,
     })
     .eq('id', id)
@@ -180,8 +182,10 @@ function parsePackageFormData(formData: FormData):
 
   const pixPriceRaw = formData.get('pix_price')
   const cardPriceRaw = formData.get('card_price')
+  const card12xPriceRaw = formData.get('card12x_price')
   const pixPrice = pixPriceRaw && Number(pixPriceRaw) > 0 ? Number(pixPriceRaw) : null
   const cardPrice = cardPriceRaw && Number(cardPriceRaw) > 0 ? Number(cardPriceRaw) : null
+  const card12xPrice = card12xPriceRaw && Number(card12xPriceRaw) > 0 ? Number(card12xPriceRaw) : null
 
   if (!name) return { success: false, error: 'Informe o nome do pacote' }
   if (!Number.isFinite(lessonCount) || lessonCount <= 0) return { success: false, error: 'Informe a quantidade de aulas' }
@@ -197,6 +201,7 @@ function parsePackageFormData(formData: FormData):
       price,
       pixPrice,
       cardPrice,
+      card12xPrice,
       active: activeValue !== 'false',
       instructorIds,
     },
