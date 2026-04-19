@@ -275,7 +275,9 @@ export function InstructorForm({
           <div className="rounded border border-slate-200 bg-slate-50 p-3">
             <p className="mb-2 text-xs text-slate-500">Valor cobrado quando o pagamento é feito no local (dinheiro, cartão na maquininha, etc).</p>
             <div className="flex flex-col gap-1 max-w-xs">
-              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor por aula</label>
+              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                Valor por aula <span className="font-normal normal-case tracking-normal text-slate-400">(cartão de crédito pode ter taxas)</span>
+              </label>
               <Input
                 name="hourly_price"
                 type="number"

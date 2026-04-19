@@ -156,9 +156,12 @@ export function TripCheckoutBrick({ tripId, schoolId, schoolSlug, amount, title 
               className="h-11 w-full rounded-sm border border-slate-200 px-3 text-sm"
             />
           </Field>
-          <Field label="Valor">
+          <label className="block">
+            <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Valor <span className="font-normal normal-case tracking-normal text-slate-400">(cartão de crédito pode ter taxas)</span>
+            </div>
             <div className="flex h-11 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">{formatPrice(amount)}</div>
-          </Field>
+          </label>
           <div className="sm:col-span-2">
             <Field label="Observações">
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="w-full rounded-sm border border-slate-200 px-3 py-2 text-sm" />
