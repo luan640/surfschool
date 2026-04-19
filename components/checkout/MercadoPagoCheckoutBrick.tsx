@@ -80,6 +80,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
   const [lastStatusCheckAt, setLastStatusCheckAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ProcessPaymentResponse | null>(null)
+  const [paidAmount, setPaidAmount] = useState<number | null>(null)
   const [couponCode, setCouponCode] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponError, setCouponError] = useState<string | null>(null)
@@ -239,7 +240,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                 <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{t.checkout_summary}</div>
                 <div className="space-y-3">
                   <SuccessRow label={t.checkout_summary_product} value={props.title} />
-                  <SuccessRow label={payOnSite ? t.checkout_summary_amount_agreed : t.checkout_summary_amount_paid} value={formatPrice(payableAmount)} />
+                  <SuccessRow label={payOnSite ? t.checkout_summary_amount_agreed : t.checkout_summary_amount_paid} value={formatPrice(paidAmount ?? payableAmount)} />
                   <SuccessRow label={t.checkout_summary_instructor} value={props.description} />
                 </div>
               </div>
@@ -251,11 +252,6 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                 </div>
                 <div className="space-y-3 text-sm text-slate-600">
                   <p>{payOnSite ? t.checkout_next_pay_on_site : t.checkout_next_approved}</p>
-                  {!payOnSite && result.ticketUrl && (
-                    <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="inline-flex font-bold text-emerald-700 underline">
-                      {t.checkout_open_receipt}
-                    </a>
-                  )}
                 </div>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <Button asChild variant="primary">
@@ -275,7 +271,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
       {error && <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
       {result && (
         <PaymentFeedback
-          amount={payableAmount}
+          amount={paidAmount ?? payableAmount}
           isPolling={pollingStatus}
           lastStatusCheckAt={lastStatusCheckAt}
           result={result}
@@ -441,6 +437,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                 onSubmit={async (submission, additionalData) => {
                   setSubmitting(true)
                   setError(null)
+                  setPaidAmount(payableAmount)
 
                   try {
                     const response = await fetch('/api/payments/process', {
@@ -511,6 +508,7 @@ export function MercadoPagoCheckoutBrick(props: Props) {
                   onClick={async () => {
                     setSubmitting(true)
                     setError(null)
+                    setPaidAmount(payableAmount)
 
                     try {
                       const response = await fetch('/api/payments/process', {
@@ -645,7 +643,6 @@ function PaymentFeedback({
         </div>
       )}
       {result.qrCode && <div className="mt-3 break-all rounded bg-white/80 px-3 py-2 font-mono text-xs">{result.qrCode}</div>}
-      {result.ticketUrl && <a href={result.ticketUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">{t.checkout_open_receipt}</a>}
     </div>
   )
 }

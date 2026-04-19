@@ -30,14 +30,16 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const MP_FEES = { pix: 0.0099, card1x: 0.0498, card12x: 0.0679 }
+  const mpNet = (gross: number, fee: number) => (Math.floor(gross * (1 - fee) * 100) / 100).toFixed(2)
+  const mpGross = (net: number, fee: number) => (Math.ceil(net / (1 - fee) * 100) / 100).toFixed(2)
 
   const [price, setPrice] = useState(pkg?.price ? String(pkg.price) : '')
   const [pixPrice, setPixPrice] = useState(pkg?.pix_price ? String(pkg.pix_price) : '')
-  const [pixReceive, setPixReceive] = useState(pkg?.pix_price ? (pkg.pix_price * (1 - MP_FEES.pix)).toFixed(2) : '')
+  const [pixReceive, setPixReceive] = useState(pkg?.pix_price ? mpNet(pkg.pix_price, MP_FEES.pix) : '')
   const [cardPrice, setCardPrice] = useState(pkg?.card_price ? String(pkg.card_price) : '')
-  const [cardReceive, setCardReceive] = useState(pkg?.card_price ? (pkg.card_price * (1 - MP_FEES.card1x)).toFixed(2) : '')
+  const [cardReceive, setCardReceive] = useState(pkg?.card_price ? mpNet(pkg.card_price, MP_FEES.card1x) : '')
   const [cardPrice12x, setCardPrice12x] = useState(pkg?.card12x_price ? String(pkg.card12x_price) : '')
-  const [card12xReceive, setCard12xReceive] = useState(pkg?.card12x_price ? (pkg.card12x_price * (1 - MP_FEES.card12x)).toFixed(2) : '')
+  const [card12xReceive, setCard12xReceive] = useState(pkg?.card12x_price ? mpNet(pkg.card12x_price, MP_FEES.card12x) : '')
 
   const totalLessons = Number(pkg?.lesson_count ?? 0)
   const packagePrice = Number(pkg?.price ?? 0)
@@ -125,15 +127,31 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
             />
           </div>
 
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor total *</label>
-            <input type="hidden" name="price" value={pixPrice || cardPrice || '0'} />
-            <p className="text-xs text-slate-400">Defina os preços por método de pagamento abaixo.</p>
+          <div className="sm:col-span-2 space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Preços para pagamento presencial
+            </p>
+            <div className="rounded border border-slate-200 bg-slate-50 p-3">
+              <p className="mb-2 text-xs text-slate-500">Valor cobrado quando o pagamento é feito no local (dinheiro, cartão na maquininha, etc).</p>
+              <div className="flex flex-col gap-1 max-w-xs">
+                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor do pacote</label>
+                <Input
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  required
+                  value={price}
+                  placeholder="1200.00"
+                  icon={<DollarSign size={14} />}
+                  onChange={(e) => setPrice(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           {mpConnected && (
             <div className="sm:col-span-2 space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Preços por método de pagamento</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Preços por método de pagamento (online)</p>
 
               {/* PIX */}
               <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2">
@@ -152,7 +170,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
                       onChange={(e) => {
                         setPixPrice(e.target.value)
                         const gross = Number(e.target.value)
-                        setPixReceive(gross > 0 ? (gross * (1 - MP_FEES.pix)).toFixed(2) : '')
+                        setPixReceive(gross > 0 ? mpNet(gross, MP_FEES.pix) : '')
                       }}
                     />
                   </div>
@@ -167,7 +185,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
                       onChange={(e) => {
                         setPixReceive(e.target.value)
                         const net = Number(e.target.value)
-                        setPixPrice(net > 0 ? (net / (1 - MP_FEES.pix)).toFixed(2) : '')
+                        setPixPrice(net > 0 ? mpGross(net, MP_FEES.pix) : '')
                       }}
                     />
                   </div>
@@ -191,7 +209,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
                       onChange={(e) => {
                         setCardPrice(e.target.value)
                         const gross = Number(e.target.value)
-                        setCardReceive(gross > 0 ? (gross * (1 - MP_FEES.card1x)).toFixed(2) : '')
+                        setCardReceive(gross > 0 ? mpNet(gross, MP_FEES.card1x) : '')
                       }}
                     />
                   </div>
@@ -206,7 +224,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
                       onChange={(e) => {
                         setCardReceive(e.target.value)
                         const net = Number(e.target.value)
-                        setCardPrice(net > 0 ? (net / (1 - MP_FEES.card1x)).toFixed(2) : '')
+                        setCardPrice(net > 0 ? mpGross(net, MP_FEES.card1x) : '')
                       }}
                     />
                   </div>
@@ -225,7 +243,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
                       onChange={(e) => {
                         setCardPrice12x(e.target.value)
                         const gross = Number(e.target.value)
-                        setCard12xReceive(gross > 0 ? (gross * (1 - MP_FEES.card12x)).toFixed(2) : '')
+                        setCard12xReceive(gross > 0 ? mpNet(gross, MP_FEES.card12x) : '')
                       }}
                     />
                   </div>
@@ -240,7 +258,7 @@ export function PackageForm({ instructors, pkg, onSuccess, onCancel, mpConnected
                       onChange={(e) => {
                         setCard12xReceive(e.target.value)
                         const net = Number(e.target.value)
-                        setCardPrice12x(net > 0 ? (net / (1 - MP_FEES.card12x)).toFixed(2) : '')
+                        setCardPrice12x(net > 0 ? mpGross(net, MP_FEES.card12x) : '')
                       }}
                     />
                   </div>

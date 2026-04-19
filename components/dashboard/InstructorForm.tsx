@@ -54,16 +54,18 @@ export function InstructorForm({
   const [cardPrice, setCardPrice] = useState(instructor?.card_price ? String(instructor.card_price) : '')
 
   const MP_FEES = { pix: 0.0099, card1x: 0.0498, card12x: 0.0679 }
+  const mpNet = (gross: number, fee: number) => (Math.floor(gross * (1 - fee) * 100) / 100).toFixed(2)
+  const mpGross = (net: number, fee: number) => (Math.ceil(net / (1 - fee) * 100) / 100).toFixed(2)
 
   const [pixReceive, setPixReceive] = useState(
-    instructor?.pix_price ? (instructor.pix_price * (1 - MP_FEES.pix)).toFixed(2) : ''
+    instructor?.pix_price ? mpNet(instructor.pix_price, MP_FEES.pix) : ''
   )
   const [cardPrice12x, setCardPrice12x] = useState(instructor?.card12x_price ? String(instructor.card12x_price) : '')
   const [cardReceive, setCardReceive] = useState(
-    instructor?.card_price ? (instructor.card_price * (1 - MP_FEES.card1x)).toFixed(2) : ''
+    instructor?.card_price ? mpNet(instructor.card_price, MP_FEES.card1x) : ''
   )
   const [card12xReceive, setCard12xReceive] = useState(
-    instructor?.card12x_price ? (instructor.card12x_price * (1 - MP_FEES.card12x)).toFixed(2) : ''
+    instructor?.card12x_price ? mpNet(instructor.card12x_price, MP_FEES.card12x) : ''
   )
 
   const [avail, setAvail] = useState<Record<number, string[]>>(() => {
@@ -266,7 +268,27 @@ export function InstructorForm({
           />
         </div>
 
-        <input type="hidden" name="hourly_price" value={pixPrice || cardPrice || '0'} />
+        <div className="sm:col-span-2 space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            Preços para pagamento presencial
+          </p>
+          <div className="rounded border border-slate-200 bg-slate-50 p-3">
+            <p className="mb-2 text-xs text-slate-500">Valor cobrado quando o pagamento é feito no local (dinheiro, cartão na maquininha, etc).</p>
+            <div className="flex flex-col gap-1 max-w-xs">
+              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor por aula</label>
+              <Input
+                name="hourly_price"
+                type="number"
+                step="0.01"
+                required
+                value={hourlyPrice}
+                placeholder="150.00"
+                icon={<DollarSign size={14} />}
+                onChange={(e) => setHourlyPrice(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
 
         {mpConnected && (
           <div className="sm:col-span-2 space-y-3">
@@ -291,7 +313,7 @@ export function InstructorForm({
                     onChange={(e) => {
                       setPixPrice(e.target.value)
                       const gross = Number(e.target.value)
-                      setPixReceive(gross > 0 ? (gross * (1 - MP_FEES.pix)).toFixed(2) : '')
+                      setPixReceive(gross > 0 ? mpNet(gross, MP_FEES.pix) : '')
                     }}
                   />
                 </div>
@@ -306,7 +328,7 @@ export function InstructorForm({
                     onChange={(e) => {
                       setPixReceive(e.target.value)
                       const net = Number(e.target.value)
-                      setPixPrice(net > 0 ? (net / (1 - MP_FEES.pix)).toFixed(2) : '')
+                      setPixPrice(net > 0 ? mpGross(net, MP_FEES.pix) : '')
                     }}
                   />
                 </div>
@@ -330,7 +352,7 @@ export function InstructorForm({
                     onChange={(e) => {
                       setCardPrice(e.target.value)
                       const gross = Number(e.target.value)
-                      setCardReceive(gross > 0 ? (gross * (1 - MP_FEES.card1x)).toFixed(2) : '')
+                      setCardReceive(gross > 0 ? mpNet(gross, MP_FEES.card1x) : '')
                     }}
                   />
                 </div>
@@ -345,7 +367,7 @@ export function InstructorForm({
                     onChange={(e) => {
                       setCardReceive(e.target.value)
                       const net = Number(e.target.value)
-                      setCardPrice(net > 0 ? (net / (1 - MP_FEES.card1x)).toFixed(2) : '')
+                      setCardPrice(net > 0 ? mpGross(net, MP_FEES.card1x) : '')
                     }}
                   />
                 </div>
@@ -364,7 +386,7 @@ export function InstructorForm({
                     onChange={(e) => {
                       setCardPrice12x(e.target.value)
                       const gross = Number(e.target.value)
-                      setCard12xReceive(gross > 0 ? (gross * (1 - MP_FEES.card12x)).toFixed(2) : '')
+                      setCard12xReceive(gross > 0 ? mpNet(gross, MP_FEES.card12x) : '')
                     }}
                   />
                 </div>
@@ -379,7 +401,7 @@ export function InstructorForm({
                     onChange={(e) => {
                       setCard12xReceive(e.target.value)
                       const net = Number(e.target.value)
-                      setCardPrice12x(net > 0 ? (net / (1 - MP_FEES.card12x)).toFixed(2) : '')
+                      setCardPrice12x(net > 0 ? mpGross(net, MP_FEES.card12x) : '')
                     }}
                   />
                 </div>
