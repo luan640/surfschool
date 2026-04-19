@@ -206,6 +206,7 @@ export interface SchoolRules {
   minimum_booking_notice_hours: number
   booking_window_days: number
   trial_lesson_enabled: boolean
+  auto_complete_lessons: boolean
   max_active_bookings_per_student: number | null
   created_at: string
   updated_at: string

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { Clock3, ShieldCheck, TimerReset } from 'lucide-react'
+import { useEffect, useTransition } from 'react'
+import { CheckCircle, Clock3, Loader2, ShieldCheck, TimerReset } from 'lucide-react'
 import type { SchoolRules } from '@/lib/types'
 import { Banner } from '@/components/dashboard/settings/SettingsStatus'
 import { Badge } from '@/components/ui/badge'
@@ -51,6 +51,7 @@ function ToggleField({
 
 export function RulesForm({ rules, status, action }: Props) {
   const { success, error: showError } = useToast()
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     if (status === 'saved') {
@@ -75,7 +76,7 @@ export function RulesForm({ rules, status, action }: Props) {
       {status === 'saved' && <Banner tone="success" text="Regras atualizadas com sucesso." />}
       {status === 'error' && <Banner tone="error" text="Não foi possível salvar as regras da escola." />}
 
-      <form action={action} className="space-y-6">
+      <form action={(formData) => startTransition(() => action(formData))} className="space-y-6">
         <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-full bg-[var(--primary)]/10 p-2 text-[var(--primary)]">
@@ -190,8 +191,34 @@ export function RulesForm({ rules, status, action }: Props) {
           />
         </section>
 
+        <section className="space-y-4 rounded border border-slate-200 bg-white p-6">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-[var(--primary)]/10 p-2 text-[var(--primary)]">
+              <CheckCircle size={16} />
+            </div>
+            <div>
+              <h2 className="font-condensed text-base font-bold uppercase tracking-wide text-slate-600">
+                Conclusão automática
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Quando ativado, aulas com horário passado são marcadas automaticamente como concluídas e pagas.
+              </p>
+            </div>
+          </div>
+
+          <ToggleField
+            name="auto_complete_lessons"
+            title="Finalizar aula automaticamente"
+            description="Após o horário da aula, o sistema conclui e marca como paga sem precisar de ação manual."
+            defaultChecked={rules.auto_complete_lessons}
+          />
+        </section>
+
         <div className="flex justify-end gap-3">
-          <Button type="submit" variant="primary">Salvar regras</Button>
+          <Button type="submit" variant="primary" disabled={isPending}>
+            {isPending && <Loader2 size={14} className="animate-spin" />}
+            {isPending ? 'Salvando...' : 'Salvar regras'}
+          </Button>
         </div>
       </form>
     </div>
