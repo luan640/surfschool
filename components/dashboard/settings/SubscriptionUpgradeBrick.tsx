@@ -8,6 +8,7 @@ import { CheckCircle2, Sparkles, Waves } from 'lucide-react'
 interface Props {
   payerEmail: string
   publicKey: string
+  planPrice: number | null
 }
 
 type SubscriptionResult = {
@@ -15,7 +16,7 @@ type SubscriptionResult = {
   status: string
 }
 
-export function SubscriptionUpgradeBrick({ payerEmail, publicKey }: Props) {
+export function SubscriptionUpgradeBrick({ payerEmail, publicKey, planPrice }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<SubscriptionResult | null>(null)
@@ -48,6 +49,7 @@ export function SubscriptionUpgradeBrick({ payerEmail, publicKey }: Props) {
           paymentMethodId: formData.payment_method_id,
           issuerId: formData.issuer_id,
           payerEmail: formData.payer?.email ?? payerEmail,
+          planPrice,
         }),
       })
 
@@ -101,27 +103,39 @@ export function SubscriptionUpgradeBrick({ payerEmail, publicKey }: Props) {
       <div className="relative rounded border border-slate-200 bg-white p-4">
         <div className="mb-4">
           <p className="text-sm text-slate-500">
-            Insira os dados do cartão de crédito para ativar a assinatura mensal de{' '}
-            <span className="font-semibold text-slate-800">R$ 99,90/mes</span>.
+            Insira os dados do cartão de crédito para ativar a assinatura mensal
+            {planPrice ? (
+              <> de <span className="font-semibold text-slate-800">
+                {planPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
+              </span></>
+            ) : ''}.
           </p>
         </div>
 
-        <CardPayment
-          initialization={{ amount: 1.00, payer: { email: payerEmail } }}
-          customization={customization}
-          locale="pt-BR"
-          onReady={() => undefined}
-          onError={(brickError) => setError(brickError.message ?? 'Erro ao inicializar o checkout.')}
-          onSubmit={handleSubmit}
-        />
+        {!planPrice ? (
+          <p className="py-4 text-sm text-rose-600">
+            Não foi possível carregar o valor do plano. Tente recarregar a página.
+          </p>
+        ) : (
+          <>
+            <CardPayment
+              initialization={{ amount: planPrice, payer: { email: payerEmail } }}
+              customization={customization}
+              locale="pt-BR"
+              onReady={() => undefined}
+              onError={(brickError) => setError(brickError.message ?? 'Erro ao inicializar o checkout.')}
+              onSubmit={handleSubmit}
+            />
 
-        {submitting && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded bg-white/80 backdrop-blur-[1px]">
-            <div className="text-center">
-              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[var(--primary)]" />
-              <p className="text-sm font-medium text-slate-600">Ativando assinatura...</p>
-            </div>
-          </div>
+            {submitting && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded bg-white/80 backdrop-blur-[1px]">
+                <div className="text-center">
+                  <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[var(--primary)]" />
+                  <p className="text-sm font-medium text-slate-600">Ativando assinatura...</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

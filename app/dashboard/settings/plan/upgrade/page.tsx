@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { Crown, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getMySchool } from '@/actions/instructors'
+import { getSubscriptionPlanPrice } from '@/actions/dashboard'
 import { SubscriptionUpgradeBrick } from '@/components/dashboard/settings/SubscriptionUpgradeBrick'
 
 export default async function PlanUpgradePage() {
@@ -25,6 +26,11 @@ export default async function PlanUpgradePage() {
     )
   }
 
+  const planPrice = await getSubscriptionPlanPrice()
+  const priceLabel = planPrice
+    ? planPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : null
+
   return (
     <div className="dashboard-page-compact">
       <div className="mb-8">
@@ -39,12 +45,15 @@ export default async function PlanUpgradePage() {
         <div>
           <div className="mb-4 flex items-center gap-2 rounded border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-4 py-3">
             <Crown size={15} className="shrink-0 text-[var(--primary)]" />
-            <span className="text-sm font-semibold text-[var(--primary)]">VSPro · R$ 99,90/mes · Cobrado mensalmente</span>
+            <span className="text-sm font-semibold text-[var(--primary)]">
+              VSPro{priceLabel ? ` · ${priceLabel}/mês` : ''} · Cobrado mensalmente
+            </span>
           </div>
 
           <SubscriptionUpgradeBrick
             payerEmail={user.email ?? ''}
             publicKey={publicKey}
+            planPrice={planPrice}
           />
         </div>
 
@@ -57,11 +66,11 @@ export default async function PlanUpgradePage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between border-b border-slate-100 pb-3">
                 <span className="text-slate-600">VSPro mensal</span>
-                <span className="font-semibold text-slate-800">R$ 99,90</span>
+                <span className="font-semibold text-slate-800">{priceLabel ?? '—'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-semibold text-slate-800">Total mensal</span>
-                <span className="font-bold text-slate-900">R$ 99,90</span>
+                <span className="font-bold text-slate-900">{priceLabel ?? '—'}</span>
               </div>
             </div>
           </div>
@@ -69,10 +78,10 @@ export default async function PlanUpgradePage() {
           <div className="rounded border border-slate-200 bg-slate-50 p-5">
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
               <ShieldCheck size={13} />
-              Seguranca
+              Segurança
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Pagamento processado com seguranca pelo Mercado Pago. Voce pode cancelar a qualquer momento.
+              Pagamento processado com segurança pelo Mercado Pago. Você pode cancelar a qualquer momento.
             </p>
           </div>
         </aside>

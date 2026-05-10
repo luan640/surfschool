@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import Link from 'next/link'
+import { Crown, Menu, ShieldAlert, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
@@ -13,7 +14,11 @@ interface Props {
   children: React.ReactNode
   primaryColor: string
   ctaColor: string
+  isExpired?: boolean
+  accessLimitDate?: string | null
 }
+
+const PLAN_PATHS = '/dashboard/settings/plan'
 
 export function DashboardShell({
   schoolName,
@@ -22,6 +27,8 @@ export function DashboardShell({
   children,
   primaryColor,
   ctaColor,
+  isExpired = false,
+  accessLimitDate,
 }: Props) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -29,6 +36,8 @@ export function DashboardShell({
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
+
+  const showExpiredOverlay = isExpired && !pathname.startsWith(PLAN_PATHS)
 
   return (
     <div
@@ -74,7 +83,61 @@ export function DashboardShell({
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-slate-50">
+          {showExpiredOverlay ? (
+            <div className="flex min-h-full flex-col items-center justify-center px-4 py-20">
+              <div className="w-full max-w-md rounded-lg border border-rose-200 bg-white p-8 shadow-sm">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-100">
+                    <ShieldAlert size={20} className="text-rose-600" />
+                  </div>
+                  <div>
+                    <h1 className="font-condensed text-xl font-bold uppercase tracking-wide text-slate-800">
+                      Período gratuito encerrado
+                    </h1>
+                    {accessLimitDate && (
+                      <p className="text-sm text-slate-500">Seu acesso expirou em {accessLimitDate}</p>
+                    )}
+                  </div>
+                </div>
+
+                <p className="mb-6 text-sm text-slate-600">
+                  Para continuar usando a plataforma, assine o VSPro e tenha acesso ilimitado a todos os recursos.
+                </p>
+
+                <ul className="mb-6 space-y-2 text-sm text-slate-600">
+                  {[
+                    'Alunos, instrutores e agendamentos ilimitados',
+                    'Integração completa com Mercado Pago',
+                    'Gestão de pacotes, trips e cupons',
+                    'Relatórios e histórico financeiro',
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <Crown size={13} className="shrink-0 text-amber-500" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/dashboard/settings/plan/upgrade"
+                  className="flex w-full items-center justify-center gap-2 rounded bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+                >
+                  <Crown size={14} />
+                  Assinar VSPro
+                </Link>
+                <Link
+                  href="/dashboard/settings/plan"
+                  className="mt-3 flex w-full items-center justify-center rounded border border-slate-200 px-4 py-2.5 text-sm text-slate-500 transition-colors hover:bg-slate-50"
+                >
+                  Ver detalhes do plano
+                </Link>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
+        </main>
       </div>
     </div>
   )

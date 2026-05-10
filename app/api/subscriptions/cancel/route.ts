@@ -17,9 +17,9 @@ export async function POST() {
 
     const { data: subscription } = await admin
       .from('school_subscriptions')
-      .select('id, mp_subscription_id')
+      .select('id, mp_subscription_id, status')
       .eq('school_id', school.id)
-      .eq('status', 'authorized')
+      .not('status', 'eq', 'cancelled')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -34,12 +34,15 @@ export async function POST() {
     const mp = new MercadoPagoConfig({ accessToken })
     const preApprovalClient = new PreApproval(mp)
 
-    await preApprovalClient.update({
-      id: subscription.mp_subscription_id,
-      body: { status: 'cancelled' },
-    })
+    try {
+      await preApprovalClient.update({
+        id: subscription.mp_subscription_id,
+        body: { status: 'cancelled' },
+      })
+    } catch {
+      // Assinatura já cancelada no MP ou indisponível — prossegue com cancelamento local
+    }
 
-    // Grace period of 30 days
     const grace = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
     await admin
@@ -54,6 +57,7 @@ export async function POST() {
 
     return NextResponse.json({ ok: true })
   } catch (error) {
+    console.error('[cancel-subscription] Unexpected error:', error)
     const message = error instanceof Error ? error.message : 'Erro ao cancelar assinatura.'
     return NextResponse.json({ error: message }, { status: 500 })
   }

@@ -9,6 +9,7 @@ interface CreateSubscriptionBody {
   paymentMethodId: string
   issuerId?: string
   payerEmail: string
+  planPrice?: number | null
 }
 
 export async function POST(request: Request) {
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as CreateSubscriptionBody
-    const { token, paymentMethodId, payerEmail } = body
+    const { token, paymentMethodId, payerEmail, planPrice } = body
 
     if (!token || !paymentMethodId || !payerEmail) {
       return NextResponse.json({ error: 'Dados do cartao incompletos.' }, { status: 400 })
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
-        transaction_amount: 1.00,
+        transaction_amount: planPrice ?? 1.00,
         currency_id: 'BRL',
       },
       back_url: `${appUrl}/dashboard/settings/plan?subscription=success`,

@@ -6,7 +6,12 @@ const EXCLUDED_PREFIXES  = ['/auth', '/api', '/_next', '/favicon', '/static']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const response = NextResponse.next({ request })
+
+  // Inject pathname into request headers so server components can read it via headers()
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
   type ResponseCookieOptions = Parameters<typeof response.cookies.set>[2]
   type CookieToSet = { name: string; value: string; options?: ResponseCookieOptions }
 

@@ -422,7 +422,7 @@ async function createSchoolForOwner({
   const baseSlug = slugify(schoolName) || 'escola'
   const finalSlug = `${baseSlug}-${randomUUID().split('-')[0]}`
 
-  const accessLimit = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const accessLimit = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
   return supabase.from('schools').insert({
     owner_id: ownerId,

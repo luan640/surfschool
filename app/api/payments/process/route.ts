@@ -412,6 +412,8 @@ export async function POST(request: Request) {
       })
     } catch (paymentError) {
       const message = paymentError instanceof Error ? paymentError.message : 'Erro ao criar pagamento no Mercado Pago.'
+      const cause = (paymentError as { cause?: unknown })?.cause
+      console.error('[payments/process] MercadoPago error:', message, cause ? JSON.stringify(cause) : '')
       await failPaymentTransaction({
         transactionId,
         bookingIds,

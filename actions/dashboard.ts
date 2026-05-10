@@ -488,6 +488,21 @@ export async function getActiveSubscription() {
   return data
 }
 
+export async function getSubscriptionPlanPrice(): Promise<number | null> {
+  const planId = process.env.MERCADOPAGO_SUBSCRIPTION_PLAN_ID
+  const accessToken = process.env.MERCADOPAGO_SUBSCRIPTION_ACCESS_TOKEN
+  if (!planId || !accessToken) return null
+
+  try {
+    const { MercadoPagoConfig, PreApprovalPlan } = await import('mercadopago')
+    const mp = new MercadoPagoConfig({ accessToken })
+    const plan = await new PreApprovalPlan(mp).get({ preApprovalPlanId: planId })
+    return (plan as { auto_recurring?: { transaction_amount?: number } }).auto_recurring?.transaction_amount ?? null
+  } catch {
+    return null
+  }
+}
+
 export async function getMercadoPagoConnection() {
   const supabase = await createClient()
   const school = await getMySchool()

@@ -1,8 +1,8 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { CalendarClock, CheckCircle2, Crown, Rocket, ShieldAlert } from 'lucide-react'
 import { getMySchool } from '@/actions/instructors'
-import { getActiveSubscription } from '@/actions/dashboard'
-import { Button } from '@/components/ui/button'
+import { getActiveSubscription, getSubscriptionPlanPrice } from '@/actions/dashboard'
 import { CancelSubscriptionButton } from '@/components/dashboard/settings/CancelSubscriptionButton'
 
 interface Props {
@@ -13,8 +13,15 @@ export default async function PlanPage({ searchParams }: Props) {
   const school = await getMySchool()
   if (!school) redirect('/auth/login')
 
-  const subscription = await getActiveSubscription()
+  const [subscription, planPrice] = await Promise.all([
+    getActiveSubscription(),
+    getSubscriptionPlanPrice(),
+  ])
   const params = searchParams ? await searchParams : undefined
+
+  const priceLabel = planPrice
+    ? planPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : null
 
   const isPro = (school as { plan?: string }).plan === 'pro'
   const accessLimit: Date | null = (school as { access_limit?: string | null }).access_limit
@@ -61,7 +68,7 @@ export default async function PlanPage({ searchParams }: Props) {
                   {isPro ? 'VSPro' : 'Plano Gratuito'}
                 </h2>
                 <p className="text-sm text-slate-500">
-                  {isPro ? 'R$ 99,90/mes · Acesso completo' : 'Periodo de teste gratuito'}
+                  {isPro ? `${priceLabel ?? 'R$ 99,90'}/mês · Acesso completo` : 'Periodo de teste gratuito'}
                 </p>
               </div>
             </div>
@@ -130,7 +137,7 @@ export default async function PlanPage({ searchParams }: Props) {
                   Upgrade para VSPro
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Acesso ilimitado a todas as funcionalidades da plataforma por apenas R$ -/mes.
+                  Acesso ilimitado a todas as funcionalidades da plataforma{priceLabel ? ` por apenas ${priceLabel}/mês` : ''}.
                 </p>
 
                 <ul className="mt-4 space-y-2 text-sm text-slate-600">
@@ -149,9 +156,13 @@ export default async function PlanPage({ searchParams }: Props) {
                 </ul>
 
                 <div className="mt-6">
-                  <Button variant="primary" disabled>
-                    -
-                  </Button>
+                  <Link
+                    href="/dashboard/settings/plan/upgrade"
+                    className="inline-flex items-center gap-2 rounded bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+                  >
+                    <Crown size={14} />
+                    Assinar VSPro{priceLabel ? ` — ${priceLabel}/mês` : ''}
+                  </Link>
                 </div>
               </div>
             </div>

@@ -13,6 +13,8 @@ export interface School {
   primary_color: string
   cta_color: string
   active: boolean
+  plan: 'free' | 'pro'
+  access_limit: string | null
   created_at: string
   updated_at: string
 }
