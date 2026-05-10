@@ -110,25 +110,23 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'A aula experimental so pode ser confirmada como pagar no local.' }, { status: 409 })
         }
 
-        if (!student.cpf) {
-          return NextResponse.json({ error: 'CPF do aluno nao encontrado para validar a aula experimental.' }, { status: 409 })
-        }
-
-        const { data: matchingProfiles, error: matchingProfilesError } = await admin
-          .from('student_profiles')
-          .select('id')
-          .eq('school_id', school.id)
-          .eq('cpf', student.cpf)
-
-        if (matchingProfilesError || !matchingProfiles || matchingProfiles.length === 0) {
-          return NextResponse.json({ error: matchingProfilesError?.message ?? 'Não foi possível validar o CPF do aluno.' }, { status: 500 })
+        let trialStudentIds: string[] = [student.id]
+        if (student.cpf) {
+          const { data: matchingProfiles } = await admin
+            .from('student_profiles')
+            .select('id')
+            .eq('school_id', school.id)
+            .eq('cpf', student.cpf)
+          if (matchingProfiles && matchingProfiles.length > 0) {
+            trialStudentIds = matchingProfiles.map((p) => p.id)
+          }
         }
 
         const { count: existingBookingsCount, error: existingBookingsError } = await admin
           .from('bookings')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', school.id)
-          .in('student_id', matchingProfiles.map((profile) => profile.id))
+          .in('student_id', trialStudentIds)
 
         if (existingBookingsError) {
           return NextResponse.json({ error: existingBookingsError.message }, { status: 500 })

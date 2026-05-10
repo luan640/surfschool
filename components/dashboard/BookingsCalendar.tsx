@@ -34,7 +34,10 @@ export function BookingsCalendar({ bookings, instructors }: Props) {
   })
 
   const filteredBookings = useMemo(
-    () => bookings.filter((booking) => selectedInstructorId === 'all' || booking.instructor?.id === selectedInstructorId),
+    () => bookings.filter((booking) =>
+      booking.status !== 'cancelled' &&
+      (selectedInstructorId === 'all' || booking.instructor?.id === selectedInstructorId)
+    ),
     [bookings, selectedInstructorId]
   )
 

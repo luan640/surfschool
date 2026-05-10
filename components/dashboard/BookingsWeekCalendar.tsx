@@ -88,8 +88,8 @@ export function BookingsWeekCalendar({ bookings, instructors }: Props) {
         return b.status !== 'cancelled' && b.status !== 'completed' &&
           (b.payment_status === 'pending' || b.status === 'pending')
       }
-      if (quickFilter && b.status !== quickFilter) return false
-      return true
+      if (quickFilter) return b.status === quickFilter
+      return b.status !== 'cancelled'
     })
   }, [bookings, instructorFilter, quickFilter])
 

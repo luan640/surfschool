@@ -192,6 +192,7 @@ export async function getTakenSlotsForBooking(
 export async function updateBookingStatus(
   id: string,
   status: BookingStatus,
+  notes?: string,
 ): Promise<ActionResult> {
   const supabase = await createClient()
   const school = await getMySchool()
@@ -211,9 +212,14 @@ export async function updateBookingStatus(
     }
   }
 
+  const updatePayload: Record<string, unknown> = { status }
+  if (status === 'cancelled' && notes?.trim()) {
+    updatePayload.notes = notes.trim()
+  }
+
   const { error } = await supabase
     .from('bookings')
-    .update({ status })
+    .update(updatePayload)
     .eq('id', id)
     .eq('school_id', school.id)
 

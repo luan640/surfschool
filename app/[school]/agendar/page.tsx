@@ -143,21 +143,28 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
 
       if (!active) return
 
-      if (studentProfileError || !studentProfile || !studentProfile.cpf) {
+      if (studentProfileError || !studentProfile) {
         setTrialLessonEligible(false)
         setTrialLessonChecked(true)
         return
       }
 
-      const { data: matchingProfiles, error: matchingProfilesError } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('school_id', school.id)
-        .eq('cpf', studentProfile.cpf)
+      // When CPF is available, check all profiles with same CPF to prevent multiple trial lessons
+      // across different accounts. Without CPF, fall back to checking by this profile's ID only.
+      const matchingProfileIds = studentProfile.cpf
+        ? await (async () => {
+            const { data } = await supabase
+              .from('student_profiles')
+              .select('id')
+              .eq('school_id', school.id)
+              .eq('cpf', studentProfile.cpf)
+            return (data ?? []).map((p: { id: string }) => p.id)
+          })()
+        : [studentProfile.id]
 
       if (!active) return
 
-      if (matchingProfilesError || !matchingProfiles || matchingProfiles.length === 0) {
+      if (matchingProfileIds.length === 0) {
         setTrialLessonEligible(false)
         setTrialLessonChecked(true)
         return
@@ -167,7 +174,7 @@ export default function BookingWizardPage({ params: paramsPromise }: Props) {
         .from('bookings')
         .select('id', { count: 'exact', head: true })
         .eq('school_id', school.id)
-        .in('student_id', matchingProfiles.map((profile) => profile.id))
+        .in('student_id', matchingProfileIds)
 
       if (!active) return
 

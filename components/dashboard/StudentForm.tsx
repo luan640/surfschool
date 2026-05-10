@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, CreditCard, Lock, Mail, Phone, User } from 'lucide-react'
+import { CalendarDays, CreditCard, Mail, Phone, User } from 'lucide-react'
 import { createDashboardStudent } from '@/actions/students'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,10 +71,9 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
             <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">CPF *</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">CPF <span className="font-normal normal-case text-slate-400">(opcional)</span></label>
             <Input
               name="cpf"
-              required
               value={cpf}
               onChange={(event) => setCpf(formatCpf(event.target.value))}
               maxLength={CPF_INPUT_MAX_LENGTH}
@@ -85,10 +84,6 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Data de nascimento *</label>
             <Input name="birth_date" type="date" required icon={<CalendarDays size={14} />} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Senha inicial *</label>
-            <Input name="password" type="password" required placeholder="Minimo de 6 caracteres" icon={<Lock size={14} />} />
           </div>
         </div>
 
@@ -111,7 +106,7 @@ export function StudentForm({ onSuccess, onCancel }: Props) {
         </div>
 
         <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          O aluno podera entrar com esse e-mail e senha na area publica da escola.
+          O aluno poderá entrar na área pública da escola usando o e-mail cadastrado. Para definir a senha, ele pode usar a opção &quot;Esqueci minha senha&quot; na tela de login.
         </div>
       </div>
 

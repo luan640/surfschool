@@ -161,15 +161,17 @@ export async function signUpStudent(formData: FormData): Promise<ActionResult> {
     return { success: false, error: 'Data de nascimento e obrigatoria.' }
   }
 
-  const { data: existingCpfProfile } = await admin
-    .from('student_profiles')
-    .select('id')
-    .eq('school_id', schoolId)
-    .eq('cpf', cpfResult.value)
-    .maybeSingle()
+  if (cpfResult.value) {
+    const { data: existingCpfProfile } = await admin
+      .from('student_profiles')
+      .select('id')
+      .eq('school_id', schoolId)
+      .eq('cpf', cpfResult.value)
+      .maybeSingle()
 
-  if (existingCpfProfile) {
-    return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+    if (existingCpfProfile) {
+      return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+    }
   }
 
   const { data: existingEmailProfile } = await admin
@@ -251,15 +253,17 @@ export async function completeStudentProfileRegistration(formData: FormData): Pr
 
   const normalizedEmail = user.email?.trim().toLowerCase() ?? ''
 
-  const { data: existingCpfProfile } = await supabase
-    .from('student_profiles')
-    .select('id')
-    .eq('school_id', schoolId)
-    .eq('cpf', cpfResult.value)
-    .maybeSingle()
+  if (cpfResult.value) {
+    const { data: existingCpfProfile } = await supabase
+      .from('student_profiles')
+      .select('id')
+      .eq('school_id', schoolId)
+      .eq('cpf', cpfResult.value)
+      .maybeSingle()
 
-  if (existingCpfProfile) {
-    return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+    if (existingCpfProfile) {
+      return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+    }
   }
 
   const { data: existingEmailProfile } = await supabase

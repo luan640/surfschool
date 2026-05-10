@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, Lock, User, Phone, ArrowLeft, ArrowRight, AlertTriangle, CalendarDays, CreditCard } from 'lucide-react'
-import { completeStudentProfileRegistration, signInStudent, signUpStudent } from '@/actions/auth'
+import { completeStudentProfileRegistration, signInStudent, signUpStudent, sendPasswordResetEmail } from '@/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +22,7 @@ function GoogleIcon() {
   )
 }
 
-type Mode = 'login' | 'register' | 'complete'
+type Mode = 'login' | 'register' | 'complete' | 'forgot'
 
 export function StudentAuthClient({
   slug,
@@ -45,6 +45,7 @@ export function StudentAuthClient({
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [cpf, setCpf] = useState('')
+  const [resetSent, setResetSent] = useState(false)
 
   useEffect(() => {
     setMode(resolveMode(searchParams.get('mode')))
@@ -73,6 +74,18 @@ export function StudentAuthClient({
     setLoading(true)
     setError('')
 
+    if (mode === 'forgot') {
+      const fd = new FormData(e.currentTarget)
+      const result = await sendPasswordResetEmail(fd)
+      if (!result.success) {
+        setError(result.error)
+      } else {
+        setResetSent(true)
+      }
+      setLoading(false)
+      return
+    }
+
     const fd = new FormData(e.currentTarget)
     fd.set('school_id', schoolId)
     fd.set('school_slug', slug)
@@ -93,7 +106,21 @@ export function StudentAuthClient({
     }
   }
 
+  function goToForgot() {
+    setMode('forgot')
+    setError('')
+    setResetSent(false)
+  }
+
+  function goToLogin() {
+    setMode('login')
+    setError('')
+    setResetSent(false)
+    router.replace(`/${slug}/entrar?mode=login&next=${next}`)
+  }
+
   const isCompleteMode = mode === 'complete'
+  const isForgotMode = mode === 'forgot'
 
   return (
     <div className="min-h-dvh bg-slate-50 flex flex-col">
@@ -106,7 +133,42 @@ export function StudentAuthClient({
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          {!isCompleteMode && (
+
+          {/* ── Forgot password ── */}
+          {isForgotMode && (
+            <div>
+              <button type="button" onClick={goToLogin} className="mb-5 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+                <ArrowLeft size={14} />
+                Voltar para o login
+              </button>
+              <h2 className="font-condensed text-2xl font-bold uppercase tracking-wide text-slate-800">Redefinir senha</h2>
+              <p className="mt-1 mb-6 text-sm text-slate-500">Informe seu e-mail e enviaremos um link para criar uma nova senha.</p>
+
+              {resetSent ? (
+                <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                  <p className="font-semibold">Link enviado!</p>
+                  <p className="mt-1">Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
+                  <button type="button" onClick={goToLogin} className="mt-4 text-xs font-semibold underline text-emerald-700">
+                    Voltar para o login
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">E-mail</label>
+                    <Input name="email" type="email" required placeholder="seu@email.com" icon={<Mail size={14} />} />
+                  </div>
+                  {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+                  <Button type="submit" fullWidth disabled={loading} style={{ background: 'var(--primary)' } as React.CSSProperties}>
+                    {loading ? 'Enviando...' : 'Enviar link de redefinição'}
+                  </Button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* ── Login / Register tabs ── */}
+          {!isForgotMode && !isCompleteMode && (
             <div className="flex bg-white border border-slate-200 rounded p-1 mb-6">
               {(['register', 'login'] as const).map(m => (
                 <button
@@ -127,115 +189,129 @@ export function StudentAuthClient({
             </div>
           )}
 
-          {isCompleteMode && (
-            <div className="mb-5 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex gap-3">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-              <p>{t.auth_complete_notice}</p>
-            </div>
-          )}
-
-          {!isCompleteMode && (
+          {!isForgotMode && (
             <>
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={loading || !schoolId}
-                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <GoogleIcon />
-                {t.auth_continue_google}
-              </button>
-              <div className="relative flex items-center">
-                <div className="flex-1 border-t border-slate-200" />
-                <span className="px-3 text-xs text-slate-400 uppercase font-medium">{t.auth_or}</span>
-                <div className="flex-1 border-t border-slate-200" />
-              </div>
+              {isCompleteMode && (
+                <div className="mb-5 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex gap-3">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  <p>{t.auth_complete_notice}</p>
+                </div>
+              )}
+
+              {!isCompleteMode && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading || !schoolId}
+                    className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <GoogleIcon />
+                    {t.auth_continue_google}
+                  </button>
+                  <div className="relative flex items-center">
+                    <div className="flex-1 border-t border-slate-200" />
+                    <span className="px-3 text-xs text-slate-400 uppercase font-medium">{t.auth_or}</span>
+                    <div className="flex-1 border-t border-slate-200" />
+                  </div>
+                </>
+              )}
+
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {(mode === 'register' || mode === 'complete') && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_full_name}</label>
+                    <Input name="full_name" required placeholder="Seu nome" icon={<User size={14} />} />
+                  </div>
+                )}
+
+                {mode !== 'complete' && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_email}</label>
+                    <Input name="email" type="email" required placeholder="seu@email.com" icon={<Mail size={14} />} />
+                  </div>
+                )}
+
+                {(mode === 'register' || mode === 'complete') && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_phone}</label>
+                      <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_cpf} <span className="font-normal normal-case text-slate-400">(opcional)</span></label>
+                      <Input
+                        name="cpf"
+                        value={cpf}
+                        onChange={(event) => setCpf(formatCpf(event.target.value))}
+                        maxLength={CPF_INPUT_MAX_LENGTH}
+                        placeholder="000.000.000-00"
+                        icon={<CreditCard size={14} />}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_birth_date}</label>
+                      <Input name="birth_date" type="date" required icon={<CalendarDays size={14} />} />
+                    </div>
+                  </div>
+                )}
+
+                {mode !== 'complete' && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_password}</label>
+                      {mode === 'login' && (
+                        <button
+                          type="button"
+                          onClick={goToForgot}
+                          className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          Esqueci minha senha
+                        </button>
+                      )}
+                    </div>
+                    <Input name="password" type="password" required placeholder="••••••••" icon={<Lock size={14} />} />
+                  </div>
+                )}
+
+                {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  disabled={loading || !schoolId}
+                  style={{ background: mode === 'login' ? 'var(--primary)' : 'var(--cta)' } as React.CSSProperties}
+                  className="mt-1"
+                >
+                  {loading
+                    ? t.auth_wait
+                    : mode === 'register'
+                      ? <><span>{t.auth_create_account}</span><ArrowRight size={15} /></>
+                      : mode === 'complete'
+                        ? <><span>{t.auth_complete_register}</span><ArrowRight size={15} /></>
+                        : <><span>{t.auth_signin}</span><ArrowRight size={15} /></>}
+                </Button>
+              </form>
+
+              {!isCompleteMode && (
+                <p className="text-center text-sm text-slate-400 mt-6">
+                  {mode === 'register' ? t.auth_already_have_account : t.auth_no_account}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetMode = mode === 'register' ? 'login' : 'register'
+                      setMode(targetMode)
+                      setError('')
+                      router.replace(`/${slug}/entrar?mode=${targetMode}&next=${next}`)
+                    }}
+                    className="font-semibold hover:underline"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    {mode === 'register' ? t.auth_login_link : t.auth_register_link}
+                  </button>
+                </p>
+              )}
             </>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {(mode === 'register' || mode === 'complete') && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_full_name}</label>
-                <Input name="full_name" required placeholder="Seu nome" icon={<User size={14} />} />
-              </div>
-            )}
-
-            {mode !== 'complete' && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_email}</label>
-                <Input name="email" type="email" required placeholder="seu@email.com" icon={<Mail size={14} />} />
-              </div>
-            )}
-
-            {(mode === 'register' || mode === 'complete') && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_phone}</label>
-                  <Input name="phone" type="tel" placeholder="(48) 9 9999-0000" icon={<Phone size={14} />} />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_cpf}</label>
-                  <Input
-                    name="cpf"
-                    required
-                    value={cpf}
-                    onChange={(event) => setCpf(formatCpf(event.target.value))}
-                    maxLength={CPF_INPUT_MAX_LENGTH}
-                    placeholder="000.000.000-00"
-                    icon={<CreditCard size={14} />}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_birth_date}</label>
-                  <Input name="birth_date" type="date" required icon={<CalendarDays size={14} />} />
-                </div>
-              </div>
-            )}
-
-            {mode !== 'complete' && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t.auth_password}</label>
-                <Input name="password" type="password" required placeholder="••••••••" icon={<Lock size={14} />} />
-              </div>
-            )}
-
-            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
-
-            <Button
-              type="submit"
-              fullWidth
-              disabled={loading || !schoolId}
-              style={{ background: mode === 'login' ? 'var(--primary)' : 'var(--cta)' } as React.CSSProperties}
-              className="mt-1"
-            >
-              {loading
-                ? t.auth_wait
-                : mode === 'register'
-                  ? <><span>{t.auth_create_account}</span><ArrowRight size={15} /></>
-                  : mode === 'complete'
-                    ? <><span>{t.auth_complete_register}</span><ArrowRight size={15} /></>
-                    : <><span>{t.auth_signin}</span><ArrowRight size={15} /></>}
-            </Button>
-          </form>
-
-          {!isCompleteMode && (
-            <p className="text-center text-sm text-slate-400 mt-6">
-              {mode === 'register' ? t.auth_already_have_account : t.auth_no_account}
-              <button
-                type="button"
-                onClick={() => {
-                  const targetMode = mode === 'register' ? 'login' : 'register'
-                  setMode(targetMode)
-                  setError('')
-                  router.replace(`/${slug}/entrar?mode=${targetMode}&next=${next}`)
-                }}
-                className="font-semibold hover:underline"
-                style={{ color: 'var(--primary)' }}
-              >
-                {mode === 'register' ? t.auth_login_link : t.auth_register_link}
-              </button>
-            </p>
           )}
         </div>
       </div>
@@ -244,7 +320,7 @@ export function StudentAuthClient({
 }
 
 function resolveMode(value: string | null): Mode {
-  if (value === 'login' || value === 'complete') return value
+  if (value === 'login' || value === 'complete' || value === 'forgot') return value
   return 'register'
 }
 

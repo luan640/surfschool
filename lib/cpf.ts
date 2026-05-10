@@ -46,7 +46,7 @@ export function isValidCpf(value: string | null | undefined) {
 export function validateCpfField(value: string | null | undefined, label = 'CPF') {
   const normalized = normalizeCpf(value)
   if (!normalized) {
-    return { value: null, error: `${label} e obrigatorio.` }
+    return { value: null, error: null }
   }
 
   if (!isValidCpf(normalized)) {

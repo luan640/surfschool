@@ -56,15 +56,15 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
   if (!school) return { success: false, error: 'Nao autorizado' }
 
   const email = ((formData.get('email') as string | null) ?? '').trim().toLowerCase()
-  const password = (formData.get('password') as string | null) ?? ''
+  const passwordRaw = ((formData.get('password') as string | null) ?? '').trim()
   const fullName = ((formData.get('full_name') as string | null) ?? '').trim()
   const birthDate = ((formData.get('birth_date') as string | null) ?? '').trim()
   const trialLessonEligible = formData.get('trial_lesson_eligible') === 'true'
   const phoneResult = validatePhoneField(formData.get('phone') as string | null, 'Telefone')
   const cpfResult = validateCpfField(formData.get('cpf') as string | null, 'CPF')
 
-  if (!email || !password || !fullName || !birthDate) {
-    return { success: false, error: 'Preencha nome, e-mail, CPF, data de nascimento e senha do aluno.' }
+  if (!email || !fullName || !birthDate) {
+    return { success: false, error: 'Preencha nome, e-mail e data de nascimento do aluno.' }
   }
 
   if (phoneResult.error) {
@@ -75,20 +75,26 @@ export async function createDashboardStudent(formData: FormData): Promise<Action
     return { success: false, error: cpfResult.error }
   }
 
-  if (password.length < 6) {
+  if (passwordRaw && passwordRaw.length < 6) {
     return { success: false, error: 'A senha precisa ter pelo menos 6 caracteres.' }
   }
 
-  const admin = createAdminClient()
-  const { data: existingCpfProfile } = await admin
-    .from('student_profiles')
-    .select('id')
-    .eq('school_id', school.id)
-    .eq('cpf', cpfResult.value)
-    .maybeSingle()
+  const { randomBytes } = await import('node:crypto')
+  const password = passwordRaw || randomBytes(16).toString('hex')
 
-  if (existingCpfProfile) {
-    return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+  const admin = createAdminClient()
+
+  if (cpfResult.value) {
+    const { data: existingCpfProfile } = await admin
+      .from('student_profiles')
+      .select('id')
+      .eq('school_id', school.id)
+      .eq('cpf', cpfResult.value)
+      .maybeSingle()
+
+    if (existingCpfProfile) {
+      return { success: false, error: 'Ja existe um aluno com este CPF nesta escola.' }
+    }
   }
 
   const { data: existingEmailProfile } = await admin

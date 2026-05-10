@@ -37,6 +37,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [agreedAmount, setAgreedAmount] = useState(() =>
     booking ? Number(booking.total_amount).toFixed(2).replace('.', ',') : '',
@@ -96,9 +97,9 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
     setMenuOpen((v) => !v)
   }
 
-  async function change(next: BookingStatus) {
+  async function change(next: BookingStatus, notes?: string) {
     setLoading(true)
-    const result = await updateBookingStatus(bookingId, next)
+    const result = await updateBookingStatus(bookingId, next, notes)
     if (!result.success) {
       showError('Não foi possível atualizar o agendamento.', result.error)
       setLoading(false)
@@ -262,7 +263,7 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
               {booking && !booking.payment_transaction_id && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor acordado</label>
+                    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Valor recebido</label>
                     <Input value={agreedAmount} onChange={(e) => setAgreedAmount(e.target.value)} inputMode="decimal" placeholder="0,00" />
                     <p className="text-xs text-slate-500">O valor presencial pode ser ajustado aqui antes de confirmar o pagamento.</p>
                   </div>
@@ -343,9 +344,9 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
                 <h2 className="font-condensed text-3xl font-bold uppercase tracking-wide text-slate-800">Cancelar aula</h2>
-                <p className="mt-1 text-sm text-slate-500">Esta acao vai cancelar o agendamento.</p>
+                <p className="mt-1 text-sm text-slate-500">Esta ação vai cancelar o agendamento.</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setCancelOpen(false)} aria-label="Fechar">
+              <Button variant="ghost" size="icon" onClick={() => { setCancelOpen(false); setCancelReason('') }} aria-label="Fechar">
                 <X size={18} />
               </Button>
             </div>
@@ -358,9 +359,21 @@ export function BookingStatusActions({ bookingId, status, booking, instructors =
                   <p><span className="font-semibold text-slate-800">Horario:</span> {booking.time_slots.join(', ')}</p>
                 </div>
               )}
+              <div className="grid gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Motivo <span className="font-normal normal-case text-slate-400">(opcional)</span>
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Ex: Condições climáticas, pedido do aluno..."
+                  rows={3}
+                  className="w-full resize-none rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-200"
+                />
+              </div>
               <div className="flex justify-end gap-3">
-                <Button variant="ghost" onClick={() => setCancelOpen(false)} disabled={loading}>Voltar</Button>
-                <Button variant="danger" onClick={async () => { await change('cancelled'); setCancelOpen(false) }} disabled={loading}>
+                <Button variant="ghost" onClick={() => { setCancelOpen(false); setCancelReason('') }} disabled={loading}>Voltar</Button>
+                <Button variant="danger" onClick={async () => { await change('cancelled', cancelReason); setCancelOpen(false); setCancelReason('') }} disabled={loading}>
                   {loading ? 'Cancelando...' : 'Cancelar aula'}
                 </Button>
               </div>
